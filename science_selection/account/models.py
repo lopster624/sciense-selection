@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 from django.db import models
+from django.dispatch import receiver
 
 
 class Role(models.Model):
@@ -21,6 +22,17 @@ class Member(models.Model):
     father_name = models.CharField(max_length=32)
     phone = models.CharField(validators=[Validator.phone_regex], max_length=17, blank=True)
     affiliations = models.ManyToManyField(Affiliation)
+
+    def __str__(self):
+        return f'{self.user.first_name} {self.user.last_name}'
+
+
+@receiver(models.signals.post_save, sender=User)
+def send_mail(sender, instance, **kwargs):
+    """
+    Отправка письма после регистрации на почту для активации пользователя
+    """
+    pass
 
 
 class Booking(models.Model):

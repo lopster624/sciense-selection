@@ -1,0 +1,4 @@
+
+
+MINIMUM_SCORE = 2
+MAX_SCORE = 5

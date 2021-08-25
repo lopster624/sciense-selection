@@ -5,9 +5,10 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from account.models import Member
+from utils import constants as const
 
 
-def validate_draft_year(value):
+def validate_draft_year(value: int):
     if value < datetime.date.today().year:
         raise ValidationError(_(f'Год призыва {value} раньше текущего'))
 
@@ -26,7 +27,7 @@ class Application(models.Model):
     military_commissariat = models.CharField(max_length=128, verbose_name='Военный комиссариат')
     group_of_health = models.CharField(max_length=32, verbose_name='Группа здоровья')
     draft_year = models.IntegerField(verbose_name='Год призыва', validators=[validate_draft_year])
-    draft_season = models.IntegerField(choices=season)
+    draft_season = models.IntegerField(choices=season, verbose_name='Сезон призыва')
     scientific_achievements = models.TextField(blank=True, null=True, verbose_name='Достижения')
     scholarships = models.TextField(blank=True, null=True, verbose_name='Стипендии')
     ready_to_secret = models.BooleanField(default=False, verbose_name='Готовность к секретности')
@@ -44,10 +45,18 @@ class Application(models.Model):
         verbose_name = "Заявка"
         verbose_name_plural = "Заявки"
 
-    def calculate_fullness(self):
+    def calculate_fullness(self) -> int:
+        """
+        Подсчет заполненности анкеты
+        :return: значение заполненности в %
+        """
         return 1
 
-    def calculate_final_score(self):
+    def calculate_final_score(self) -> float:
+        """
+        Подсчет рейтингового балла заявки оператора по формуле
+        :return: рассчитание значение
+        """
         return 1
 
     def save(self, *args, **kwargs):
@@ -59,8 +68,8 @@ class Application(models.Model):
         return f'{self.member.user.first_name} {self.member.user.last_name}'
 
 
-def validate_avg_score(value):
-    if value < 2 or value > 5:
+def validate_avg_score(value: float):
+    if value < const.MINIMUM_SCORE or value > const.MAX_SCORE:
         raise ValidationError(_(f'Год призыва {value} раньше текущего'))
 
 
@@ -72,7 +81,7 @@ class Education(models.Model):
         ('s', 'Специалитет'),
     ]
     application = models.ForeignKey(Application, on_delete=models.CASCADE, verbose_name='Заявка')
-    education_type = models.CharField(choices=education_program, max_length=1)
+    education_type = models.CharField(choices=education_program, max_length=1, verbose_name='Программа')
     university = models.CharField(max_length=256, verbose_name='Университет')
     specialization = models.CharField(max_length=256, verbose_name='Специальность')
     avg_score = models.FloatField(verbose_name='Средний балл', validators=[validate_avg_score])
@@ -81,7 +90,7 @@ class Education(models.Model):
     theme_of_diploma = models.CharField(max_length=128, verbose_name='Тема диплома')
 
     def __str__(self):
-        return f'{self.application.member.user.first_name}: {self.get_education_type_display()}'
+        return f'{self.application.member.user.first_name} {self.application.member.user.first_name}: {self.get_education_type_display()}'
 
     class Meta:
         verbose_name = "Образование"
@@ -102,8 +111,8 @@ class Direction(models.Model):
 
 
 def user_directory_path(instance, filename):
-    # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>_timestamp
-    return f'user_{instance.user.id}/{filename}_{int(datetime.datetime.timestamp(datetime.datetime.now()))}'
+    # file will be uploaded to MEDIA_ROOT/user_<id>/<timestamp>_<filename>
+    return f'user_{instance.member.user.username}/{{int(datetime.datetime.timestamp(datetime.datetime.now()))}}_{filename}'
 
 
 class File(models.Model):
@@ -131,6 +140,7 @@ class AdditionField(models.Model):
     class Meta:
         verbose_name = "Кастомное поле"
         verbose_name_plural = "Кастомные поля"
+        ordering = ['name']
 
 
 class AdditionFieldApp(models.Model):
@@ -156,6 +166,7 @@ class Competence(models.Model):
     class Meta:
         verbose_name = "Компетенция"
         verbose_name_plural = "Компетенции"
+        ordering = ['name']
 
 
 class ApplicationCompetencies(models.Model):
