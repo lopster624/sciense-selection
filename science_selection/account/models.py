@@ -20,12 +20,12 @@ class Member(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     father_name = models.CharField(max_length=32)
     phone = models.CharField(validators=[Validator.phone_regex], max_length=17, blank=True)
-    affiliation = models.ManyToManyField(Affiliation)
+    affiliations = models.ManyToManyField(Affiliation)
 
 
 class Booking(models.Model):
     pass
 
 
-class Booking_Type(models.Model):
+class BookingType(models.Model):
     pass
