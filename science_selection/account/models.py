@@ -11,6 +11,9 @@ class Role(models.Model):
         verbose_name = "Роль"
         verbose_name_plural = "Роли"
 
+    def __str__(self):
+        return f'{self.role_name}'
+
 
 class Affiliation(models.Model):
     direction = models.ForeignKey('application.Direction', verbose_name="Направление", on_delete=models.CASCADE)
