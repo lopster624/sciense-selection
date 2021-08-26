@@ -1,18 +1,36 @@
 from django.contrib import admin
 
-from . import models as model
+from . import models
 
 
-@admin.register(model.Member)
-class ApplicationAdmin(admin.ModelAdmin):
-    pass
+@admin.register(models.Member)
+class MemberAdmin(admin.ModelAdmin):
+    list_display = ('role', 'user', 'father_name', 'phone', 'get_affiliations')
+    list_filter = ('role',)
+
+    def get_affiliations(self, obj):
+        return ', '.join([d.name for d in obj.directions.all()])
 
 
-@admin.register(model.Role)
-class ApplicationAdmin(admin.ModelAdmin):
-    pass
+@admin.register(models.Role)
+class RoleAdmin(admin.ModelAdmin):
+    list_display = ('role_name',)
+    list_filter = ('role_name',)
 
 
-@admin.register(model.Affiliation)
-class ApplicationAdmin(admin.ModelAdmin):
-    pass
+@admin.register(models.Affiliation)
+class AffiliationAdmin(admin.ModelAdmin):
+    list_display = ('direction', 'company', 'platoon')
+    list_filter = ('direction', 'company', 'platoon')
+
+
+@admin.register(models.Booking)
+class BookingAdmin(admin.ModelAdmin):
+    list_display = ('booking_type', 'master', 'slave',)
+    list_filter = ('booking_type', 'master', 'slave',)
+
+
+@admin.register(models.BookingType)
+class BookingTypeAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    list_filter = ('name',)

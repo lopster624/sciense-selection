@@ -4,9 +4,8 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from science_selection.utils import constants as const
-
-from science_selection.account.models import Member
+from utils import constants as const
+from account.models import Member
 
 
 def validate_draft_year(value: int):
