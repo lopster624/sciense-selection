@@ -4,8 +4,6 @@ from django.db import models
 from django.dispatch import receiver
 
 
-
-
 class Role(models.Model):
     role_name = models.CharField(max_length=32)
 
