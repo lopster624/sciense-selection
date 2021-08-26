@@ -52,7 +52,7 @@ def send_link_to_mail(sender, instance, **kwargs):
     """
     Отправка письма после регистрации на почту для активации пользователя
     """
-    base_url = '127.0.0.1:8000/account/'  # в переменные окружения
+    base_url = '127.0.0.1:8000/activation/'  # в переменные окружения
     link = ActivationLink.objects.get(user=User.objects.get(pk=instance.user.pk))
     send_mail('Проверка', f'{base_url}{link.token}', DEFAULT_FROM_EMAIL, [instance.user.email])
 
