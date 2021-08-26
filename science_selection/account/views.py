@@ -1,9 +1,11 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views import View
 from uuid import uuid4
 
+from utils.constants import SLAVE_ROLE_NAME
+
 from .forms import RegisterForm
-from .models import Member, ActivationLink
+from .models import Member, ActivationLink, Role
 
 
 class RegistrationView(View):
@@ -26,3 +28,21 @@ class RegistrationView(View):
         else:
             msg = 'Form is valid'
         return render(request, "register.html", {"form": form, "msg": msg, "success": success})
+
+
+class ActivationView(View):
+    def get(self, request, token):
+        try:
+            link_object = ActivationLink.objects.get(token=token)
+        except ActivationLink.DoesNotExist:
+            return render(request, 'access_error.html', context={'error': 'Ссылка активации некорректна!.'})
+        if link_object.user != request.user:
+            return render(request, 'access_error.html', context={'error': 'Ссылка активации некорректна!.'})
+        link_object.user.member.role = Role.objects.get(role_name=SLAVE_ROLE_NAME)
+        link_object.delete()
+        return redirect('home')
+
+
+class HomeView(View):
+    def get(self, request):
+        return render(request, 'account/home.html', context={})
