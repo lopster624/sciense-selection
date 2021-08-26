@@ -4,8 +4,9 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from account.models import Member
-from utils import constants as const
+from science_selection.utils import constants as const
+
+from science_selection.account.models import Member
 
 
 def validate_draft_year(value: int):
@@ -19,7 +20,8 @@ class Application(models.Model):
         (2, 'Весна')
     ]
     member = models.OneToOneField(Member, on_delete=models.CASCADE, verbose_name='Пользователь')
-    competencies = models.ManyToManyField('Competence', verbose_name='Выбранные компетенции', through='ApplicationCompetencies')
+    competencies = models.ManyToManyField('Competence', verbose_name='Выбранные компетенции',
+                                          through='ApplicationCompetencies')
     directions = models.ManyToManyField('Direction', verbose_name='Выбранные направления')
     birth_day = models.DateField(verbose_name='День рождения')
     birth_place = models.CharField(max_length=128, verbose_name='Место рождения')
@@ -28,13 +30,13 @@ class Application(models.Model):
     group_of_health = models.CharField(max_length=32, verbose_name='Группа здоровья')
     draft_year = models.IntegerField(verbose_name='Год призыва', validators=[validate_draft_year])
     draft_season = models.IntegerField(choices=season, verbose_name='Сезон призыва')
-    scientific_achievements = models.TextField(blank=True, null=True, verbose_name='Достижения')
-    scholarships = models.TextField(blank=True, null=True, verbose_name='Стипендии')
+    scientific_achievements = models.TextField(blank=True, verbose_name='Достижения')
+    scholarships = models.TextField(blank=True, verbose_name='Стипендии')
     ready_to_secret = models.BooleanField(default=False, verbose_name='Готовность к секретности')
-    candidate_exams = models.TextField(blank=True, null=True, verbose_name='Кандидатские экзамены')
-    sporting_achievements = models.TextField(blank=True, null=True, verbose_name='Спортивные достижения')
-    hobby = models.TextField(blank=True, null=True, verbose_name='Хобби')
-    other_information = models.TextField(blank=True, null=True, verbose_name='Дополнительная информация')
+    candidate_exams = models.TextField(blank=True, verbose_name='Кандидатские экзамены')
+    sporting_achievements = models.TextField(blank=True, verbose_name='Спортивные достижения')
+    hobby = models.TextField(blank=True, verbose_name='Хобби')
+    other_information = models.TextField(blank=True, verbose_name='Дополнительная информация')
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
     fullness = models.FloatField(default=0, verbose_name='Процент заполненности')
