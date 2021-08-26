@@ -1,10 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
+{% load static %}
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <link rel="shortcut icon" href="{% static 'images/era.jpg' %}" type="image/jpg">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="{% static 'css/bootstrap.css' %}">
+    <script src="{% static 'js/bootstrap.bundle.js' %}" type="text/javascript"></script>
+    <title>
+        {% block title %}
+        Отбор в ЭРУ
+        {% endblock %}
+    </title>
 </head>
-<body>
+<body class="bg-light text-dark">
+{% block content %}
+{% endblock %}
+
 
 </body>
 </html>
