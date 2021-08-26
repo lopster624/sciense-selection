@@ -9,7 +9,7 @@ class MemberAdmin(admin.ModelAdmin):
     list_filter = ('role',)
 
     def get_affiliations(self, obj):
-        return ', '.join([d.name for d in obj.directions.all()])
+        return ', '.join([d.name for d in obj.affiliations.all()])
 
 
 @admin.register(models.Role)
@@ -34,3 +34,8 @@ class BookingAdmin(admin.ModelAdmin):
 class BookingTypeAdmin(admin.ModelAdmin):
     list_display = ('name',)
     list_filter = ('name',)
+
+
+@admin.register(models.ActivationLink)
+class ActivationLinkAdmin(admin.ModelAdmin):
+    pass
