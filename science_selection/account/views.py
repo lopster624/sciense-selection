@@ -38,7 +38,9 @@ class ActivationView(View):
             return render(request, 'access_error.html', context={'error': 'Ссылка активации некорректна!.'})
         if link_object.user != request.user:
             return render(request, 'access_error.html', context={'error': 'Ссылка активации некорректна!.'})
-        link_object.user.member.role = Role.objects.get(role_name=SLAVE_ROLE_NAME)
+        user = link_object.user
+        user.member.role = Role.objects.get(role_name=SLAVE_ROLE_NAME)
+        user.save()
         link_object.delete()
         return redirect('home')
 
