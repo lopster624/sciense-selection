@@ -18,6 +18,10 @@
         </div>
         {% endif %}
         <input type="submit" class="btn btn-outline-dark mt-2 mb-2" value="Войти"/>
+        <div>
+            Вы не зарегестрированы? <a href="{% url 'register' %}">Регистрация</a>
+        </div>
     </form>
+
 </div>
 {% endblock %}

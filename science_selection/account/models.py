@@ -44,7 +44,7 @@ class Member(models.Model):
         verbose_name_plural = "Участники"
 
     def __str__(self):
-        return f'{self.user.first_name} {self.user.last_name}'
+        return f'{self.user.last_name} {self.user.first_name} {self.father_name}'
 
 
 @receiver(models.signals.post_save, sender=Member)
@@ -52,7 +52,7 @@ def send_link_to_mail(sender, instance, **kwargs):
     """
     Отправка письма после регистрации на почту для активации пользователя
     """
-    base_url = '127.0.0.1:8000/activation/'  # в переменные окружения
+    base_url = '127.0.0.1:8000/accounts/activation/'  # в переменные окружения
     link = ActivationLink.objects.get(user=User.objects.get(pk=instance.user.pk))
     send_mail('Проверка', f'{base_url}{link.token}', DEFAULT_FROM_EMAIL, [instance.user.email])
 
