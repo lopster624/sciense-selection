@@ -1,10 +1,11 @@
+from uuid import uuid4
+
+from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
 from django.views import View
-from uuid import uuid4
 
 from utils.constants import SLAVE_ROLE_NAME
-
 from .forms import RegisterForm
 from .models import Member, ActivationLink, Role
 
@@ -26,6 +27,7 @@ class RegistrationView(View):
                                   phone=form.cleaned_data.get('phone'), role=None)
             msg = 'User created - please <a href="/login">login</a>.'
             success = True
+            login(request, new_user)
         else:
             msg = 'Form is invalid'
         return render(request, "register.html", {"form": form, "msg": msg, "success": success})
