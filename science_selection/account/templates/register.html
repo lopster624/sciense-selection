@@ -4,11 +4,14 @@
 Регистрация
 {% endblock %}
 {% block content %}
-<form method="post" action="{% url 'register' %}" class="card p-2 mb-2 w-50 bg-default text-center"
-      style="margin-left: 25%; margin-top: 10%">
-    {% include 'includes/form_field_template.html' %}
-    <div class="text-center">
-        <input type="submit" class="mb-2 mt-2 btn btn-outline-dark" value="Зарегестрироваться"/>
+    <div class="container" id="register">
+    <div class="row">
+        <div class="col-md-6 offset-3">
+            <form action="{% url 'register' %}" method="post">
+                {% include 'includes/form_field_template.html' %}
+                <button type="submit" class="mt-2 btn btn-primary">Зарегестрироваться</button>
+            </form>
+        </div>
     </div>
-</form>
+    </div>
 {% endblock %}

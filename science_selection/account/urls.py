@@ -9,5 +9,4 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('register/', RegistrationView.as_view(), name='register'),
     path('activation/<str:token>/', ActivationView.as_view(), name='activation'),
-
 ]
