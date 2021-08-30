@@ -1,23 +1,15 @@
 {% extends 'base.html' %}
 
+{% block title %}
+Регистрация
+{% endblock %}
 {% block content %}
     <div class="container" id="register">
     <div class="row">
         <div class="col-md-6 offset-3">
             <form action="{% url 'register' %}" method="post">
-                {% csrf_token %}
-                {% for f in form %}
-                <div class="form-group clearfix">
-                    <label for="{{ f.label }}">{{ f.label }}</label>
-                    <div>
-                        {{ f }}
-                    </div>
-                </div>
-                {% if form.errors %}
-                    <p class="bg-danger p-d ml-b">{{ f.errors }}</p>
-                    {% endif %}
-                {% endfor %}
-              <button type="submit" class="btn btn-primary">Зарегестрироваться</button>
+                {% include 'includes/form_field_template.html' %}
+                <button type="submit" class="mt-2 btn btn-primary">Зарегестрироваться</button>
             </form>
         </div>
     </div>
