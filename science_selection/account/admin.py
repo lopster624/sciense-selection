@@ -38,4 +38,5 @@ class BookingTypeAdmin(admin.ModelAdmin):
 
 @admin.register(models.ActivationLink)
 class ActivationLinkAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('user', 'token')
+    list_filter = ('user',)

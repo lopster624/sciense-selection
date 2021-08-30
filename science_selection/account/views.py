@@ -25,15 +25,14 @@ class RegistrationView(View):
             ActivationLink.objects.create(user=new_user, token=uuid4())
             Member.objects.create(user=new_user, father_name=form.cleaned_data.get('father_name'),
                                   phone=form.cleaned_data.get('phone'), role=None)
-            msg = 'User created - please <a href="/login">login</a>.'
+            msg = 'User created'
             success = True
-            login(request, new_user)
         else:
             msg = 'Form is invalid'
         return render(request, "register.html", {"form": form, "msg": msg, "success": success})
 
 
-class ActivationView(View, LoginRequiredMixin):
+class ActivationView(LoginRequiredMixin, View):
     def get(self, request, token):
         try:
             link_object = ActivationLink.objects.get(token=token)
@@ -49,6 +48,6 @@ class ActivationView(View, LoginRequiredMixin):
         return redirect('home')
 
 
-class HomeView(View, LoginRequiredMixin):
+class HomeView(LoginRequiredMixin, View):
     def get(self, request):
         return render(request, 'account/home.html', context={})

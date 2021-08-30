@@ -86,3 +86,6 @@ class ActivationLink(models.Model):
     class Meta:
         verbose_name = "Ссылка активации"
         verbose_name_plural = "Ссылки активации"
+
+    def __str__(self):
+        return f'{self.user}'
