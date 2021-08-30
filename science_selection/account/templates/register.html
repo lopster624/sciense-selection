@@ -1,21 +1,25 @@
 {% extends 'base.html' %}
 
-
 {% block content %}
-<form method="post" action="{% url 'register' %}">
-    {% csrf_token %}
-    {% for f in form %}
-    <div>
-        {{ f.label }}
-        {{ f }}
+    <div class="container" id="register">
+    <div class="row">
+        <div class="col-md-6 offset-3">
+            <form action="{% url 'register' %}" method="post">
+                {% csrf_token %}
+                {% for f in form %}
+                <div class="form-group clearfix">
+                    <label for="{{ f.label }}">{{ f.label }}</label>
+                    <div>
+                        {{ f }}
+                    </div>
+                </div>
+                {% if form.errors %}
+                    <p class="bg-danger p-d ml-b">{{ f.errors }}</p>
+                    {% endif %}
+                {% endfor %}
+              <button type="submit" class="btn btn-primary">Зарегестрироваться</button>
+            </form>
+        </div>
     </div>
-    {% if form.errors %}
-    <div>
-        {{ f.errors }}
     </div>
-    {% endif %}
-    {% endfor %}
-
-    <input type="submit" value="Зарегестрироваться"/>
-</form>
 {% endblock %}
