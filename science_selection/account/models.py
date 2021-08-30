@@ -5,6 +5,7 @@ from django.db import models
 from django.dispatch import receiver
 
 from engine.settings import DEFAULT_FROM_EMAIL
+from utils.constants import ACTIVATION_LINK
 
 
 class Role(models.Model):
@@ -52,9 +53,8 @@ def send_link_to_mail(sender, instance, **kwargs):
     """
     Отправка письма после регистрации на почту для активации пользователя
     """
-    base_url = '127.0.0.1:8000/activation/'  # в переменные окружения
     link = ActivationLink.objects.get(user=User.objects.get(pk=instance.user.pk))
-    send_mail('Проверка', f'{base_url}{link.token}', DEFAULT_FROM_EMAIL, [instance.user.email])
+    send_mail('Проверка', f'{ACTIVATION_LINK}{link.token}', DEFAULT_FROM_EMAIL, [instance.user.email])
 
 
 class BookingType(models.Model):

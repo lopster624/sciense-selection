@@ -25,10 +25,10 @@ class RegistrationView(View):
             ActivationLink.objects.create(user=new_user, token=uuid4())
             Member.objects.create(user=new_user, father_name=form.cleaned_data.get('father_name'),
                                   phone=form.cleaned_data.get('phone'), role=None)
-            msg = 'User created'
+            msg = 'Пользователь успешно зарегистрирован, подтвердите регистрацию на почте'
             success = True
         else:
-            msg = 'Form is invalid'
+            msg = 'Некорректные данные в форме'
         return render(request, "register.html", {"form": form, "msg": msg, "success": success})
 
 
