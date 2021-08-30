@@ -34,12 +34,12 @@ class RegisterForm(forms.ModelForm):
 
     def clean_username(self):
         username = self.cleaned_data['username']
-        if User.objects.filter(username=username.lower()):
+        if User.objects.filter(username__iexact=username):
             raise forms.ValidationError("Пользователь с таким именем уже существует")
-        return username.lower()
+        return username
 
     def clean_email(self):
         user_email = self.cleaned_data['email']
-        if User.objects.filter(email=user_email):
+        if User.objects.filter(email__iexact=user_email):
             raise forms.ValidationError("Пользователь с такой почтой уже существует")
         return user_email

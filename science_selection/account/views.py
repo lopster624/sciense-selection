@@ -1,5 +1,3 @@
-from uuid import uuid4
-
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
@@ -22,13 +20,12 @@ class RegistrationView(View):
             new_user = form.save(commit=False)
             new_user.set_password(form.cleaned_data['password'])
             new_user.save()
-            ActivationLink.objects.create(user=new_user, token=uuid4())
             Member.objects.create(user=new_user, father_name=form.cleaned_data.get('father_name'),
                                   phone=form.cleaned_data.get('phone'), role=None)
-            msg = 'User created'
+            msg = 'Пользователь успешно зарегистрирован, подтвердите регистрацию на почте'
             success = True
         else:
-            msg = 'Form is invalid'
+            msg = 'Некорректные данные в форме'
         return render(request, "register.html", {"form": form, "msg": msg, "success": success})
 
 

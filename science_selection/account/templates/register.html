@@ -11,6 +11,11 @@
                 {% include 'includes/form_field_template.html' %}
                 <button type="submit" class="mt-2 btn btn-outline-dark">Зарегестрироваться</button>
             </form>
+            {% if success %}
+            <blockquote class="blockquote text-center">
+                <p class="mb-2">{{ msg }}</p>
+            </blockquote>
+            {% endif %}
         </div>
     </div>
     </div>

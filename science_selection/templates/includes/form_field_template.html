@@ -1,13 +1,13 @@
 {% csrf_token %}
 {% for f in form %}
     <div class="form-group mb-1 clearfix">
-        <label class="mb-1" for="{{ f.label }}">{{ f.label }}</label>
+        <label class="mb-1">{{ f.label }}</label>
         <div>
             {{ f }}
     </div>
     </div>
     {% if form.errors %}
-        <div class="mt-1 mb-0 alert-danger">
+        <div class="mt-1 mb-0 alert-danger rounded">
             {{ f.errors }}
         </div>
     {% endif %}
