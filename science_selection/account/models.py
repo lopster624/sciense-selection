@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.core.validators import RegexValidator
@@ -48,13 +50,15 @@ class Member(models.Model):
         return f'{self.user.first_name} {self.user.last_name}'
 
 
-@receiver(models.signals.post_save, sender=Member)
-def send_link_to_mail(sender, instance, **kwargs):
+@receiver(models.signals.post_save, sender=User)
+def send_link_to_mail(sender, instance, created, **kwargs):
     """
     Отправка письма после регистрации на почту для активации пользователя
     """
-    link = ActivationLink.objects.get(user=User.objects.get(pk=instance.user.pk))
-    send_mail('Проверка', f'{ACTIVATION_LINK}{link.token}', DEFAULT_FROM_EMAIL, [instance.user.email])
+    if created:
+        token = uuid4()
+        ActivationLink.objects.create(user=instance, token=token)
+        send_mail('Проверка', f'{ACTIVATION_LINK}{token}', DEFAULT_FROM_EMAIL, [instance.email])
 
 
 class BookingType(models.Model):
