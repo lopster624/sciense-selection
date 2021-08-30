@@ -5,7 +5,7 @@ from . import models
 
 @admin.register(models.Member)
 class MemberAdmin(admin.ModelAdmin):
-    list_display = ('role', 'user', 'father_name', 'phone', 'get_affiliations')
+    list_display = ('user', 'role', 'father_name', 'phone', 'get_affiliations')
     list_filter = ('role',)
 
     def get_affiliations(self, obj):

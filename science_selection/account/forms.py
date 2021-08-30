@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 
 class RegisterForm(forms.ModelForm):
     father_name = forms.CharField(label='Отчество')
-    phone = forms.RegexField(label='Телефон', regex=r'^\+?1?\d{9,15}$')
+    phone = forms.RegexField(label='Телефон', regex=r'^\+?\d{11}|\d{6}$')
 
     class Meta:
         model = User
