@@ -1,3 +1,4 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
 from django.views import View
 from uuid import uuid4
@@ -26,23 +27,26 @@ class RegistrationView(View):
             msg = 'User created - please <a href="/login">login</a>.'
             success = True
         else:
-            msg = 'Form is valid'
+            msg = 'Form is invalid'
         return render(request, "register.html", {"form": form, "msg": msg, "success": success})
 
 
-class ActivationView(View):
+class ActivationView(View, LoginRequiredMixin):
     def get(self, request, token):
         try:
             link_object = ActivationLink.objects.get(token=token)
         except ActivationLink.DoesNotExist:
             return render(request, 'access_error.html', context={'error': 'Ссылка активации некорректна!.'})
         if link_object.user != request.user:
-            return render(request, 'access_error.html', context={'error': 'Ссылка активации некорректна!.'})
-        link_object.user.member.role = Role.objects.get(role_name=SLAVE_ROLE_NAME)
+            return render(request, 'access_error.html',
+                          context={'error': 'Ссылка предназначена для другого пользователя!'})
+        member = Member.objects.get(user=link_object.user)
+        member.role = Role.objects.get(role_name=SLAVE_ROLE_NAME)
+        member.save()
         link_object.delete()
         return redirect('home')
 
 
-class HomeView(View):
+class HomeView(View, LoginRequiredMixin):
     def get(self, request):
         return render(request, 'account/home.html', context={})

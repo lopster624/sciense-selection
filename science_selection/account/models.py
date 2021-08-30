@@ -30,11 +30,11 @@ class Affiliation(models.Model):
 
 class Member(models.Model):
     class Validator:
-        phone_regex = RegexValidator(regex=r'^\+?\d{6,11}$',
+        phone_regex = RegexValidator(regex=r'^\+?\d{11}|\d{6}$',
                                      message="Введите корректный номер телефона формата: +99999999999.")
 
-    role = models.ForeignKey(Role, verbose_name="Роль", null=True, blank=True, on_delete=models.DO_NOTHING)
     user = models.OneToOneField(User, verbose_name="Пользователь", on_delete=models.CASCADE)
+    role = models.ForeignKey(Role, verbose_name="Роль", null=True, blank=True, on_delete=models.SET_NULL)
     father_name = models.CharField(max_length=32, verbose_name="Отчество", blank=True)
     phone = models.CharField(validators=[Validator.phone_regex], verbose_name="Телефон", max_length=17)
     affiliations = models.ManyToManyField(Affiliation, verbose_name="Принадлежность", blank=True)
@@ -69,10 +69,10 @@ class BookingType(models.Model):
 
 
 class Booking(models.Model):
-    booking_type = models.ForeignKey(BookingType, verbose_name="Тип бронирования", on_delete=models.DO_NOTHING)
+    booking_type = models.ForeignKey(BookingType, verbose_name="Тип бронирования", on_delete=models.SET_NULL, null=True)
     master = models.ForeignKey(Member, verbose_name="Ведущий отбор", on_delete=models.CASCADE)
     slave = models.ForeignKey(Member, verbose_name="Кандидат", on_delete=models.CASCADE, related_name='candidate')
-    affiliation = models.ForeignKey(Affiliation, verbose_name="Принадлежность", on_delete=models.DO_NOTHING)
+    affiliation = models.ForeignKey(Affiliation, verbose_name="Принадлежность", null=True, on_delete=models.SET_NULL)
 
     class Meta:
         verbose_name = "Бронирование"
