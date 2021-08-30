@@ -33,7 +33,7 @@ class Member(models.Model):
         phone_regex = RegexValidator(regex=r'^\+?\d{6,11}$',
                                      message="Введите корректный номер телефона формата: +99999999999.")
 
-    role = models.ForeignKey(Role, verbose_name="Роль", null=True, blank=True, on_delete=models.DO_NOTHING)
+    role = models.ForeignKey(Role, verbose_name="Роль", blank=True, on_delete=models.DO_NOTHING)
     user = models.OneToOneField(User, verbose_name="Пользователь", on_delete=models.CASCADE)
     father_name = models.CharField(max_length=32, verbose_name="Отчество", blank=True)
     phone = models.CharField(validators=[Validator.phone_regex], verbose_name="Телефон", max_length=17)
