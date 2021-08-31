@@ -1,3 +1,4 @@
+from uuid import uuid4
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.core.validators import RegexValidator

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Создание заявки
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+{% include 'application/includes/nav_tabs_template.html' %}
+<div class="col-md-8 offset-2 text-center mt-4">
+    <form action="{% url 'create_application' %}" class="form-horizontal" method="post">
+        {% csrf_token %}
+        {{ form_app.as_p }}
+        {{ form_factory.management_form }}
+        {% for form in form_factory %}
+        {% for field in form %}
+            <div class="row form-row">
+                <div class="col-2">
+                    <label>{{field.label}}</label>
+                </div>
+                <div class="col-4">
+                    <div class="input-group">
+                        {{ field }}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+        {% endfor %}
+        <div class="input-group-append">
+            <button class="btn btn-success add-form-row">+</button>
+        </div>
+        <div>
+            <div class="col-4 offset-2">
+                <button type="submit" class="btn btn-block btn-primary">Создать</button>
+            </div>
+        </div>
+    </form>
+</div>
+<script type='text/javascript'>
+$(document).on('click', '.add-form-row', function(e){
+    e.preventDefault();
+    cloneMore('.form-row:last', 'form');
+    return false;
+});
+$(document).on('click', '.remove-form-row', function(e){
+    e.preventDefault();
+    deleteForm('form', $(this));
+    return false;
+});
+</script>
+{% endblock %}
+

@@ -3,6 +3,7 @@ from django.shortcuts import render
 from django.views import View
 from django.views.generic.list import ListView
 
+from .forms import ApplicationCreateForm, EducationFormSet
 from .models import Direction, Application, Education
 
 
@@ -34,6 +35,21 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         # context['now'] =
         return context
+
+
+class ApplicationCreateView(LoginRequiredMixin, View):
+    def get(self, request):
+        form_app = ApplicationCreateForm()
+        form_factory = EducationFormSet(queryset=Education.objects.none())
+        return render(request, 'application_create.html', context={'form_app': form_app, 'form_factory': form_factory})
+
+    def post(self, request):
+        form = ApplicationCreateForm(request.POST)
+
+        if form.is_valid():
+            b = form.cleaned_data
+            print(b)
+        return render(request, 'application_create.html', context={'form': form})
 
 
 class CompetenceEditView(LoginRequiredMixin, View):
