@@ -1,5 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.views import View
 from django.views.generic.list import ListView
 
@@ -39,17 +39,27 @@ class ApplicationListView(LoginRequiredMixin, ListView):
 
 class ApplicationCreateView(LoginRequiredMixin, View):
     def get(self, request):
-        form_app = ApplicationCreateForm()
-        form_factory = EducationFormSet(queryset=Education.objects.none())
-        return render(request, 'application_create.html', context={'form_app': form_app, 'form_factory': form_factory})
+        app_form = ApplicationCreateForm()
+        education_formset = EducationFormSet(queryset=Education.objects.none())
+        return render(request, 'application_create.html', context={'app_form': app_form, 'education_formset': education_formset})
 
     def post(self, request):
-        form = ApplicationCreateForm(request.POST)
-
-        if form.is_valid():
-            b = form.cleaned_data
-            print(b)
-        return render(request, 'application_create.html', context={'form': form})
+        app_form = ApplicationCreateForm(request.POST)
+        education_formset = EducationFormSet(request.POST)
+        msg = ''
+        if not Application.objects.filter(member=request.user.member):
+            if app_form.is_valid() and education_formset.is_valid():
+                new_app = app_form.save(commit=False)
+                new_app.member = request.user.member
+                new_app.save()
+                for form in education_formset:
+                    user_education = form.save(commit=False)
+                    user_education.application = new_app
+                    user_education.save()
+        else:
+            msg = 'Заявка пользователя уже существует'
+        return render(request, 'application_create.html', context={'app_form': app_form, 'education_formset': education_formset,
+                                                                   'msg': msg})
 
 
 class CompetenceEditView(LoginRequiredMixin, View):
@@ -59,4 +69,6 @@ class CompetenceEditView(LoginRequiredMixin, View):
 
 class ApplicationView(LoginRequiredMixin, View):
     def get(self, request, app_id):
-        pass
+        user_app = get_object_or_404(Application, pk=app_id)
+        user_education = Education.objects.filter(application=user_app)
+        return render(request, 'application_detail.html', context={'user_app': user_app, 'user_education': user_education})

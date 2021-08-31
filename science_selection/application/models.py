@@ -71,7 +71,7 @@ class Application(models.Model):
 
 def validate_avg_score(value: float):
     if value < const.MINIMUM_SCORE or value > const.MAX_SCORE:
-        raise ValidationError(_(f'Год призыва {value} раньше текущего'))
+        raise ValidationError(_(f'Некорректный средний балл: {value}'))
 
 
 class Education(models.Model):

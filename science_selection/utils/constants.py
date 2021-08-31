@@ -1,4 +1,4 @@
-MINIMUM_SCORE = 2
+MINIMUM_SCORE = 1
 MAX_SCORE = 5
 MASTER_ROLE_NAME = 'Отбирающий'
 SLAVE_ROLE_NAME = 'Оператор'

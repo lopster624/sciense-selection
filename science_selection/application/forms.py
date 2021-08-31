@@ -31,11 +31,5 @@ class EducationCreateForm(forms.ModelForm):
         model = Education
         exclude = ('application',)
 
-    def clean_avg_score(self):
-        score = self.cleaned_data['avg_score']
-        if score < 1 or score > 5:
-            raise forms.ValidationError("Некорректный средний балл")
-        return score
-
 
 EducationFormSet = modelformset_factory(Education, form=EducationCreateForm, extra=1)
