@@ -55,14 +55,15 @@ class ApplicationCreateView(LoginRequiredMixin, View):
                 new_app.member = request.user.member
                 new_app.save()
                 for form in education_formset:
-                    user_education = form.save(commit=False)
-                    user_education.application = new_app
-                    user_education.save()
-        else:
-            msg = 'Заявка пользователя уже существует'
-        return render(request, 'application_create.html',
-                      context={'app_form': app_form, 'education_formset': education_formset,
-                               'msg': msg})
+                    if form.cleaned_data:
+                        user_education = form.save(commit=False)
+                        user_education.application = new_app
+                        user_education.save()
+                return redirect('application', app_id=new_app.pk)
+            else:
+                msg = 'Заявка пользователя уже существует'
+        return render(request, 'application_create.html', context={'app_form': app_form, 'education_formset': education_formset,
+                                                                   'msg': msg})
 
 
 class CompetenceEditView(LoginRequiredMixin, View):
