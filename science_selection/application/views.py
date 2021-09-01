@@ -1,5 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.views.generic.list import ListView
 
@@ -53,11 +53,13 @@ class ApplicationCreateView(LoginRequiredMixin, View):
                 new_app.member = request.user.member
                 new_app.save()
                 for form in education_formset:
-                    user_education = form.save(commit=False)
-                    user_education.application = new_app
-                    user_education.save()
-        else:
-            msg = 'Заявка пользователя уже существует'
+                    if form.cleaned_data:
+                        user_education = form.save(commit=False)
+                        user_education.application = new_app
+                        user_education.save()
+                return redirect('application', app_id=new_app.pk)
+            else:
+                msg = 'Заявка пользователя уже существует'
         return render(request, 'application_create.html', context={'app_form': app_form, 'education_formset': education_formset,
                                                                    'msg': msg})
 
