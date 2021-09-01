@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Выбрать компетенции
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+{% include 'application/includes/nav_tabs_template.html' %}
+
+<div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
+    <h5>
+        Выбранное направление:
+        <select class="form-select mt-3" aria-label="Select direction">
+            {% for dir in directions%}
+            <option {% if forloop.first %} selected {% endif %} value="{{dir.id}}">{{ dir.name }}</option>
+            {% endfor %}
+        </select>
+    </h5>
+</div>
+<div class="mt-3">
+    {% for comp_lvl1 in competence_list %}
+    <li class="list-group-item list-group-item-light w-50" style="margin-left: 25%;">
+        <input class="form-check-input ms-1 mt-2" type="checkbox" name="chosen_competences" value={{comp_lvl1.id}}>
+        <span class="{% if not comp_lvl1.is_estimated %} fw-bold {% endif %} ms-1 fs-4">{{comp_lvl1.name}}</span>
+        {% for comp_lvl2 in comp_lvl1.child.all %}
+        <div class="ms-5">
+            <span class="{% if not comp_lvl2.is_estimated %} fw-bold {% endif %} ms-1 fs-5">{{comp_lvl2.name}}</span>
+            {% for comp_lvl3 in comp_lvl2.child.all %}
+            <div class="ms-5">
+                <span class="{% if not comp_lvl3.is_estimated %} fw-bold {% endif %} ms-1 fs-6">{{comp_lvl3.name}}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </li>
+    {% endfor %}
+</div>
+</div>
+{% endblock %}

@@ -1,10 +1,11 @@
 from django.urls import path
 
-from .views import DirectionView, ApplicationListView, ApplicationView, ApplicationCreateView
+from .views import DirectionView, ApplicationListView, ApplicationView, ApplicationCreateView, CompetenceChooseView
 
 urlpatterns = [
     path('direction/', DirectionView.as_view(), name='direction'),
     path('application/', ApplicationCreateView.as_view(), name='create_application'),
-    path('application_list/', ApplicationListView.as_view(), name='application'),
+    path('application/list/', ApplicationListView.as_view(), name='application'),
     path('application/<int:app_id>/', ApplicationView.as_view(), name='application'),
+    path('competence/choose/', CompetenceChooseView.as_view(), name='competence_choose'),
 ]

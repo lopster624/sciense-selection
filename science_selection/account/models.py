@@ -10,7 +10,7 @@ from utils.constants import ACTIVATION_LINK
 
 
 class Role(models.Model):
-    role_name = models.CharField(max_length=32)
+    role_name = models.CharField(max_length=32, verbose_name="Название роли")
 
     class Meta:
         verbose_name = "Роль"
@@ -28,6 +28,9 @@ class Affiliation(models.Model):
     class Meta:
         verbose_name = "Принадлежность"
         verbose_name_plural = "Принадлежности"
+
+    def __str__(self):
+        return f'{self.company} рота, {self.platoon} взвод'
 
 
 class Member(models.Model):

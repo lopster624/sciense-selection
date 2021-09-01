@@ -3,8 +3,9 @@ from django.shortcuts import render, get_object_or_404
 from django.views import View
 from django.views.generic.list import ListView
 
+from account.models import Member, Affiliation
 from .forms import ApplicationCreateForm, EducationFormSet
-from .models import Direction, Application, Education
+from .models import Direction, Application, Education, Competence
 
 
 class DirectionView(LoginRequiredMixin, ListView):
@@ -33,7 +34,7 @@ class ApplicationListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # context['now'] =
+        context['application_active'] = True
         return context
 
 
@@ -41,7 +42,8 @@ class ApplicationCreateView(LoginRequiredMixin, View):
     def get(self, request):
         app_form = ApplicationCreateForm()
         education_formset = EducationFormSet(queryset=Education.objects.none())
-        return render(request, 'application_create.html', context={'app_form': app_form, 'education_formset': education_formset})
+        return render(request, 'application_create.html',
+                      context={'app_form': app_form, 'education_formset': education_formset})
 
     def post(self, request):
         app_form = ApplicationCreateForm(request.POST)
@@ -58,8 +60,9 @@ class ApplicationCreateView(LoginRequiredMixin, View):
                     user_education.save()
         else:
             msg = 'Заявка пользователя уже существует'
-        return render(request, 'application_create.html', context={'app_form': app_form, 'education_formset': education_formset,
-                                                                   'msg': msg})
+        return render(request, 'application_create.html',
+                      context={'app_form': app_form, 'education_formset': education_formset,
+                               'msg': msg})
 
 
 class CompetenceEditView(LoginRequiredMixin, View):
@@ -71,4 +74,29 @@ class ApplicationView(LoginRequiredMixin, View):
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         user_education = Education.objects.filter(application=user_app)
-        return render(request, 'application_detail.html', context={'user_app': user_app, 'user_education': user_education})
+        return render(request, 'application_detail.html',
+                      context={'user_app': user_app, 'user_education': user_education})
+
+
+class CompetenceChooseView(LoginRequiredMixin, ListView):
+    model = Competence
+    template_name = 'application/competence_choose.html'
+
+    def get_queryset(self):
+
+        member = Member.objects.get(user=self.request.user)
+        affiliations = Affiliation.objects.filter(member=member)
+        directions = [aff.direction for aff in affiliations]
+        if directions:
+            competences = Competence.objects.all().filter(parent_node__isnull=True).exclude(directions=directions[0])
+        else:
+            competences = Competence.objects.all().filter(parent_node__isnull=True)
+        return competences
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        member = Member.objects.get(user=self.request.user)
+        affiliations = Affiliation.objects.filter(member=member)
+        context['directions'] = [aff.direction for aff in affiliations]
+        context['competence_active'] = True
+        return context

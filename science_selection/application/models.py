@@ -156,8 +156,9 @@ class AdditionFieldApp(models.Model):
 
 
 class Competence(models.Model):
-    parent_node = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
-    directions = models.ManyToManyField(Direction)
+    parent_node = models.ForeignKey('self', on_delete=models.CASCADE, verbose_name='Компетенция-родитель', null=True,
+                                    blank=True, related_name='child')
+    directions = models.ManyToManyField(Direction, verbose_name='Название направления', blank=True)
     name = models.CharField(max_length=128, verbose_name='Название компетенции')
     is_estimated = models.BooleanField(default=False, verbose_name='Есть оценка')
 
