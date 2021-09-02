@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Создание заявки
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+{% include 'application/includes/nav_app_template.html' %}
+
+
+<form action="{% url 'choose_direction' %}" method="POST">
+  {% csrf_token %}
+  <div class="col-md-8 offset-2 row row-cols-1 row-cols-md-3 mt-4">
+  {% for direction in directions %}
+  <div class="col mb-4">
+    <div class="card h-100">
+      <img src="{{ direction.image_url }}" class="card-img-top" alt="{{ direction.name }}">
+      <div class="card-body">
+        <h5 class="card-title"> {{ direction.name }} </h5>
+        <p class="card-text"> {{ direction.description }} </p>
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" class="custom-control-input" name="direction" id="{{ direction.name }}" value="{{ direction.id }}" {% if direction.id in selected_directions %} checked {% endif %}>
+          <label class="custom-control-label" for="{{direction.name }}"><small class="text-muted">Выбрать направление</small></label>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  </div>
+  <button type="submit" class="w-10 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
+</form>
+
+
+{% endblock %}

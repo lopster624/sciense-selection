@@ -17,6 +17,27 @@ class DirectionView(LoginRequiredMixin, ListView):
         return context
 
 
+class DirectionChooseView(LoginRequiredMixin, View):
+    def get(self, request):
+        directions = Direction.objects.all()
+        user_app = Application.objects.filter(member=request.user.member).first()
+        selected_directions = [_.id for _ in user_app.directions.all()] if user_app else []
+        context = {'directions': directions, 'selected_directions': selected_directions, 'direction_active': True}
+        return render(request, 'application/application_choose.html', context=context)
+
+    def post(self, request):
+        user_app = Application.objects.filter(member=request.user.member).first()
+        if user_app:
+            selected_directions = request.POST.getlist('direction')
+            user_app.directions.clear()
+            if selected_directions:
+                directions = Direction.objects.filter(pk__in=selected_directions)
+                user_app.directions.add(*list(directions))
+        directions = Direction.objects.all()
+        context = {'directions': directions, 'selected_directions': list(map(int, selected_directions)), 'direction_active': True}
+        return render(request, 'application/application_choose.html', context=context)
+
+
 class ApplicationListView(LoginRequiredMixin, ListView):
     model = Application
 
@@ -42,8 +63,8 @@ class ApplicationCreateView(LoginRequiredMixin, View):
     def get(self, request):
         app_form = ApplicationCreateForm()
         education_formset = EducationFormSet(queryset=Education.objects.none())
-        return render(request, 'application_create.html',
-                      context={'app_form': app_form, 'education_formset': education_formset})
+        return render(request, 'application/application_create.html',
+                      context={'app_form': app_form, 'education_formset': education_formset, 'app_active': True})
 
     def post(self, request):
         app_form = ApplicationCreateForm(request.POST)
@@ -62,8 +83,8 @@ class ApplicationCreateView(LoginRequiredMixin, View):
                 return redirect('application', app_id=new_app.pk)
             else:
                 msg = 'Заявка пользователя уже существует'
-        return render(request, 'application_create.html', context={'app_form': app_form, 'education_formset': education_formset,
-                                                                   'msg': msg})
+        return render(request, 'application/application_create.html',
+                      context={'app_form': app_form, 'education_formset': education_formset, 'app_active': True, 'msg': msg})
 
 
 class CompetenceEditView(LoginRequiredMixin, View):
@@ -75,7 +96,7 @@ class ApplicationView(LoginRequiredMixin, View):
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         user_education = Education.objects.filter(application=user_app)
-        return render(request, 'application_detail.html',
+        return render(request, 'application/application_detail.html',
                       context={'user_app': user_app, 'user_education': user_education})
 
 
