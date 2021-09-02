@@ -7,7 +7,7 @@ from django.views.generic.list import ListView
 from account.forms import CreateCompetenceForm
 from account.models import Member, Affiliation
 from .forms import ApplicationCreateForm, EducationFormSet
-from .models import Direction, Application, Education, Competence
+from .models import Direction, Application, Education, Competence, ApplicationCompetencies
 from .utils import pick_competence, put_direction_in_context, delete_competence
 
 
@@ -18,6 +18,28 @@ class DirectionView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['test'] = 'test'
         return context
+
+
+class ApplicationDirectionChooseView(LoginRequiredMixin, View):
+    def get(self, request):
+        #TODO: сначала проверка на существование заявки?
+        directions = Direction.objects.all()
+        user_app = Application.objects.filter(member=request.user.member).first()
+        selected_directions = [_.id for _ in user_app.directions.all()] if user_app else []
+        context = {'directions': directions, 'selected_directions': selected_directions, 'direction_active': True}
+        return render(request, 'application/application_direction_choose.html', context=context)
+
+    def post(self, request):
+        user_app = Application.objects.filter(member=request.user.member).first()
+        if user_app:
+            selected_directions = request.POST.getlist('direction')
+            user_app.directions.clear()
+            if selected_directions:
+                directions = Direction.objects.filter(pk__in=selected_directions)
+                user_app.directions.add(*list(directions))
+        directions = Direction.objects.all()
+        context = {'directions': directions, 'selected_directions': list(map(int, selected_directions)), 'direction_active': True}
+        return render(request, 'application/application_direction_choose.html', context=context)
 
 
 class ApplicationListView(LoginRequiredMixin, ListView):
@@ -45,8 +67,8 @@ class ApplicationCreateView(LoginRequiredMixin, View):
     def get(self, request):
         app_form = ApplicationCreateForm()
         education_formset = EducationFormSet(queryset=Education.objects.none())
-        return render(request, 'application_create.html',
-                      context={'app_form': app_form, 'education_formset': education_formset})
+        return render(request, 'application/application_create.html',
+                      context={'app_form': app_form, 'education_formset': education_formset, 'app_active': True})
 
     def post(self, request):
         app_form = ApplicationCreateForm(request.POST)
@@ -65,9 +87,8 @@ class ApplicationCreateView(LoginRequiredMixin, View):
                 return redirect('application', app_id=new_app.pk)
             else:
                 msg = 'Заявка пользователя уже существует'
-        return render(request, 'application_create.html',
-                      context={'app_form': app_form, 'education_formset': education_formset,
-                               'msg': msg})
+        return render(request, 'application/application_create.html',
+                      context={'app_form': app_form, 'education_formset': education_formset, 'app_active': True, 'msg': msg})
 
 
 class CompetenceEditView(LoginRequiredMixin, View):
@@ -79,7 +100,7 @@ class ApplicationView(LoginRequiredMixin, View):
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         user_education = Education.objects.filter(application=user_app)
-        return render(request, 'application_detail.html',
+        return render(request, 'application/application_detail.html',
                       context={'user_app': user_app, 'user_education': user_education})
 
 
@@ -178,3 +199,28 @@ class CreateCompetenceView(LoginRequiredMixin, View):
         bound_form.save(commit=True)
         print('all right')
         return redirect(request.path_info)
+
+
+class ApplicationCompetenceChooseView(LoginRequiredMixin, View):
+    def get(self, request):
+        #TODO: сначала проверка на существование заявки?
+        #TODO: добавить значения проставленных полей по аналогии с направлениями
+        competencies = Competence.objects.all()
+        competence_level = ApplicationCompetencies.competence_level
+        context = {'competencies': competencies, 'levels': competence_level, 'competence_active': True}
+        return render(request, 'application/application_competence_choose.html', context=context)
+
+    def post(self, request):
+        user_app = Application.objects.filter(member=request.user.member).first()
+        competencies = Competence.objects.all()
+        competence_ids = [_.id for _ in competencies]
+        user_app.competencies.clear()
+        for key in competence_ids:
+            level_competence = int(request.POST.get(str(key)))
+            if level_competence and level_competence != 0:
+                competence = Competence.objects.filter(id=key).first()
+                ApplicationCompetencies.objects.create(application=user_app, competence=competence, level=level_competence)
+        competencies = Competence.objects.all()
+        competence_level = ApplicationCompetencies.competence_level
+        context = {'competencies': competencies, 'levels': competence_level, 'competence_active': True}
+        return render(request, 'application/application_competence_choose.html', context=context)

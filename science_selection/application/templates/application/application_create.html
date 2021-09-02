@@ -5,8 +5,8 @@
 {% endblock %}
 {% block content %}
 {% include 'includes/header_template.html' %}
-{% include 'application/includes/nav_tabs_template.html' %}
-<div class="col-md-8 offset-2 text-center mt-4">
+{% include 'application/includes/nav_app_template.html' %}
+<div class="col-md-6 offset-3 text-center mt-4">
     <form action="{% url 'create_application' %}" class="form-horizontal" method="post" id="form-container">
         {% csrf_token %}
         {% if msg %}
@@ -19,11 +19,11 @@
                 {{form.as_p}}
             </div>
         {% endfor %}
-        <div>
-            <button id="add-form" type="button">Добавить образование</button>
+        <div id="add-form" class="mb-2">
+            <button type="button" class="btn btn-primary">Добавить образование</button>
         </div>
-        <div>
-            <button type="submit">Создать</button>>
+        <div class="mb-2">
+            <button type="submit" class="btn btn-primary">Создать</button>
         </div>
 
     </form>

@@ -5,6 +5,9 @@ from .views import DirectionView, ApplicationListView, ApplicationView, Applicat
 
 urlpatterns = [
     path('direction/', DirectionView.as_view(), name='direction'),
+    path('application/', ApplicationCreateView.as_view(), name='create_application'),
+    path('application/direction/', ApplicationDirectionChooseView.as_view(), name='choose_app_direction'),
+    path('application/competence/', ApplicationCompetenceChooseView.as_view(), name='choose_app_competence'),
     path('application/list/', ApplicationListView.as_view(), name='application'),
     path('application/<int:app_id>/', ApplicationView.as_view(), name='application'),
     path('application/', ApplicationCreateView.as_view(), name='create_application'),

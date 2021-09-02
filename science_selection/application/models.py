@@ -20,8 +20,8 @@ class Application(models.Model):
     ]
     member = models.OneToOneField(Member, on_delete=models.CASCADE, verbose_name='Пользователь')
     competencies = models.ManyToManyField('Competence', verbose_name='Выбранные компетенции',
-                                          through='ApplicationCompetencies')
-    directions = models.ManyToManyField('Direction', verbose_name='Выбранные направления')
+                                          through='ApplicationCompetencies', blank=True)
+    directions = models.ManyToManyField('Direction', verbose_name='Выбранные направления', blank=True)
     birth_day = models.DateField(verbose_name='Дата рождения')
     birth_place = models.CharField(max_length=128, verbose_name='Место рождения')
     nationality = models.CharField(max_length=128, verbose_name='Гражданство')
@@ -101,6 +101,12 @@ class Education(models.Model):
 class Direction(models.Model):
     name = models.CharField(max_length=128, verbose_name='Наименование направления')
     description = models.TextField(verbose_name='Описание направления')
+    image = models.ImageField(upload_to='images/', blank=True, null=True, verbose_name='Изображения')
+
+    @property
+    def image_url(self):
+        if self.image and hasattr(self.image, 'url'):
+            return self.image.url
 
     def __str__(self):
         return self.name
@@ -173,6 +179,7 @@ class Competence(models.Model):
 
 class ApplicationCompetencies(models.Model):
     competence_level = [
+        (0, ''),
         (1, 'Базовый'),
         (2, 'Можешь писать программы'),
         (3, 'Бог')
