@@ -6,6 +6,7 @@ from django.views.generic.list import ListView
 from account.models import Member, Affiliation
 from .forms import ApplicationCreateForm, EducationFormSet
 from .models import Direction, Application, Education, Competence
+from .utils import pick_competence, put_direction_in_context, delete_competence
 
 
 class DirectionView(LoginRequiredMixin, ListView):
@@ -105,20 +106,74 @@ class CompetenceChooseView(LoginRequiredMixin, ListView):
     template_name = 'application/competence_choose.html'
 
     def get_queryset(self):
-
+        selected_direction_id = self.request.GET.get('direction')
         member = Member.objects.get(user=self.request.user)
         affiliations = Affiliation.objects.filter(member=member)
         directions = [aff.direction for aff in affiliations]
-        if directions:
-            competences = Competence.objects.all().filter(parent_node__isnull=True).exclude(directions=directions[0])
+        all_competences = Competence.objects.all().filter(parent_node__isnull=True)
+        if selected_direction_id:
+            selected_direction_id = int(selected_direction_id)
+            chosen_direction = Direction.objects.get(id=selected_direction_id)
+            competences = all_competences.exclude(directions=chosen_direction)
+        elif directions:
+            competences = all_competences.exclude(directions=directions[0])
         else:
-            competences = Competence.objects.all().filter(parent_node__isnull=True)
+            competences = []
         return competences
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['competence_active'] = True
+        selected_direction_id = self.request.GET.get('direction')
+        context = put_direction_in_context(self, context, selected_direction_id)
+        return context
+
+
+class AddCompetencesView(LoginRequiredMixin, View):
+    def post(self, request, direction_id):
+        direction = Direction.objects.get(id=direction_id)
+        chosen_competences = request.POST.getlist('chosen_competences')
+        chosen_competences_id = [int(competence_id) for competence_id in chosen_competences]
+        for competence_id in chosen_competences_id:
+            pick_competence(competence_id, direction)
+        return redirect('chosen_competence', direction_id)
+
+
+class ChosenCompetenceView(LoginRequiredMixin, ListView):
+    model = Competence
+
+    def get_queryset(self):
+        try:
+            selected_direction_id = self.kwargs['direction_id']
+        except KeyError:
+            selected_direction_id = self.request.GET.get('direction')
         member = Member.objects.get(user=self.request.user)
         affiliations = Affiliation.objects.filter(member=member)
-        context['directions'] = [aff.direction for aff in affiliations]
+        directions = [aff.direction for aff in affiliations]
+        all_competences = Competence.objects.all().filter(parent_node__isnull=True)
+        if selected_direction_id:
+            selected_direction_id = int(selected_direction_id)
+            chosen_direction = Direction.objects.get(id=selected_direction_id)
+            competences = all_competences.filter(directions=chosen_direction)
+        elif directions:
+            competences = all_competences.filter(directions=directions[0])
+        else:
+            competences = []
+        return competences
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         context['competence_active'] = True
+        try:
+            selected_direction_id = self.kwargs['direction_id']
+        except KeyError:
+            selected_direction_id = self.request.GET.get('direction')
+        context = put_direction_in_context(self, context, selected_direction_id)
         return context
+
+
+class DeleteCompetenceView(LoginRequiredMixin, View):
+    def get(self, request, competence_id, direction_id):
+        direction = Direction.objects.get(id=direction_id)
+        delete_competence(competence_id, direction)
+        return redirect('chosen_competence', direction_id)

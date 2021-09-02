@@ -1,11 +1,23 @@
 <div class="w-50" style="margin-left: 25%;">
     <ul class="nav nav-tabs">
         <li class="nav-item">
-            <a class="nav-link {% if application_active %}active{%endif %}" aria-current="page" href="{% url 'application' %}">Список заявок</a>
+            <a class="nav-link {% if application_active %}active{%endif %}" aria-current="page"
+               href="{% url 'application' %}">Список заявок</a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link {% if competence_active %}active{%endif %}" href="{% url 'competence_choose' %}">Компетенции</a>
+
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {% if competence_active %}active{%endif %}" data-bs-toggle="dropdown"
+               href="{% url 'competence_choose' %}" role="button" aria-expanded="false">Компетенции</a>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'competence_choose' %}">Выбрать компетенции в направление</a>
+                </li>
+                <li><a class="dropdown-item" href="{% url 'chosen_competence' %}">Выбранные
+                    компетенции</a></li>
+                <li><a class="dropdown-item" href="#">Создать новую компетенцию</a></li>
+            </ul>
         </li>
+
+
         <li class="nav-item">
             <a class="nav-link" href="#">Шаблоны документов</a>
         </li>
