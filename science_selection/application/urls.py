@@ -1,7 +1,8 @@
 from django.urls import path
 
 from .views import DirectionView, ApplicationListView, ApplicationView, ApplicationCreateView, CompetenceChooseView, \
-    AddCompetencesView, ChosenCompetenceView, DeleteCompetenceView, CreateCompetenceView
+    AddCompetencesView, ChosenCompetenceView, DeleteCompetenceView, CreateCompetenceView, \
+    ApplicationCompetenceChooseView, ApplicationDirectionChooseView
 
 urlpatterns = [
     path('direction/', DirectionView.as_view(), name='direction'),

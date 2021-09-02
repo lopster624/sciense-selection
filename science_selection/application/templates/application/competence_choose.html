@@ -6,6 +6,7 @@
 {% block content %}
 {% include 'includes/header_template.html' %}
 {% include 'application/includes/nav_tabs_template.html' %}
+
 <div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
     <h5>
         {% if directions %}
@@ -25,9 +26,6 @@
         </div>
         {% endif %}
     </h5>
-</div>
-
-<div class="w-50" style="margin-left: 25%;">
     <form enctype="multipart/form-data" action=" {% url 'add_competences' selected_direction_id %} " method="post">
         {% csrf_token %}
         {% for comp_lvl1 in competence_list %}
@@ -35,14 +33,18 @@
             <input class="form-check-input ms-1 mt-2" type="checkbox" name="chosen_competences" value={{comp_lvl1.id}}>
             <span class="{% if not comp_lvl1.is_estimated %} fw-bold {% endif %} ms-1 fs-4">{{comp_lvl1.name}}</span>
             {% for comp_lvl2 in comp_lvl1.child.all %}
+            {%  if selected_direction not in comp_lvl2.directions.all %}
             <div class="ms-5">
                 <span class="{% if not comp_lvl2.is_estimated %} fw-bold {% endif %} ms-1 fs-5">{{comp_lvl2.name}}</span>
                 {% for comp_lvl3 in comp_lvl2.child.all %}
+                {%  if selected_direction not in comp_lvl3.directions.all %}
                 <div class="ms-5">
                     <span class="{% if not comp_lvl3.is_estimated %} fw-bold {% endif %} ms-1 fs-6">{{comp_lvl3.name}}</span>
                 </div>
+                {% endif %}
                 {% endfor %}
             </div>
+            {% endif %}
             {% endfor %}
         </li>
         {% endfor %}
