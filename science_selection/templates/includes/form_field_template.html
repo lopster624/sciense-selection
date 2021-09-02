@@ -2,9 +2,9 @@
 {% for f in form %}
     <div class="form-group mb-1 clearfix">
         <label class="mb-1">{{ f.label }}</label>
-        <div>
+        <div {% if f.name == 'is_estimated'%} class='form-switch'{% endif %}>
             {{ f }}
-    </div>
+        </div>
     </div>
     {% if form.errors %}
         <div class="mt-1 mb-0 alert-danger rounded">

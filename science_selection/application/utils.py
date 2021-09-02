@@ -1,5 +1,5 @@
 from account.models import Member, Affiliation
-from application.models import Competence
+from application.models import Competence, Direction
 
 
 def check_role(user, role_name):
@@ -35,4 +35,5 @@ def put_direction_in_context(obj, context, selected_direction_id):
     else:
         selected_direction_id = directions[0].id
     context['selected_direction_id'] = selected_direction_id
+    context['selected_direction'] = Direction.objects.get(id=selected_direction_id)
     return context

@@ -1,8 +1,10 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.views.generic.list import ListView
 
+from account.forms import CreateCompetenceForm
 from account.models import Member, Affiliation
 from .forms import ApplicationCreateForm, EducationFormSet
 from .models import Direction, Application, Education, Competence
@@ -157,3 +159,22 @@ class DeleteCompetenceView(LoginRequiredMixin, View):
         direction = Direction.objects.get(id=direction_id)
         delete_competence(competence_id, direction)
         return redirect('chosen_competence', direction_id)
+
+
+class CreateCompetenceView(LoginRequiredMixin, View):
+    def get(self, request):
+        form = CreateCompetenceForm(current_user=request.user)
+        competence_list = Competence.objects.filter(parent_node__isnull=True)
+        return render(request, 'application/create_competence.html',
+                      context={'form': form, 'competence_active': True, 'competence_list': competence_list})
+
+    def post(self, request):
+        bound_form = CreateCompetenceForm(request.POST, current_user=request.user)
+        competence_list = Competence.objects.filter(parent_node__isnull=True)
+        if not bound_form.is_valid():
+            print('error')
+            return render(request, 'application/create_competence.html',
+                          context={'form': bound_form, 'competence_active': True, 'competence_list': competence_list})
+        bound_form.save(commit=True)
+        print('all right')
+        return redirect(request.path_info)
