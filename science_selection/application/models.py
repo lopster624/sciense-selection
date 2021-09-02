@@ -179,6 +179,7 @@ class Competence(models.Model):
 
 class ApplicationCompetencies(models.Model):
     competence_level = [
+        (0, ''),
         (1, 'Базовый'),
         (2, 'Можешь писать программы'),
         (3, 'Бог')
