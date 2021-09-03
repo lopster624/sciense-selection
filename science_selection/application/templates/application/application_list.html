@@ -25,8 +25,8 @@
         <tr>
             <th>{{ forloop.counter }}</th>
             <td scope="row">
-                <h5 class="card-title"><a
-                        href="{% url 'application' app.member.id %}" class="">{{ app.member }}</a>
+                <h5 class="card-title">
+                    <a href="{% url 'application' app.id %}" class="">{{ app.member }}</a>
                 </h5>
             </td>
             <td>

@@ -1,0 +1,25 @@
+<div class="modal fade" id="staticBackdrop{{ comp_lvl2.id }}" data-bs-backdrop="static" tabindex="-1"
+     role="dialog"
+     aria-labelledby="staticBackdropLabel{{ comp_lvl2.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content bg-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="staticBackdropLabel{{ comp_lvl2.id }}">Удаление
+                    компетенции</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Вы действительно хотите удалить компетенцию "{{comp_lvl2.name}}" из направления
+                "{{selected_direction.name}}" и все ее
+                связанные компетенции?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <form action="{% url 'delete_competence' comp_lvl2.id selected_direction_id %}">
+                    <button type="submit" class="btn btn-danger">Удалить компетенцию</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
