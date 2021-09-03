@@ -72,7 +72,7 @@ class Migration(migrations.Migration):
             name='File',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('file_path', models.FileField(upload_to=application.models.user_directory_path, verbose_name='Путь к файлу')),
+                ('file_path', models.FileField(upload_to='files/%Y/%m/%d', verbose_name='Путь к файлу')),
                 ('file_name', models.CharField(max_length=128, verbose_name='Имя файла')),
                 ('create_date', models.DateTimeField(auto_now_add=True, verbose_name='Дата добавления файла')),
                 ('is_template', models.BooleanField(default=False, verbose_name='Шаблон')),

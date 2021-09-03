@@ -1,13 +1,16 @@
+import os
+
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, FileResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.views.generic.list import ListView
 
-from account.forms import CreateCompetenceForm
+from application.forms import CreateCompetenceForm
 from account.models import Member, Affiliation
+from engine.settings import MEDIA_DIR, MEDIA_ROOT
 from .forms import ApplicationCreateForm, EducationFormSet
-from .models import Direction, Application, Education, Competence, ApplicationCompetencies
+from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File
 from .utils import pick_competence, put_direction_in_context, delete_competence
 
 
@@ -225,3 +228,27 @@ class ApplicationCompetenceChooseView(LoginRequiredMixin, View):
         competence_level = ApplicationCompetencies.competence_level
         context = {'competencies': competencies, 'levels': competence_level, 'competence_active': True}
         return render(request, 'application/application_competence_choose.html', context=context)
+
+
+class MasterFileTemplatesView(LoginRequiredMixin, View):
+    def get(self, request):
+        files = File.objects.all()
+        # показывает список уже загруженных файлов на сервер и позволяет загрузить новые
+        return render(request, 'application/documents.html', context={'file_list': files})
+
+    def post(self, request):
+        new_files = request.FILES.getlist('downloaded_files')
+        member = Member.objects.get(user=request.user)
+        for file in new_files:
+            new_file = File(member=member, file_path=file, is_template=True)
+            new_file.save()
+            new_file.file_name = new_file.file_path.name.split('/')[-1]  # отделяется название от пути загрузки
+            new_file.save()
+        return redirect(request.path_info)
+
+
+class DeleteFileView(LoginRequiredMixin, View):
+    def get(self, request, file_id):
+        file = File.objects.get(id=file_id)
+        file.delete()
+

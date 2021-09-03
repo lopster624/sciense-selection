@@ -9,18 +9,18 @@
 <div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
     <div class="row">
         <div class="col-6">
-            <h5>
+            <h3>
                 Создать новую компетенцию
-            </h5>
-            <form action=" {% url 'create_competence' %} " class="list-group-item list-group-item-light" method="post">
+            </h3>
+            <form action=" {% url 'create_competence' %} " class="list-group-item list-group-item-light fs-4" method="post">
                 {% include 'includes/form_field_template.html' %}
                 <button type="submit" class="btn btn-outline-dark mt-3">Создать компетенцию</button>
             </form>
         </div>
         <div class="col-6">
-            <h5>
+            <h3>
                 Уже созданные компетенции:
-            </h5>
+            </h3>
             {% for comp_lvl1 in competence_list %}
             <li class="list-group-item list-group-item-light">
                 <span class="{% if not comp_lvl1.is_estimated %} fw-bold {% endif %} ms-1 fs-4">{{comp_lvl1.name}}</span>
