@@ -206,11 +206,15 @@ class CreateCompetenceView(LoginRequiredMixin, View):
 
 class ApplicationCompetenceChooseView(LoginRequiredMixin, View):
     def get(self, request):
-        # TODO: сначала проверка на существование заявки?
-        # TODO: добавить значения проставленных полей по аналогии с направлениями
+        #TODO: сначала проверка на существование заявки?
+        #TODO: добавить значения проставленных полей по аналогии с направлениями
+        user_app = Application.objects.filter(member=request.user.member).first()
         competencies = Competence.objects.all()
+        for _ in user_app.competencies.all():
+            print(_.competencies_set)
+        selected_competencies = [_.id for _ in user_app.competencies.all()] if user_app else []
         competence_level = ApplicationCompetencies.competence_level
-        context = {'competencies': competencies, 'levels': competence_level, 'competence_active': True}
+        context = {'competencies': competencies, 'levels': competence_level, 'selected_competencies': selected_competencies, 'competence_active': True}
         return render(request, 'application/application_competence_choose.html', context=context)
 
     def post(self, request):
