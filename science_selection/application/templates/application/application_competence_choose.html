@@ -6,8 +6,16 @@
 {% block content %}
 {% include 'includes/header_template.html' %}
 {% include 'application/includes/nav_app_template.html' %}
+{% load application_extras %}
 
 <div class="container mt-2">
+    {% if msg %}
+        <div class="btn w-50" style="margin-left: 25%"> {{msg}}
+            <button type="button" class="btn btn-outline-primary">
+                <a href="{% url name %}">Выбрать</a>
+            </button>
+        </div>
+    {% else %}
     {% for level in levels %}
     <div class="row col-md-6 offset-3 mb-2">
             <div class="col">{{ level.0 }}</div>
@@ -22,7 +30,9 @@
             <div class="col mb-2">
                 <select class="custom-select mr-sm-2" id="{{ competence.id }}" name="{{ competence.id }}">
                     {% for level in levels %}
-                        <option value="{{ level.0 }}" >{{ level.0 }}</option>
+                        <option value="{{ level.0 }}" {% if competence.id in selected_competencies.keys and selected_competencies|getkey:competence.id == level.0 %} selected {% endif %}>
+                            {{ level.0 }}
+                        </option>
                     {% endfor %}
                 </select>
             </div>
@@ -30,6 +40,7 @@
     </div>
     <button type="submit" class="w-10 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
     </form>
+    {% endif %}
 </div>
 
 

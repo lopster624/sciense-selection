@@ -7,7 +7,15 @@
 {% include 'includes/header_template.html' %}
 {% include 'application/includes/nav_app_template.html' %}
 
+{% if msg %}
+<div class="btn w-50 mt-2" style="margin-left: 25%">
+  {{msg}}
+  <button type="button" class="btn btn-outline-primary">
+    <a href="{% url name %}">Выбрать</a>
+  </button>
+</div>
 
+{% else %}
 <form action="{% url 'choose_app_direction' %}" method="POST">
   {% csrf_token %}
   <div class="col-md-8 offset-2 row row-cols-1 row-cols-md-3 mt-4">
@@ -29,6 +37,6 @@
   </div>
   <button type="submit" class="w-10 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
 </form>
-
+{% endif %}
 
 {% endblock %}

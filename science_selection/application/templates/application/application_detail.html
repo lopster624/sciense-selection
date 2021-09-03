@@ -5,10 +5,13 @@
 {% endblock %}
 {% block content %}
 {% include 'includes/header_template.html' %}
-{% include 'application/includes/nav_tabs_template.html' %}
+{% include 'application/includes/nav_app_template.html' %}
 
 <div class="container">
-    <div class="text-center mt-2 mb-2"> Анкеты пользователя: {{ request.user.first_name }} {{ request.user.last_name }}</div>
+    <div class="row mb-2 mt-2">
+        <div class="text-center col-md-3 offset-md-3"> Анкеты пользователя: {{ request.user.first_name }} {{ request.user.last_name }}</div>
+        <div class="col-md-3 offset-md-3"><button class="btn btn-outline-secondary"><a href="{%url 'create_application' %}">Редактировать</a></button></div>
+    </div>
     <div class="row col-md-6 offset-3 mb-2">
         <div class="col">
           Дата рождения:
