@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Создание заявки
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+{% include 'application/includes/nav_tabs_template.html' %}
+
+<div class="container">
+    <div class="text-center mt-2 mb-2"> Анкеты пользователя: {{ request.user.first_name }} {{ request.user.last_name }}</div>
+    <div class="row col-md-6 offset-3 mb-2">
+        <div class="col">
+          Дата рождения:
+        </div>
+        <div class="col">
+          {{ user_app.birth_day }}
+        </div>
+    </div>
+    <div class="row col-md-6 offset-3 mb-2">
+        <div class="col">
+          Место рождения:
+        </div>
+        <div class="col">
+          {{ user_app.birth_place }}
+        </div>
+    </div>
+    <div class="row col-md-6 offset-3 mb-2">
+        <div class="col">
+          Национальность:
+        </div>
+        <div class="col">
+          {{ user_app.nationality }}
+        </div>
+    </div>
+    <div class="row col-md-6 offset-3 mb-2">
+        <div class="col">
+          Военный комиссариат:
+        </div>
+        <div class="col">
+          {{ user_app.military_commissariat }}
+        </div>
+    </div>
+    <div class="row col-md-6 offset-3 mb-2">
+        <div class="col">
+          Группа здоровья:
+        </div>
+        <div class="col">
+          {{ user_app.group_of_health }}
+        </div>
+    </div>
+    <div class="row col-md-6 offset-3 mb-2">
+        <div class="col">
+          Год призыва:
+        </div>
+        <div class="col">
+          {{ user_app.draft_year }}
+        </div>
+    </div>
+    <div class="row col-md-6 offset-3 mb-2">
+        <div class="col">
+          Сезон призыва:
+        </div>
+        <div class="col">
+          {{ user_app.draft_season }}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

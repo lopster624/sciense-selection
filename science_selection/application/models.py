@@ -20,8 +20,8 @@ class Application(models.Model):
     ]
     member = models.OneToOneField(Member, on_delete=models.CASCADE, verbose_name='Пользователь')
     competencies = models.ManyToManyField('Competence', verbose_name='Выбранные компетенции',
-                                          through='ApplicationCompetencies')
-    directions = models.ManyToManyField('Direction', verbose_name='Выбранные направления')
+                                          through='ApplicationCompetencies', blank=True)
+    directions = models.ManyToManyField('Direction', verbose_name='Выбранные направления', blank=True)
     birth_day = models.DateField(verbose_name='Дата рождения')
     birth_place = models.CharField(max_length=128, verbose_name='Место рождения')
     nationality = models.CharField(max_length=128, verbose_name='Гражданство')
@@ -30,9 +30,9 @@ class Application(models.Model):
     draft_year = models.IntegerField(verbose_name='Год призыва', validators=[validate_draft_year])
     draft_season = models.IntegerField(choices=season, verbose_name='Сезон призыва')
     scientific_achievements = models.TextField(blank=True, verbose_name='Достижения', help_text='Статьи ВАК, РИМС ...')
-    scholarships = models.TextField(blank=True, verbose_name='Стипендии')
-    ready_to_secret = models.BooleanField(default=False, verbose_name='Готовность к секретности')
-    candidate_exams = models.TextField(blank=True, verbose_name='Кандидатские экзамены')
+    scholarships = models.TextField(blank=True, verbose_name='Стипендии', help_text='Президентская стипендия, ...')
+    ready_to_secret = models.BooleanField(default=False, verbose_name='Готовность к секретности', help_text='Готовность получить уровень секретности')
+    candidate_exams = models.TextField(blank=True, verbose_name='Кандидатские экзамены', help_text='Экзамены на кандидатский минимум, ...')
     sporting_achievements = models.TextField(blank=True, verbose_name='Спортивные достижения', help_text='Разряды ...')
     hobby = models.TextField(blank=True, verbose_name='Хобби')
     other_information = models.TextField(blank=True, verbose_name='Дополнительная информация')
@@ -101,6 +101,12 @@ class Education(models.Model):
 class Direction(models.Model):
     name = models.CharField(max_length=128, verbose_name='Наименование направления')
     description = models.TextField(verbose_name='Описание направления')
+    image = models.ImageField(upload_to='images/', blank=True, null=True, verbose_name='Изображения')
+
+    @property
+    def image_url(self):
+        if self.image and hasattr(self.image, 'url'):
+            return self.image.url
 
     def __str__(self):
         return self.name
@@ -156,8 +162,9 @@ class AdditionFieldApp(models.Model):
 
 
 class Competence(models.Model):
-    parent_node = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
-    directions = models.ManyToManyField(Direction)
+    parent_node = models.ForeignKey('self', on_delete=models.CASCADE, verbose_name='Компетенция-родитель', null=True,
+                                    blank=True, related_name='child')
+    directions = models.ManyToManyField(Direction, verbose_name='Название направления', blank=True)
     name = models.CharField(max_length=128, verbose_name='Название компетенции')
     is_estimated = models.BooleanField(default=False, verbose_name='Есть оценка')
 
@@ -172,6 +179,7 @@ class Competence(models.Model):
 
 class ApplicationCompetencies(models.Model):
     competence_level = [
+        (0, ''),
         (1, 'Базовый'),
         (2, 'Можешь писать программы'),
         (3, 'Бог')

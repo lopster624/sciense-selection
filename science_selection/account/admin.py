@@ -9,7 +9,7 @@ class MemberAdmin(admin.ModelAdmin):
     list_filter = ('role',)
 
     def get_affiliations(self, obj):
-        return ', '.join([d.name for d in obj.affiliations.all()])
+        return '; '.join([d.__str__() for d in obj.affiliations.all()])
 
 
 @admin.register(models.Role)

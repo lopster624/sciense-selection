@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Выбранные компетенции
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+{% include 'application/includes/nav_tabs_template.html' %}
+<div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
+    <h5>
+        {% if directions %}
+        <form id="form" action=" {% url 'chosen_competence' %}">
+            Список добавленных компетенций в направление:
+            <select class="form-select mt-3" aria-label="Select direction" name="direction" id="select_direction">
+                {% for dir in directions %}
+                <option {% ifequal selected_direction_id dir.id %} selected {% endifequal %} value="{{dir.id}}">
+                    {{dir.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+        {% else %}
+        <div>
+            У вас нет доступных направлений.
+        </div>
+        {% endif %}
+    </h5>
+    {% for comp_lvl1 in competence_list %}
+    <li class="list-group-item list-group-item-light">
+        <span class="{% if not comp_lvl1.is_estimated %} fw-bold {% endif %} ms-1 fs-4">{{comp_lvl1.name}}</span>
+        <button type="button" class="btn-close ms-3" data-bs-toggle="modal"
+                data-bs-target="#staticBackdrop{{ comp_lvl1.id }}" aria-label="Close"></button>
+
+        <div class="modal fade" id="staticBackdrop{{ comp_lvl1.id }}" data-bs-backdrop="static" tabindex="-1"
+             role="dialog"
+             aria-labelledby="staticBackdropLabel{{ comp_lvl1.id }}" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content bg-light">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="staticBackdropLabel{{ comp_lvl1.id }}">Удаление компетенции</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Вы действительно хотите удалить компетенцию "{{comp_lvl1.name}}" из направления
+                        "{{selected_direction.name}}" и все ее
+                        связанные компетенции?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <form action="{% url 'delete_competence' comp_lvl1.id selected_direction_id %}">
+                            <button type="submit" class="btn btn-danger">Удалить компетенцию</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% for comp_lvl2 in comp_lvl1.child.all %}
+        {% if selected_direction in comp_lvl2.directions.all %}
+        <div class="ms-5">
+            <span class="{% if not comp_lvl2.is_estimated %} fw-bold {% endif %} ms-1 fs-5">{{comp_lvl2.name}}</span>
+            {% for comp_lvl3 in comp_lvl2.child.all %}
+            {% if selected_direction in comp_lvl3.directions.all %}
+            <div class="ms-5">
+                <span class="{% if not comp_lvl3.is_estimated %} fw-bold {% endif %} ms-1 fs-6">{{comp_lvl3.name}}</span>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endfor %}
+    </li>
+    {% endfor %}
+</div>
+
+
+<script src="{% static 'js/submit_form.js' %}" type="text/javascript"></script>
+{% endblock %}
