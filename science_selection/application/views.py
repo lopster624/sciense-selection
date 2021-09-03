@@ -1,8 +1,10 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.views.generic.list import ListView
 
+from account.forms import CreateCompetenceForm
 from account.models import Member, Affiliation
 from .forms import ApplicationCreateForm, EducationFormSet
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies
@@ -20,7 +22,7 @@ class DirectionView(LoginRequiredMixin, ListView):
 
 class ApplicationDirectionChooseView(LoginRequiredMixin, View):
     def get(self, request):
-        #TODO: сначала проверка на существование заявки?
+        # TODO: сначала проверка на существование заявки?
         directions = Direction.objects.all()
         user_app = Application.objects.filter(member=request.user.member).first()
         selected_directions = [_.id for _ in user_app.directions.all()] if user_app else []
@@ -36,7 +38,8 @@ class ApplicationDirectionChooseView(LoginRequiredMixin, View):
                 directions = Direction.objects.filter(pk__in=selected_directions)
                 user_app.directions.add(*list(directions))
         directions = Direction.objects.all()
-        context = {'directions': directions, 'selected_directions': list(map(int, selected_directions)), 'direction_active': True}
+        context = {'directions': directions, 'selected_directions': list(map(int, selected_directions)),
+                   'direction_active': True}
         return render(request, 'application/application_direction_choose.html', context=context)
 
 
@@ -86,7 +89,8 @@ class ApplicationCreateView(LoginRequiredMixin, View):
             else:
                 msg = 'Заявка пользователя уже существует'
         return render(request, 'application/application_create.html',
-                      context={'app_form': app_form, 'education_formset': education_formset, 'app_active': True, 'msg': msg})
+                      context={'app_form': app_form, 'education_formset': education_formset, 'app_active': True,
+                               'msg': msg})
 
 
 class CompetenceEditView(LoginRequiredMixin, View):
@@ -130,16 +134,6 @@ class CompetenceChooseView(LoginRequiredMixin, ListView):
         return context
 
 
-class AddCompetencesView(LoginRequiredMixin, View):
-    def post(self, request, direction_id):
-        direction = Direction.objects.get(id=direction_id)
-        chosen_competences = request.POST.getlist('chosen_competences')
-        chosen_competences_id = [int(competence_id) for competence_id in chosen_competences]
-        for competence_id in chosen_competences_id:
-            pick_competence(competence_id, direction)
-        return redirect('chosen_competence', direction_id)
-
-
 class ChosenCompetenceView(LoginRequiredMixin, ListView):
     model = Competence
 
@@ -173,11 +167,38 @@ class ChosenCompetenceView(LoginRequiredMixin, ListView):
         return context
 
 
+class AddCompetencesView(LoginRequiredMixin, View):
+    def post(self, request, direction_id):
+        direction = Direction.objects.get(id=direction_id)
+        chosen_competences = request.POST.getlist('chosen_competences')
+        chosen_competences_id = [int(competence_id) for competence_id in chosen_competences]
+        for competence_id in chosen_competences_id:
+            pick_competence(competence_id, direction)
+        return redirect('chosen_competence', direction_id)
+
+
 class DeleteCompetenceView(LoginRequiredMixin, View):
     def get(self, request, competence_id, direction_id):
         direction = Direction.objects.get(id=direction_id)
         delete_competence(competence_id, direction)
         return redirect('chosen_competence', direction_id)
+
+
+class CreateCompetenceView(LoginRequiredMixin, View):
+    def get(self, request):
+        form = CreateCompetenceForm(current_user=request.user)
+        competence_list = Competence.objects.filter(parent_node__isnull=True)
+        return render(request, 'application/create_competence.html',
+                      context={'form': form, 'competence_active': True, 'competence_list': competence_list})
+
+    def post(self, request):
+        bound_form = CreateCompetenceForm(request.POST, current_user=request.user)
+        competence_list = Competence.objects.filter(parent_node__isnull=True)
+        if not bound_form.is_valid():
+            return render(request, 'application/create_competence.html',
+                          context={'form': bound_form, 'competence_active': True, 'competence_list': competence_list})
+        bound_form.save(commit=True)
+        return redirect(request.path_info)
 
 
 class ApplicationCompetenceChooseView(LoginRequiredMixin, View):
@@ -202,7 +223,8 @@ class ApplicationCompetenceChooseView(LoginRequiredMixin, View):
             level_competence = int(request.POST.get(str(key)))
             if level_competence and level_competence != 0:
                 competence = Competence.objects.filter(id=key).first()
-                ApplicationCompetencies.objects.create(application=user_app, competence=competence, level=level_competence)
+                ApplicationCompetencies.objects.create(application=user_app, competence=competence,
+                                                       level=level_competence)
         competencies = Competence.objects.all()
         competence_level = ApplicationCompetencies.competence_level
         context = {'competencies': competencies, 'levels': competence_level, 'competence_active': True}

@@ -25,9 +25,6 @@
         </div>
         {% endif %}
     </h5>
-</div>
-
-<div class="w-50" style="margin-left: 25%;">
     {% for comp_lvl1 in competence_list %}
     <li class="list-group-item list-group-item-light">
         <span class="{% if not comp_lvl1.is_estimated %} fw-bold {% endif %} ms-1 fs-4">{{comp_lvl1.name}}</span>
@@ -44,7 +41,8 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        Вы действительно хотите удалить компетенцию {{comp_lvl1.name}} из текущего направления и все ее
+                        Вы действительно хотите удалить компетенцию "{{comp_lvl1.name}}" из направления
+                        "{{selected_direction.name}}" и все ее
                         связанные компетенции?
                     </div>
                     <div class="modal-footer">
@@ -58,14 +56,18 @@
         </div>
 
         {% for comp_lvl2 in comp_lvl1.child.all %}
+        {% if selected_direction in comp_lvl2.directions.all %}
         <div class="ms-5">
             <span class="{% if not comp_lvl2.is_estimated %} fw-bold {% endif %} ms-1 fs-5">{{comp_lvl2.name}}</span>
             {% for comp_lvl3 in comp_lvl2.child.all %}
+            {% if selected_direction in comp_lvl3.directions.all %}
             <div class="ms-5">
                 <span class="{% if not comp_lvl3.is_estimated %} fw-bold {% endif %} ms-1 fs-6">{{comp_lvl3.name}}</span>
             </div>
+            {% endif %}
             {% endfor %}
         </div>
+        {% endif %}
         {% endfor %}
     </li>
     {% endfor %}
