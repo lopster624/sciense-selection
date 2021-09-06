@@ -21,8 +21,6 @@ def pick_competence(competence_id, direction):
     competence = Competence.objects.get(id=competence_id)
     if not competence.directions.all().filter(id=direction.id).exists():
         competence.directions.add(direction)
-    for sub_competence in competence.child.all():
-        pick_competence(sub_competence.id, direction)
 
 
 def get_context(obj):

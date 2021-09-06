@@ -1,6 +1,7 @@
 import os
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
 from django.http import HttpResponseRedirect, FileResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
@@ -8,8 +9,9 @@ from django.views import View
 from django.views.generic.list import ListView
 
 from application.forms import CreateCompetenceForm
-from account.models import Member, Affiliation
+from account.models import Member, Affiliation, Booking
 from engine.settings import MEDIA_DIR, MEDIA_ROOT
+from utils.constants import BOOKED, IN_WISHLIST
 from .forms import ApplicationCreateForm, EducationFormSet
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File
 from .utils import pick_competence, delete_competence, get_context
@@ -91,7 +93,7 @@ class ApplicationView(LoginRequiredMixin, View):
 
 class AddCompetencesView(LoginRequiredMixin, View):
     def post(self, request, direction_id):
-        # TODO: сделать добавку компетенции не рекурсивно или через джиес
+        # TODO: возможно нужно сделать автоматический выбор дочерних элементов при выборе родительских
         direction = Direction.objects.get(id=direction_id)
         chosen_competences = request.POST.getlist('chosen_competences')
         chosen_competences_id = [int(competence_id) for competence_id in chosen_competences]
@@ -177,21 +179,55 @@ class DeleteFileView(LoginRequiredMixin, View):
     def get(self, request, file_id):
         file = File.objects.get(id=file_id)
         file.delete()
+        return redirect('documents_templates')
+
 
 
 class ApplicationListView(LoginRequiredMixin, ListView):
+    """
+    Класс отображения списка заявок.
+
+    Среди заявок предусмотрена сортировка по следующим параметрам: ФИО, Ср. балл, итог. балл, заполненность
+    Среди заявок предусмотрен следующий список фильтров:
+    Направления заявки: список направлений заявки
+    Отобран в: список принадлежностей мастера
+    В вишлисте в: список принадлежностей мастера
+
+    Заявки отображаются по следующим правилам:
+    Если человек подавал на одно из направлений отбирающего, то анкета этого человека показывается
+
+    Заметки:
+    Возможно нужно добавить поле для бронирования и добавление в избранное, где в избранном будет показываться звездочка и кол-во человек, которое добавили в избранное
+    Возможные способы пометок: шрифт: жирный/нет, цвет рамки, цвет бекграунда
+    Жирным шрифтом помечаются забронированные, также у них отображается, куда(рота, взвод) они были забронированы.
+    Цвет рамки зеленый - если заявка была подана на направление, на которое отбирает отбирающий.
+
+    """
     model = Application
 
     def get_queryset(self):
         apps = Application.objects.all()
+        master_member = Member.objects.get(user=self.request.user)
+        master_affiliations = Affiliation.objects.filter(member=master_member)
+        master_directions = [aff.direction for aff in master_affiliations]
         for app in apps:
-            try:
-                educations = Education.objects.filter(application__exact=app).order_by('-end_year')
+            educations = Education.objects.filter(application__exact=app).order_by('-end_year')
+            if educations:
                 app.university = educations[0].university
                 app.avg_score = educations[0].avg_score
-            except IndexError:
-                app.university = ''
-                app.avg_score = ''
+            app.draft_time = app.get_draft_time()
+            booking = Booking.objects.filter(slave=app.member, booking_type__name=BOOKED)
+            if booking:
+                app.is_booked = True  # данный человек в принципе забронирован
+                app.affiliation = booking.first().affiliation
+                if booking.filter(affiliation__in=master_affiliations):
+                    app.is_booked_our = True
+            in_wishlist = Booking.objects.filter(slave=app.member, booking_type__name=IN_WISHLIST)
+            if in_wishlist:
+                app.wishlist_len = len(in_wishlist)
+                if Booking.objects.filter(slave=app.member, booking_type__name=IN_WISHLIST,
+                                          affiliation__in=master_affiliations):
+                    app.is_in_wishlist = True  # данный человек находится в вишлисте мастера
         return apps
 
     def get_context_data(self, **kwargs):

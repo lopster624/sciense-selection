@@ -15,8 +15,8 @@ def validate_draft_year(value: int):
 
 class Application(models.Model):
     season = [
-        (1, 'Осень'),
-        (2, 'Весна')
+        (1, 'Весна'),
+        (2, 'Осень')
     ]
     member = models.OneToOneField(Member, on_delete=models.CASCADE, verbose_name='Пользователь')
     competencies = models.ManyToManyField('Competence', verbose_name='Выбранные компетенции',
@@ -61,6 +61,9 @@ class Application(models.Model):
         :return: рассчитание значение
         """
         return 1
+
+    def get_draft_time(self):
+        return f'{self.season[self.draft_season-1][1]} {self.draft_year}'
 
     def save(self, *args, **kwargs):
         self.fullness = self.calculate_fullness()

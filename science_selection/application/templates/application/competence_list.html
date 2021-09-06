@@ -36,24 +36,28 @@
                 {% for comp_lvl1 in picking_competences %}
                 <li class="list-group-item list-group-item-light">
                     {% if selected_direction not in comp_lvl1.directions.all %}
-                    <input class="form-check-input ms-1 mt-2" type="checkbox" name="chosen_competences"
-                           value={{comp_lvl1.id}}>
-                    <span class="{% if not comp_lvl1.is_estimated %} fw-bold {% endif %} ms-1 fs-4">{{comp_lvl1.name}}</span>
+                    <label class="{% if not comp_lvl1.is_estimated %} fw-bold {% endif %} ms-1 fs-4">
+                        <input class="form-check-input ms-1" type="checkbox" name="chosen_competences"
+                               value={{comp_lvl1.id}}>
+                        {{comp_lvl1.name}}</label>
                     {% endif %}
                     {% for comp_lvl2 in comp_lvl1.child.all %}
 
                     <div class="ms-5">
                         {% if selected_direction not in comp_lvl2.directions.all %}
-                        <input class="form-check-input ms-1 mt-2" type="checkbox" name="chosen_competences"
-                               value={{comp_lvl2.id}}>
-                        <span class="{% if not comp_lvl2.is_estimated %} fw-bold {% endif %} ms-1 fs-5">{{comp_lvl2.name}}</span>
+
+                        <label class="{% if not comp_lvl2.is_estimated %} fw-bold {% endif %} ms-1 fs-5">
+                            <input class="form-check-input ms-1" type="checkbox" name="chosen_competences"
+                                   value={{comp_lvl2.id}}>
+                            {{comp_lvl2.name}}</label>
                         {% endif %}
                         {% for comp_lvl3 in comp_lvl2.child.all %}
                         {% if selected_direction not in comp_lvl3.directions.all %}
                         <div class="ms-5">
-                            <input class="form-check-input ms-1 mt-2" type="checkbox" name="chosen_competences"
-                                   value={{comp_lvl3.id}}>
-                            <span class="{% if not comp_lvl3.is_estimated %} fw-bold {% endif %} ms-1 fs-6">{{comp_lvl3.name}}</span>
+                            <label class="{% if not comp_lvl3.is_estimated %} fw-bold {% endif %} ms-1 fs-6">
+                                <input class="form-check-input ms-1" type="checkbox" name="chosen_competences"
+                                       value={{comp_lvl3.id}}>
+                                {{comp_lvl3.name}}</label>
                         </div>
                         {% endif %}
                         {% endfor %}
@@ -81,7 +85,7 @@
                     {% if selected_direction in comp_lvl2.directions.all %}
                     <span class="{% if not comp_lvl2.is_estimated %} fw-bold {% endif %} ms-1 fs-5">{{comp_lvl2.name}}</span>
                     <button type="button" class="btn-close ms-3" data-bs-toggle="modal"
-                        data-bs-target="#staticBackdrop{{ comp_lvl2.id }}" aria-label="Close"></button>
+                            data-bs-target="#staticBackdrop{{ comp_lvl2.id }}" aria-label="Close"></button>
                     {% include 'application/includes/delete_competence_lvl2_template.html' %}
                     {% endif %}
                     {% for comp_lvl3 in comp_lvl2.child.all %}
