@@ -9,8 +9,8 @@
 
 <div class="container">
     <div class="row mb-2 mt-2">
-        <div class="text-center col-md-3 offset-md-3"> Анкеты пользователя: {{ request.user.first_name }} {{ request.user.last_name }}</div>
-        <div class="col-md-3 offset-md-3"><button class="btn btn-outline-secondary"><a href="{%url 'create_application' %}">Редактировать</a></button></div>
+        <div class="text-center col-md-4 offset-md-3"> Анкета пользователя: {{ user_app.member }} </div>
+        <div class="col-md-3 offset-md-2"><button class="btn btn-outline-secondary"><a href="{%url 'edit_application' app_id %}">Редактировать</a></button></div>
     </div>
     <div class="row col-md-6 offset-3 mb-2">
         <div class="col">

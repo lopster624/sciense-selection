@@ -1,13 +1,16 @@
 <div class="col-md-6 offset-3 mt-2">
     <ul class="nav nav-tabs justify-content-center">
         <li class="nav-item">
-            <a class="nav-link {% if app_active %}active{% endif %}" aria-current="page" href="{% url 'create_application' %}">Заявка</a>
+            <a class="nav-link {% if app_active %}active{% endif %}" aria-current="page"
+               href="{% if app_id %}{% url 'application' app_id %}{% else %}{% url 'create_application' %}{% endif %}">Заявка</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link {% if direction_active %}active{% endif %}" href="{% url 'choose_app_direction' %}">Направления</a>
+            <a class="nav-link {% if direction_active %}active{% endif %}"
+               href="{% if app_id %}{% url 'choose_app_direction' app_id %}{% else %}#{% endif %}">Направления</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link {% if competence_active %}active{% endif %}" href="{% url 'choose_app_competence' %}">Компетенции</a>
+            <a class="nav-link {% if competence_active %}active{% endif %}"
+               href="{% if app_id %}{% url 'choose_app_competence' app_id %}{% else %}#{% endif %}">Компетенции</a>
         </li>
         <li class="nav-item">
             <a class="nav-link" href="#">Документы</a>

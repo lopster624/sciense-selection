@@ -32,4 +32,4 @@ class EducationCreateForm(forms.ModelForm):
         exclude = ('application',)
 
 
-EducationFormSet = modelformset_factory(Education, form=EducationCreateForm, extra=1)
+EducationFormSet = modelformset_factory(Education, form=EducationCreateForm, extra=1, max_num=3)
