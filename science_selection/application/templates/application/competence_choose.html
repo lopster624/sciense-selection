@@ -11,7 +11,7 @@
     <h5>
         {% if directions %}
         <form id="form">
-            Добавить новые компетенции в направление:
+            <h3>Добавить новые компетенции в направление:</h3>
             <select class="form-select mt-3" aria-label="Select direction" name="direction" id="select_direction">
                 {% for dir in directions %}
                 <option {% ifequal selected_direction_id dir.id %} selected {% endifequal %} value="{{dir.id}}">

@@ -84,6 +84,9 @@ class Booking(models.Model):
         verbose_name = "Бронирование"
         verbose_name_plural = "Бронирования"
 
+    def __str__(self):
+        return f'{self.booking_type.name} кто: {self.slave} кем: {self.master} в {self.affiliation}'
+
 
 class ActivationLink(models.Model):
     user = models.ForeignKey(User, verbose_name="Пользователь", on_delete=models.CASCADE)

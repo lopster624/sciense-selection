@@ -15,8 +15,8 @@ def validate_draft_year(value: int):
 
 class Application(models.Model):
     season = [
-        (1, 'Осень'),
-        (2, 'Весна')
+        (1, 'Весна'),
+        (2, 'Осень')
     ]
     member = models.OneToOneField(Member, on_delete=models.CASCADE, verbose_name='Пользователь')
     competencies = models.ManyToManyField('Competence', verbose_name='Выбранные компетенции',
@@ -31,8 +31,10 @@ class Application(models.Model):
     draft_season = models.IntegerField(choices=season, verbose_name='Сезон призыва')
     scientific_achievements = models.TextField(blank=True, verbose_name='Достижения', help_text='Статьи ВАК, РИМС ...')
     scholarships = models.TextField(blank=True, verbose_name='Стипендии', help_text='Президентская стипендия, ...')
-    ready_to_secret = models.BooleanField(default=False, verbose_name='Готовность к секретности', help_text='Готовность получить уровень секретности')
-    candidate_exams = models.TextField(blank=True, verbose_name='Кандидатские экзамены', help_text='Экзамены на кандидатский минимум, ...')
+    ready_to_secret = models.BooleanField(default=False, verbose_name='Готовность к секретности',
+                                          help_text='Готовность получить уровень секретности')
+    candidate_exams = models.TextField(blank=True, verbose_name='Кандидатские экзамены',
+                                       help_text='Экзамены на кандидатский минимум, ...')
     sporting_achievements = models.TextField(blank=True, verbose_name='Спортивные достижения', help_text='Разряды ...')
     hobby = models.TextField(blank=True, verbose_name='Хобби')
     other_information = models.TextField(blank=True, verbose_name='Дополнительная информация')
@@ -59,6 +61,9 @@ class Application(models.Model):
         :return: рассчитание значение
         """
         return 1
+
+    def get_draft_time(self):
+        return f'{self.season[self.draft_season-1][1]} {self.draft_year}'
 
     def save(self, *args, **kwargs):
         self.fullness = self.calculate_fullness()
@@ -117,15 +122,10 @@ class Direction(models.Model):
         verbose_name_plural = "Направления"
 
 
-def user_directory_path(instance, filename):
-    # file will be uploaded to MEDIA_ROOT/user_<id>/<timestamp>_<filename>
-    return f'user_{instance.member.user.username}/{{int(datetime.datetime.timestamp(datetime.datetime.now()))}}_{filename}'
-
-
 class File(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE, verbose_name='Пользователь')
-    file_path = models.FileField(upload_to=user_directory_path, verbose_name='Путь к файлу')
-    file_name = models.CharField(max_length=128, verbose_name='Имя файла')
+    file_path = models.FileField(upload_to='files/%Y/%m/%d', verbose_name='Путь к файлу')
+    file_name = models.CharField(max_length=128, verbose_name='Имя файла', blank=True)
     create_date = models.DateTimeField(auto_now_add=True, verbose_name='Дата добавления файла')
     is_template = models.BooleanField(default=False, verbose_name='Шаблон')
 

@@ -1,14 +1,15 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 from django.views import View
 from django.views.generic.list import ListView
 
-from account.forms import CreateCompetenceForm
-from account.models import Member, Affiliation
+from application.forms import CreateCompetenceForm
+from account.models import Member, Affiliation, Booking
+from utils.constants import BOOKED, IN_WISHLIST
 from .forms import ApplicationCreateForm, EducationFormSet
-from .models import Direction, Application, Education, Competence, ApplicationCompetencies
-from .utils import pick_competence, put_direction_in_context, delete_competence
+from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File
+from .utils import pick_competence, delete_competence, get_context
 
 
 class DirectionView(LoginRequiredMixin, ListView):
@@ -141,82 +142,22 @@ class EditApplicationView(LoginRequiredMixin, View):
                       context={'app_form': app_form, 'app_id': app_id, 'education_formset': education_formset, 'app_active': True})
 
 
-class CompetenceChooseView(LoginRequiredMixin, ListView):
-    model = Competence
-    template_name = 'application/competence_choose.html'
-
-    def get_queryset(self):
-        selected_direction_id = self.request.GET.get('direction')
-        member = Member.objects.get(user=self.request.user)
-        affiliations = Affiliation.objects.filter(member=member)
-        directions = [aff.direction for aff in affiliations]
-        all_competences = Competence.objects.all().filter(parent_node__isnull=True)
-        if selected_direction_id:
-            selected_direction_id = int(selected_direction_id)
-            chosen_direction = Direction.objects.get(id=selected_direction_id)
-            competences = all_competences.exclude(directions=chosen_direction)
-        elif directions:
-            competences = all_competences.exclude(directions=directions[0])
-        else:
-            competences = []
-        return competences
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['competence_active'] = True
-        selected_direction_id = self.request.GET.get('direction')
-        context = put_direction_in_context(self, context, selected_direction_id)
-        return context
-
-
-class ChosenCompetenceView(LoginRequiredMixin, ListView):
-    model = Competence
-
-    def get_queryset(self):
-        try:
-            selected_direction_id = self.kwargs['direction_id']
-        except KeyError:
-            selected_direction_id = self.request.GET.get('direction')
-        member = Member.objects.get(user=self.request.user)
-        affiliations = Affiliation.objects.filter(member=member)
-        directions = [aff.direction for aff in affiliations]
-        all_competences = Competence.objects.all().filter(parent_node__isnull=True)
-        if selected_direction_id:
-            selected_direction_id = int(selected_direction_id)
-            chosen_direction = Direction.objects.get(id=selected_direction_id)
-            competences = all_competences.filter(directions=chosen_direction)
-        elif directions:
-            competences = all_competences.filter(directions=directions[0])
-        else:
-            competences = []
-        return competences
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['competence_active'] = True
-        try:
-            selected_direction_id = self.kwargs['direction_id']
-        except KeyError:
-            selected_direction_id = self.request.GET.get('direction')
-        context = put_direction_in_context(self, context, selected_direction_id)
-        return context
-
-
 class AddCompetencesView(LoginRequiredMixin, View):
     def post(self, request, direction_id):
+        # TODO: возможно нужно сделать автоматический выбор дочерних элементов при выборе родительских
         direction = Direction.objects.get(id=direction_id)
         chosen_competences = request.POST.getlist('chosen_competences')
         chosen_competences_id = [int(competence_id) for competence_id in chosen_competences]
         for competence_id in chosen_competences_id:
             pick_competence(competence_id, direction)
-        return redirect('chosen_competence', direction_id)
+        return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
 class DeleteCompetenceView(LoginRequiredMixin, View):
     def get(self, request, competence_id, direction_id):
         direction = Direction.objects.get(id=direction_id)
         delete_competence(competence_id, direction)
-        return redirect('chosen_competence', direction_id)
+        return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
 class CreateCompetenceView(LoginRequiredMixin, View):
@@ -240,7 +181,6 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
     def get(self, request, app_id):
         #TODO: сначала проверка на существование заявки?
         user_app = get_object_or_404(Application, pk=app_id)
-        # user_app = Application.objects.filter(member=request.user.member).first()
         context = {'competence_active': True, 'app_id': app_id}
         if user_app:
             user_directions = user_app.directions.all()
@@ -254,12 +194,10 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
                 context.update({'msg': 'Заполните направления', 'name': 'choose_app_direction'})
         else:
             context.update({'msg': 'Создайте заявку', 'name': 'create_application'})
-        print(context)
         return render(request, 'application/application_competence_choose.html', context=context)
 
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
-        # user_app = Application.objects.filter(member=request.user.member).first()
         user_directions = user_app.directions.all()
         competencies = Competence.objects.filter(directions__in=user_directions).all()
         competence_ids = [_.id for _ in competencies]
@@ -276,3 +214,90 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
         context = {'competencies': competencies, 'levels': competence_level, 'selected_competencies': selected_competencies,
                    'app_id': app_id, 'competence_active': True}
         return render(request, 'application/application_competence_choose.html', context=context)
+
+
+class MasterFileTemplatesView(LoginRequiredMixin, View):
+    def get(self, request):
+        files = File.objects.all()
+        # показывает список уже загруженных файлов на сервер и позволяет загрузить новые
+        return render(request, 'application/documents.html', context={'file_list': files})
+
+    def post(self, request):
+        new_files = request.FILES.getlist('downloaded_files')
+        member = Member.objects.get(user=request.user)
+        for file in new_files:
+            new_file = File(member=member, file_path=file, is_template=True)
+            new_file.save()
+            new_file.file_name = new_file.file_path.name.split('/')[-1]  # отделяется название от пути загрузки
+            new_file.save()
+        return redirect(request.path_info)
+
+
+class DeleteFileView(LoginRequiredMixin, View):
+    def get(self, request, file_id):
+        file = File.objects.get(id=file_id)
+        file.delete()
+        return redirect('documents_templates')
+
+
+class ApplicationListView(LoginRequiredMixin, ListView):
+    """
+    Класс отображения списка заявок.
+
+    Среди заявок предусмотрена сортировка по следующим параметрам: ФИО, Ср. балл, итог. балл, заполненность
+    Среди заявок предусмотрен следующий список фильтров:
+    Направления заявки: список направлений заявки
+    Отобран в: список принадлежностей мастера
+    В вишлисте в: список принадлежностей мастера
+
+    Заявки отображаются по следующим правилам:
+    Если человек подавал на одно из направлений отбирающего, то анкета этого человека показывается
+
+    Заметки:
+    Возможно нужно добавить поле для бронирования и добавление в избранное, где в избранном будет показываться звездочка и кол-во человек, которое добавили в избранное
+    Возможные способы пометок: шрифт: жирный/нет, цвет рамки, цвет бекграунда
+    Жирным шрифтом помечаются забронированные, также у них отображается, куда(рота, взвод) они были забронированы.
+    Цвет рамки зеленый - если заявка была подана на направление, на которое отбирает отбирающий.
+
+    """
+    model = Application
+
+    def get_queryset(self):
+        apps = Application.objects.all()
+        master_member = Member.objects.get(user=self.request.user)
+        master_affiliations = Affiliation.objects.filter(member=master_member)
+        master_directions = [aff.direction for aff in master_affiliations]
+        for app in apps:
+            educations = Education.objects.filter(application__exact=app).order_by('-end_year')
+            if educations:
+                app.university = educations[0].university
+                app.avg_score = educations[0].avg_score
+            app.draft_time = app.get_draft_time()
+            booking = Booking.objects.filter(slave=app.member, booking_type__name=BOOKED)
+            if booking:
+                app.is_booked = True  # данный человек в принципе забронирован
+                app.affiliation = booking.first().affiliation
+                if booking.filter(affiliation__in=master_affiliations):
+                    app.is_booked_our = True
+            in_wishlist = Booking.objects.filter(slave=app.member, booking_type__name=IN_WISHLIST)
+            if in_wishlist:
+                app.wishlist_len = len(in_wishlist)
+                if Booking.objects.filter(slave=app.member, booking_type__name=IN_WISHLIST,
+                                          affiliation__in=master_affiliations):
+                    app.is_in_wishlist = True  # данный человек находится в вишлисте мастера
+        return apps
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['application_active'] = True
+        return context
+
+
+class CompetenceListView(LoginRequiredMixin, View):
+    def get(self, request):
+        context = get_context(self)
+        return render(request, 'application/competence_list.html', context=context)
+
+    def post(self, request):
+        context = get_context(self)
+        return render(request, 'application/competence_list.html', context=context)
