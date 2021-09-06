@@ -209,6 +209,7 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         apps = Application.objects.all()
         master_member = Member.objects.get(user=self.request.user)
         master_affiliations = Affiliation.objects.filter(member=master_member)
+        master_direction_id = master_affiliations.values_list('direction__id', flat=True)
         master_directions = [aff.direction for aff in master_affiliations]
         for app in apps:
             educations = Education.objects.filter(application__exact=app).order_by('-end_year')
@@ -228,6 +229,9 @@ class ApplicationListView(LoginRequiredMixin, ListView):
                 if Booking.objects.filter(slave=app.member, booking_type__name=IN_WISHLIST,
                                           affiliation__in=master_affiliations):
                     app.is_in_wishlist = True  # данный человек находится в вишлисте мастера
+            slave_directions = app.directions.all()
+            if slave_directions.filter(id__in=master_direction_id):
+                app.our_direction = True
         return apps
 
     def get_context_data(self, **kwargs):

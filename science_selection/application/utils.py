@@ -51,7 +51,6 @@ def get_context(obj):
             exclude_id_from_pick.append(competence.id)
     competences_list = competences.exclude(id__in=exclude_id_from_list)
     picking_competences = competences.exclude(id__in=exclude_id_from_pick)
-    print(competences_list)
     context = {'competences_list': competences_list, 'picking_competences': picking_competences,
                'selected_direction_id': selected_direction_id,
                'selected_direction': selected_direction, 'directions': directions, 'competence_active': True}

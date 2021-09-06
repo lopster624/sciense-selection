@@ -25,7 +25,7 @@
         </thead>
         <tbody>
         {% for app in object_list %}
-        <tr class="border border-success">
+        <tr  class="{% if app.is_booked %}fw-bold{%endif%} {% if not app.our_direction %} bg-light {% endif %}" >
             <th>{{ forloop.counter }}</th>
             <td scope="row">
                 <h5 class="card-title">
@@ -47,9 +47,9 @@
             <td>
                 {{ app.avg_score }}
             </td>
-            <th>
+            <td>
                 {{ app.final_score }}
-            </th>
+            </td>
             <td>
                 {{ app.fullness }}
             </td>
@@ -59,7 +59,8 @@
                 <img src="{% static 'images/lock-fill.svg' %}" alt="download file" width="20" height="20">
                 {% else %}
                 <img src="{% static 'images/lock.svg' %}" alt="download file" width="20" height="20">
-                {% endif %}{% endif %}
+                {% endif %}
+                {% endif %}
                 {{app.affiliation}}
             </td>
             <td>
