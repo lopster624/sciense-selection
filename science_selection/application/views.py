@@ -1,4 +1,5 @@
 import os
+from operator import attrgetter
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
@@ -182,7 +183,6 @@ class DeleteFileView(LoginRequiredMixin, View):
         return redirect('documents_templates')
 
 
-
 class ApplicationListView(LoginRequiredMixin, ListView):
     """
     Класс отображения списка заявок.
@@ -211,11 +211,24 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         master_affiliations = Affiliation.objects.filter(member=master_member)
         master_direction_id = master_affiliations.values_list('direction__id', flat=True)
         master_directions = [aff.direction for aff in master_affiliations]
+
+        # тут производится вся сортировка и фильтрация
+        # сортировка по имени
+        order_member = self.request.GET.get('member', None)
+        if order_member:
+            apps = apps.order_by(order_member)
+
+        # сортировка по названию города
+        birth_place = self.request.GET.get('birth_place', None)
+        if birth_place:
+            apps = apps.order_by(birth_place)
+
         for app in apps:
             educations = Education.objects.filter(application__exact=app).order_by('-end_year')
             if educations:
                 app.university = educations[0].university
                 app.avg_score = educations[0].avg_score
+                app.education_type = educations[0].get_education_type_display()
             app.draft_time = app.get_draft_time()
             booking = Booking.objects.filter(slave=app.member, booking_type__name=BOOKED)
             if booking:
@@ -232,11 +245,25 @@ class ApplicationListView(LoginRequiredMixin, ListView):
             slave_directions = app.directions.all()
             if slave_directions.filter(id__in=master_direction_id):
                 app.our_direction = True
+            else:
+                app.our_direction = False
+
+        # apps = sorted(apps, key=attrgetter('our_direction'))
+
         return apps
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['application_active'] = True
+
+        context['order_member'] = self.request.GET.get('member', None)
+        if context['order_member']:
+            context['order_member'] = 'member' if context['order_member'] == '-member' else '-member'
+
+        context['birth_place'] = self.request.GET.get('birth_place', None)
+        if context['birth_place']:
+            context['birth_place'] = 'birth_place' if context['birth_place'] == '-birth_place' else '-birth_place'
+
         return context
 
 

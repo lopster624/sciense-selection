@@ -63,7 +63,7 @@ class Application(models.Model):
         return 1
 
     def get_draft_time(self):
-        return f'{self.season[self.draft_season-1][1]} {self.draft_year}'
+        return f'{self.season[self.draft_season - 1][1]} {self.draft_year}'
 
     def save(self, *args, **kwargs):
         self.fullness = self.calculate_fullness()
@@ -97,6 +97,9 @@ class Education(models.Model):
 
     def __str__(self):
         return f'{self.application.member.user.first_name} {self.application.member.user.first_name}: {self.get_education_type_display()}'
+
+    def get_education_type_display(self):
+        return next(name for ed_type, name in self.education_program if ed_type == self.education_type)
 
     class Meta:
         verbose_name = "Образование"

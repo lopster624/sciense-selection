@@ -6,74 +6,106 @@
 {% block content %}
 {% include 'includes/header_template.html' %}
 {% include 'application/includes/nav_tabs_template.html' %}
-<div>
-    <table class="table table w-50 bg-white" style="margin-left: 25%;">
-        <thead>
-        <tr>
-            <th scope="col">#</th>
-            <th scope="col">ФИО</th>
-            <th scope="col">Сезон призыва</th>
-            <th scope="col">Город</th>
-            <th scope="col">ВУЗ</th>
-            <th scope="col">Год рождения</th>
-            <th scope="col">Средний балл диплома</th>
-            <th scope="col">Итоговый балл</th>
-            <th scope="col">Заполненность, %</th>
-            <th scope="col">Отобран</th>
-            <th scope="col">В избранном</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for app in object_list %}
-        <tr  class="{% if app.is_booked %}fw-bold{%endif%} {% if not app.our_direction %} bg-light {% endif %}" >
-            <th>{{ forloop.counter }}</th>
-            <td scope="row">
-                <h5 class="card-title">
-                    <a href="{% url 'application' app.id %}" class="">{{ app.member }}</a>
-                </h5>
-            </td>
-            <td>
-                {{app.draft_time}}
-            </td>
-            <td>
-                {{ app.birth_place }}
-            </td>
-            <td>
-                {{ app.university }}
-            </td>
-            <td>
-                {{ app.birth_day }}
-            </td>
-            <td>
-                {{ app.avg_score }}
-            </td>
-            <td>
-                {{ app.final_score }}
-            </td>
-            <td>
-                {{ app.fullness }}
-            </td>
-            <td>
-                {% if app.is_booked %}
-                {% if app.is_booked_our %}
-                <img src="{% static 'images/lock-fill.svg' %}" alt="download file" width="20" height="20">
-                {% else %}
-                <img src="{% static 'images/lock.svg' %}" alt="download file" width="20" height="20">
-                {% endif %}
-                {% endif %}
-                {{app.affiliation}}
-            </td>
-            <td>
-                {% if app.is_in_wishlist %}
-                <img src="{% static 'images/star-fill.svg' %}" alt="download file" width="20" height="20">
-                {% else %}
-                <img src="{% static 'images/star.svg' %}" alt="download file" width="20" height="20">
-                {% endif %} {{app.wishlist_len}}
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+<div class="row justify-content-center">
+    <div class="col-8">
+        <form>
+            <table class="table table bg-white">
+                <thead>
+
+                <tr>
+
+                    <th scope="col">#</th>
+                    <td scope="col">
+                        <button name="member" type="submit" class="btn btn-white" value="{% if not order_member %}-member{% else %}{{order_member}}{% endif %}">
+                            ФИО
+                            {% if order_member == '-member'%}
+                            <img src="{% static 'images/sort-alpha-down-alt.svg' %}" alt="download file" width="20" height="20">
+                            {%endif%}
+                            {% if order_member == 'member'%}
+                            <img src="{% static 'images/sort-alpha-down.svg' %}" alt="download file" width="20" height="20">
+                            {%endif%}
+                        </button>
+                    </td>
+                    <td scope="col">Сезон призыва</td>
+                    <td scope="col" class="col-sm-1">
+                        <button name="birth_place" type="submit" class="btn btn-white" value="{% if not birth_place %}-birth_place{% else %}{{birth_place}}{% endif %}">
+                            Город
+                            {% if birth_place == 'birth_place'%}
+                            <img src="{% static 'images/sort-alpha-down-alt.svg' %}" alt="download file" width="20" height="20">
+                            {%endif%}
+                            {% if birth_place == '-birth_place'%}
+                            <img src="{% static 'images/sort-alpha-down.svg' %}" alt="download file" width="20" height="20">
+                            {%endif%}
+                        </button>
+                    </td>
+                    <td scope="col">ВУЗ</td>
+                    <td scope="col">Программа</td>
+                    <td scope="col">Год рождения</td>
+                    <td scope="col">Средний балл диплома</td>
+                    <td scope="col">Итоговый балл</td>
+                    <td scope="col">Заполненность, %</td>
+                    <td scope="col">Отобран</td>
+                    <td scope="col">В избранном</td>
+
+                </tr>
+
+                </thead>
+                <tbody>
+                {% for app in object_list|dictsortreversed:"our_direction" %}
+                <tr class="{% if app.is_booked %}fw-bold{%endif%} {% if not app.our_direction %} table-active {% endif %}">
+                    <th>{{ forloop.counter }}</th>
+                    <td scope="row">
+                        <h5 class="card-title">
+                            <a href="{% url 'application' app.id %}" class="">{{ app.member }}</a>
+                        </h5>
+                    </td>
+                    <td>
+                        {{app.draft_time}}
+                    </td>
+                    <td>
+                        {{ app.birth_place }}
+                    </td>
+                    <td>
+                        {{ app.university }}
+                    </td>
+                    <td>
+                        {{ app.education_type }}
+                    </td>
+                    <td>
+                        {{ app.birth_day }}
+                    </td>
+                    <td>
+                        {{ app.avg_score }}
+                    </td>
+                    <td>
+                        {{ app.final_score }}
+                    </td>
+                    <td>
+                        {{ app.fullness }}
+                    </td>
+                    <td>
+                        {% if app.is_booked %}
+                        {% if app.is_booked_our %}
+                        <img src="{% static 'images/lock-fill.svg' %}" alt="download file" width="20" height="20">
+                        {% else %}
+                        <img src="{% static 'images/lock.svg' %}" alt="download file" width="20" height="20">
+                        {% endif %}
+                        {% endif %}
+                        {{app.affiliation}}
+                    </td>
+                    <td>
+                        {% if app.is_in_wishlist %}
+                        <img src="{% static 'images/star-fill.svg' %}" alt="download file" width="20" height="20">
+                        {% else %}
+                        <img src="{% static 'images/star.svg' %}" alt="download file" width="20" height="20">
+                        {% endif %} {{app.wishlist_len}}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </form>
+    </div>
 </div>
 {% endblock %}
 
