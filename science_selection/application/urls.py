@@ -5,7 +5,7 @@ from engine import settings
 from .views import DirectionView, ApplicationListView, ApplicationView, ApplicationCreateView, \
     AddCompetencesView, DeleteCompetenceView, CreateCompetenceView, \
     ApplicationCompetenceChooseView, ApplicationDirectionChooseView, MasterFileTemplatesView, DeleteFileView, \
-    CompetenceListView
+    CompetenceListView, BookMemberView
 
 urlpatterns = [
                   path('direction/', DirectionView.as_view(), name='direction'),
@@ -23,4 +23,5 @@ urlpatterns = [
                   path('competence/create/', CreateCompetenceView.as_view(), name='create_competence'),
                   path('documents/templates/delete/<int:file_id>/', DeleteFileView.as_view(), name='delete_file'),
                   path('documents/templates/', MasterFileTemplatesView.as_view(), name='documents_templates'),
+                  path('book/<int:app_id>/', BookMemberView.as_view(), name='book_member')
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

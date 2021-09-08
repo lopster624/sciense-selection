@@ -223,6 +223,15 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         if birth_place:
             apps = apps.order_by(birth_place)
 
+        # сортировка по итоговому баллу
+        final_score = self.request.GET.get('final_score', None)
+        if final_score:
+            apps = apps.order_by(final_score)
+
+        # сортировка по заполненности
+        fullness = self.request.GET.get('fullness', None)
+        if fullness:
+            apps = apps.order_by(fullness)
         for app in apps:
             educations = Education.objects.filter(application__exact=app).order_by('-end_year')
             if educations:
@@ -243,12 +252,13 @@ class ApplicationListView(LoginRequiredMixin, ListView):
                                           affiliation__in=master_affiliations):
                     app.is_in_wishlist = True  # данный человек находится в вишлисте мастера
             slave_directions = app.directions.all()
-            if slave_directions.filter(id__in=master_direction_id):
+            available_directions = slave_directions.filter(id__in=master_direction_id)
+            if available_directions:
                 app.our_direction = True
+                app.available_affiliations = master_affiliations.filter(direction__in=slave_directions)
+
             else:
                 app.our_direction = False
-
-        # apps = sorted(apps, key=attrgetter('our_direction'))
 
         return apps
 
@@ -264,6 +274,13 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         if context['birth_place']:
             context['birth_place'] = 'birth_place' if context['birth_place'] == '-birth_place' else '-birth_place'
 
+        context['final_score'] = self.request.GET.get('final_score', None)
+        if context['final_score']:
+            context['final_score'] = 'final_score' if context['final_score'] == '-final_score' else '-final_score'
+
+        context['fullness'] = self.request.GET.get('fullness', None)
+        if context['fullness']:
+            context['fullness'] = 'fullness' if context['fullness'] == '-fullness' else '-fullness'
         return context
 
 
@@ -275,3 +292,7 @@ class CompetenceListView(LoginRequiredMixin, View):
     def post(self, request):
         context = get_context(self)
         return render(request, 'application/competence_list.html', context=context)
+
+class BookMemberView(LoginRequiredMixin, View):
+    def get(self, request, app_id):
+        pass
