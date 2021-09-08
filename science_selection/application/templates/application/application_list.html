@@ -7,7 +7,7 @@
 {% include 'includes/header_template.html' %}
 {% include 'application/includes/nav_tabs_template.html' %}
 <div class="row justify-content-center">
-    <div class="col-8">
+    <div class="col-9">
         <form>
             <table class="table table bg-white">
                 <thead>
@@ -16,7 +16,7 @@
 
                     <th scope="col">#</th>
                     <td scope="col">
-                        <button name="member" type="submit" class="btn btn-white" value="{% if not order_member %}-member{% else %}{{order_member}}{% endif %}">
+                        <button name="member" type="submit" class="btn btn-white fw-bold text-decoration-underline" value="{% if not order_member %}-member{% else %}{{order_member}}{% endif %}">
                             ФИО
                             {% if order_member == '-member'%}
                             <img src="{% static 'images/sort-alpha-down-alt.svg' %}" alt="download file" width="20" height="20">
@@ -28,7 +28,7 @@
                     </td>
                     <td scope="col">Сезон призыва</td>
                     <td scope="col" class="col-sm-1">
-                        <button name="birth_place" type="submit" class="btn btn-white" value="{% if not birth_place %}-birth_place{% else %}{{birth_place}}{% endif %}">
+                        <button name="birth_place" type="submit" class="btn btn-white fw-bold text-decoration-underline" value="{% if not birth_place %}-birth_place{% else %}{{birth_place}}{% endif %}">
                             Город
                             {% if birth_place == 'birth_place'%}
                             <img src="{% static 'images/sort-alpha-down-alt.svg' %}" alt="download file" width="20" height="20">
