@@ -1,17 +1,11 @@
-import os
-from operator import attrgetter
-
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
-from django.http import HttpResponseRedirect, FileResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views import View
 from django.views.generic.list import ListView
 
-from application.forms import CreateCompetenceForm
-from account.models import Member, Affiliation, Booking
-from engine.settings import MEDIA_DIR, MEDIA_ROOT
+from account.models import Member, Affiliation, Booking, BookingType
+from application.forms import CreateCompetenceForm, FilterForm
 from utils.constants import BOOKED, IN_WISHLIST
 from .forms import ApplicationCreateForm, EducationFormSet
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File
@@ -210,28 +204,42 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         master_member = Member.objects.get(user=self.request.user)
         master_affiliations = Affiliation.objects.filter(member=master_member)
         master_direction_id = master_affiliations.values_list('direction__id', flat=True)
-        master_directions = [aff.direction for aff in master_affiliations]
+        if self.request.GET:
+            # тут производится вся сортировка и фильтрация
+            # фильтрация по направлениям
+            chosen_directions = self.request.GET.getlist('directions', None)
+            if chosen_directions:
+                apps = apps.filter(directions__in=chosen_directions).distinct()
 
-        # тут производится вся сортировка и фильтрация
-        # сортировка по имени
-        order_member = self.request.GET.get('member', None)
-        if order_member:
-            apps = apps.order_by(order_member)
+            # фильтрация по бронированию
+            chosen_affiliation = self.request.GET.getlist('affiliation', None)
+            if chosen_affiliation:
+                booked_members = Booking.objects.filter(affiliation__in=chosen_affiliation,
+                                                        booking_type__name=BOOKED).values_list('slave', flat=True)
+                apps = apps.filter(member__id__in=booked_members).distinct()
 
-        # сортировка по названию города
-        birth_place = self.request.GET.get('birth_place', None)
-        if birth_place:
-            apps = apps.order_by(birth_place)
+            # фильтрация по вишлисту
+            chosen_affiliation_wishlist = self.request.GET.getlist('in_wishlist', None)
+            if chosen_affiliation_wishlist:
+                booked_members = Booking.objects.filter(affiliation__in=chosen_affiliation_wishlist,
+                                                        booking_type__name=IN_WISHLIST).values_list('slave', flat=True)
+                apps = apps.filter(member__id__in=booked_members).distinct()
 
-        # сортировка по итоговому баллу
-        final_score = self.request.GET.get('final_score', None)
-        if final_score:
-            apps = apps.order_by(final_score)
+            # фильтрация по сезону
+            draft_season = self.request.GET.getlist('draft_season', None)
+            if draft_season:
+                apps = apps.filter(draft_season__in=draft_season).distinct()
 
-        # сортировка по заполненности
-        fullness = self.request.GET.get('fullness', None)
-        if fullness:
-            apps = apps.order_by(fullness)
+            # фильтрация по году призыва
+            draft_year = self.request.GET.getlist('draft_year', None)
+            if draft_year:
+                apps = apps.filter(draft_year__in=draft_year).distinct()
+
+            # сортировка
+            ordering = self.request.GET.get('ordering', None)
+            if ordering:
+                apps = apps.order_by(ordering)
+
         for app in apps:
             educations = Education.objects.filter(application__exact=app).order_by('-end_year')
             if educations:
@@ -248,9 +256,13 @@ class ApplicationListView(LoginRequiredMixin, ListView):
             in_wishlist = Booking.objects.filter(slave=app.member, booking_type__name=IN_WISHLIST)
             if in_wishlist:
                 app.wishlist_len = len(in_wishlist)
-                if Booking.objects.filter(slave=app.member, booking_type__name=IN_WISHLIST,
-                                          affiliation__in=master_affiliations):
+                wishlist = Booking.objects.filter(slave=app.member, booking_type__name=IN_WISHLIST,
+                                                  affiliation__in=master_affiliations).values_list('affiliation',
+                                                                                                   flat=True)
+                if wishlist:
+                    app.wishlist_affiliations = Affiliation.objects.filter(id__in=wishlist)
                     app.is_in_wishlist = True  # данный человек находится в вишлисте мастера
+
             slave_directions = app.directions.all()
             available_directions = slave_directions.filter(id__in=master_direction_id)
             if available_directions:
@@ -263,24 +275,20 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         return apps
 
     def get_context_data(self, **kwargs):
+        master_member = Member.objects.get(user=self.request.user)
+        master_affiliations = Affiliation.objects.filter(member=master_member)
         context = super().get_context_data(**kwargs)
+        directions_set = [(aff.direction.id, aff.direction) for aff in master_affiliations]
+        in_wishlist_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
+        draft_year_set = Application.objects.order_by(
+            'draft_year').distinct().values_list('draft_year', 'draft_year')
+        filter_form = FilterForm(self.request.GET, directions_set=directions_set, in_wishlist_set=in_wishlist_set,
+                                 draft_year_set=draft_year_set,
+                                 chosen_affiliation_set=in_wishlist_set, )
+        context['form'] = filter_form
+        if self.request.GET:
+            context['reset_filters'] = True
         context['application_active'] = True
-
-        context['order_member'] = self.request.GET.get('member', None)
-        if context['order_member']:
-            context['order_member'] = 'member' if context['order_member'] == '-member' else '-member'
-
-        context['birth_place'] = self.request.GET.get('birth_place', None)
-        if context['birth_place']:
-            context['birth_place'] = 'birth_place' if context['birth_place'] == '-birth_place' else '-birth_place'
-
-        context['final_score'] = self.request.GET.get('final_score', None)
-        if context['final_score']:
-            context['final_score'] = 'final_score' if context['final_score'] == '-final_score' else '-final_score'
-
-        context['fullness'] = self.request.GET.get('fullness', None)
-        if context['fullness']:
-            context['fullness'] = 'fullness' if context['fullness'] == '-fullness' else '-fullness'
         return context
 
 
@@ -293,6 +301,55 @@ class CompetenceListView(LoginRequiredMixin, View):
         context = get_context(self)
         return render(request, 'application/competence_list.html', context=context)
 
+
 class BookMemberView(LoginRequiredMixin, View):
-    def get(self, request, app_id):
-        pass
+    def post(self, request, app_id):
+        # todo: спросить, может ли отбирающий с этого же направления удалять людей из бронирования
+        #  или только тот, кто бронировал
+        affiliation_id = request.POST.get('affiliation', None)
+        master_member = Member.objects.get(user=request.user)
+        slave_member = Member.objects.get(application__id=app_id)
+        booking_type = BookingType.objects.get(name=BOOKED)
+        affiliation = Affiliation.objects.get(id=affiliation_id)
+        print(affiliation, booking_type, slave_member, master_member)
+        Booking(booking_type=booking_type, master=master_member, slave=slave_member, affiliation=affiliation).save()
+        return redirect('application_list')
+
+
+class UnBookMemberView(LoginRequiredMixin, View):
+    def post(self, request, app_id, aff_id):
+        master_member = Member.objects.get(user=request.user)
+        slave_member = Member.objects.get(application__id=app_id)
+        booking = Booking.objects.filter(master=master_member, slave=slave_member, booking_type__name=BOOKED,
+                                         affiliation__id=aff_id)
+        if booking:
+            booking.delete()
+            return redirect('application_list')
+        return render(request, 'access_error.html',
+                      context={'error': 'Неверный запрос на удаление.'})
+
+
+class AddInWishlist(LoginRequiredMixin, View):
+    def post(self, request, app_id):
+        affiliations_id = request.POST.getlist('affiliations', None)
+        master_member = Member.objects.get(user=request.user)
+        slave_member = Member.objects.get(application__id=app_id)
+        booking_type = BookingType.objects.get(name=IN_WISHLIST)
+        for affiliation_id in affiliations_id:
+            affiliation = Affiliation.objects.get(id=affiliation_id)
+            Booking(booking_type=booking_type, master=master_member, slave=slave_member,
+                    affiliation=affiliation).save()
+        return redirect('application_list')
+
+
+class DeleteFromWishlist(LoginRequiredMixin, View):
+    def post(self, request, app_id):
+        affiliations_id = request.POST.getlist('affiliations', None)
+        master_member = Member.objects.get(user=request.user)
+        slave_member = Member.objects.get(application__id=app_id)
+        for affiliation_id in affiliations_id:
+            current_booking = Booking.objects.filter(booking_type__name=IN_WISHLIST, master=master_member,
+                                                     slave=slave_member, affiliation__id=affiliation_id)
+            if current_booking:
+                current_booking.first().delete()
+        return redirect('application_list')

@@ -8,7 +8,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"
                         aria-label="Close"></button>
             </div>
-            <form action="{% url 'book_member' app.id %}" method="post">
+            <form action="{% url 'un-book_member' app.id app.affiliation.id %}" method="post">
+                {% csrf_token %}
                 <div class="modal-body fw-normal">
                     Вы действительно хотите удалить кандидата {{app.member}} из списка отбора {{app.affiliation}}?
                 </div>

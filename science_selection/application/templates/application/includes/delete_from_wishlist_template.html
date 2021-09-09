@@ -4,16 +4,16 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content bg-light">
             <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropwishLabel{{ app.id }}">Добавить в избранное</h5>
+                <h5 class="modal-title" id="staticBackdropwishLabel{{ app.id }}">Удалить из избранного</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"
                         aria-label="Close"></button>
             </div>
-            <form action="{% url 'add_in_wishlist' app.id %}" method="post">
+            <form action="{% url 'delete_from_wishlist' app.id %}" method="post">
                 {% csrf_token %}
                 <div class="modal-body">
-                    Для каких взводов вы хотите добавить кандидата {{app.member}} в избранное?
+                    Для каких взводов вы хотите удалить кандидата {{app.member}} из избранного?
                     <select class="form-select mt-3" multiple aria-label="Select direction" name="affiliations">
-                    {% for aff in master_affiliations %}
+                    {% for aff in app.wishlist_affiliations %}
                     <option value="{{aff.id}}">
                         {{ aff }}
                     </option>
@@ -23,7 +23,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
 
-                    <button type="submit" class="btn btn-outline-dark">Добавить в избранное</button>
+                    <button type="submit" class="btn btn-outline-dark">Удалить из избранного</button>
 
                 </div>
             </form>

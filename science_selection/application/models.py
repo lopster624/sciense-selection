@@ -18,7 +18,8 @@ class Application(models.Model):
         (1, 'Весна'),
         (2, 'Осень')
     ]
-    member = models.OneToOneField(Member, on_delete=models.CASCADE, verbose_name='Пользователь')
+    member = models.OneToOneField(Member, on_delete=models.CASCADE, verbose_name='Пользователь',
+                                  related_name='application')
     competencies = models.ManyToManyField('Competence', verbose_name='Выбранные компетенции',
                                           through='ApplicationCompetencies', blank=True)
     directions = models.ManyToManyField('Direction', verbose_name='Выбранные направления', blank=True)
@@ -66,8 +67,8 @@ class Application(models.Model):
         return f'{self.season[self.draft_season - 1][1]} {self.draft_year}'
 
     def save(self, *args, **kwargs):
-        #self.fullness = self.calculate_fullness()
-        #self.final_score = self.calculate_final_score()
+        # self.fullness = self.calculate_fullness()
+        # self.final_score = self.calculate_final_score()
         super().save(*args, **kwargs)
 
     def __str__(self):
