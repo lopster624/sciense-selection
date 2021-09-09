@@ -2,11 +2,12 @@ import datetime
 
 from django import forms
 from django.core.validators import MinValueValidator
-from django.forms.widgets import DateInput, Input, SelectMultiple, Select, CheckboxInput, NumberInput, Textarea
 from django.forms import modelformset_factory, ModelForm, ModelMultipleChoiceField, ModelChoiceField
+from django.forms.widgets import Input, SelectMultiple, Select, CheckboxInput, CheckboxSelectMultiple, \
+    NumberInput, Textarea, DateInput
 
 from account.models import Member, Affiliation
-from .models import Application, Education, File, Direction, Competence
+from .models import Application, Education, Direction, Competence
 
 
 class CreateCompetenceForm(ModelForm):
@@ -94,3 +95,56 @@ class EducationCreateForm(forms.ModelForm):
 
 
 EducationFormSet = modelformset_factory(Education, form=EducationCreateForm, extra=1, can_delete=True)
+
+
+class FilterForm(forms.Form):
+    order = [
+        ('member__user__last_name', 'По фамилии'),
+        ('birth_place', 'По городу'),
+        ('-final_score', 'По итоговому баллу'),
+        ('-fullness', 'По заполненности анкеты'),
+    ]
+    ordering = forms.ChoiceField(
+        label='Сортировка',
+        required=False,
+        choices=order,
+        initial='2',
+        widget=Select(attrs={'class': 'form-select'}),
+    )
+    directions = forms.MultipleChoiceField(
+        label='Направления заявки',
+        required=False,
+        widget=CheckboxSelectMultiple(),
+    )
+    affiliation = forms.MultipleChoiceField(
+        label='Отобраны во взвод',
+        required=False,
+        widget=CheckboxSelectMultiple(),
+    )
+    in_wishlist = forms.MultipleChoiceField(
+        label='В избранном во взвод',
+        required=False,
+        widget=CheckboxSelectMultiple(),
+    )
+    draft_season = forms.MultipleChoiceField(
+        label='Сезон призыва',
+        required=False,
+        choices=Application.season,
+        widget=SelectMultiple(attrs={'class': 'form-select'}),
+    )
+    draft_year = forms.MultipleChoiceField(
+        label='Год призыва',
+        required=False,
+        widget=SelectMultiple(attrs={'class': 'form-select'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        directions_set = kwargs.pop('directions_set')
+        in_wishlist_set = kwargs.pop('in_wishlist_set')
+        draft_year_set = kwargs.pop('draft_year_set')
+        chosen_affiliation_set = kwargs.pop('chosen_affiliation_set')
+        super(FilterForm, self).__init__(*args, **kwargs)
+        self.fields['directions'].choices = directions_set
+        self.fields['affiliation'].choices = chosen_affiliation_set
+        self.fields['in_wishlist'].choices = in_wishlist_set
+        self.fields['draft_year'].choices = draft_year_set

@@ -6,73 +6,121 @@
 {% block content %}
 {% include 'includes/header_template.html' %}
 {% include 'application/includes/nav_tabs_template.html' %}
-<div>
-    <table class="table table w-50 bg-white" style="margin-left: 25%;">
-        <thead>
-        <tr>
-            <th scope="col">#</th>
-            <th scope="col">ФИО</th>
-            <th scope="col">Сезон призыва</th>
-            <th scope="col">Город</th>
-            <th scope="col">ВУЗ</th>
-            <th scope="col">Год рождения</th>
-            <th scope="col">Средний балл диплома</th>
-            <th scope="col">Итоговый балл</th>
-            <th scope="col">Заполненность, %</th>
-            <th scope="col">Отобран</th>
-            <th scope="col">В избранном</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for app in object_list %}
-        <tr class="border border-success">
-            <th>{{ forloop.counter }}</th>
-            <td scope="row">
-                <h5 class="card-title">
-                    <a href="{% url 'application' app.id %}" class="">{{ app.member }}</a>
-                </h5>
-            </td>
-            <td>
-                {{app.draft_time}}
-            </td>
-            <td>
-                {{ app.birth_place }}
-            </td>
-            <td>
-                {{ app.university }}
-            </td>
-            <td>
-                {{ app.birth_day }}
-            </td>
-            <td>
-                {{ app.avg_score }}
-            </td>
-            <th>
-                {{ app.final_score }}
-            </th>
-            <td>
-                {{ app.fullness }}
-            </td>
-            <td>
-                {% if app.is_booked %}
-                {% if app.is_booked_our %}
-                <img src="{% static 'images/lock-fill.svg' %}" alt="download file" width="20" height="20">
-                {% else %}
-                <img src="{% static 'images/lock.svg' %}" alt="download file" width="20" height="20">
-                {% endif %}{% endif %}
-                {{app.affiliation}}
-            </td>
-            <td>
-                {% if app.is_in_wishlist %}
-                <img src="{% static 'images/star-fill.svg' %}" alt="download file" width="20" height="20">
-                {% else %}
-                <img src="{% static 'images/star.svg' %}" alt="download file" width="20" height="20">
-                {% endif %} {{app.wishlist_len}}
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-2 mb-3 bg-white position-relative">
+            <h5>
+                Фильтры
+            </h5>
+            {% if reset_filters %}
+            <a class="nav-link position-absolute top-0 end-0 text-nowrap" href=" {% url 'application_list' %} ">Сбросить фильтры</a>
+            {% endif %}
+            <form method="get">
+                {% include 'includes/get_form_field_template.html' %}
+                <div class="mt-2 mb-2 text-center">
+                    <button type="submit" class="btn btn-outline-dark">Применить</button>
+                </div>
+            </form>
+        </div>
+        <div class="col-9">
+            <table class="table table bg-white">
+                <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <td scope="col">ФИО</td>
+                    <td scope="col">Сезон призыва</td>
+                    <td scope="col">Город</td>
+                    <td scope="col">ВУЗ</td>
+                    <td scope="col">Программа</td>
+                    <td scope="col">Дата рождения</td>
+                    <td scope="col">Средний балл диплома</td>
+                    <td scope="col">Итоговый балл</td>
+                    <td scope="col" class="text-nowrap">Заполнил, %</td>
+                    <td scope="col">Отобран</td>
+                    <td scope="col" class="text-nowrap">В избранном</td>
+                </tr>
+                </thead>
+                <tbody>
+                {% for app in object_list|dictsortreversed:"our_direction" %}
+                <tr class="{% if app.is_booked_our %}fw-bold{%endif%} {% if not app.our_direction %} table-active {% endif %}">
+                    <th>{{ forloop.counter }}</th>
+                    <td scope="row">
+                        <h5 class="card-title">
+                            <a href="{% url 'application' app.id %}" class="">{{ app.member }}</a>
+                        </h5>
+                    </td>
+                    <td scope="row">
+                        {{app.draft_time}}
+                    </td>
+                    <td scope="row">
+                        {{ app.birth_place }}
+                    </td>
+                    <td scope="row">
+                        {{ app.university }}
+                    </td>
+                    <td scope="row">
+                        {{ app.education_type }}
+                    </td>
+                    <td scope="row">
+                        {{ app.birth_day }}
+                    </td>
+                    <td scope="row">
+                        {{ app.avg_score }}
+                    </td>
+                    <td scope="row">
+                        {{ app.final_score }}
+                    </td>
+                    <td scope="row">
+                        {{ app.fullness }}
+                    </td>
+                    <td scope="row">
+                        {% if app.is_booked_our or app.our_direction and not app.is_booked %}
+                        <button type="button" class="btn btn-white ps-0" data-bs-toggle="modal"
+                                data-bs-target="#staticBackdrop{{ app.id }}" aria-label="book">
+                            {% endif%}
+                            <span class="text-nowrap">
+                            {% if app.is_booked%}
+                            <img src="{% static 'images/lock-fill.svg' %}" alt="download file" width="20"
+                                 height="20">
+                            {{app.affiliation}}
+                            {% else %}
+                            <img src="{% static 'images/lock.svg' %}" alt="download file" width="20" height="20">
+                            {% endif%}
+                            </span>
+                            {% if app.is_booked_our or app.our_direction and not app.is_booked %}
+                        </button>
+                        {% endif %}
+
+                        {% if app.is_booked_our %}
+                        {% include 'application/includes/unbook_member_template.html' %}
+                        {% endif %}
+                        {% if not app.is_booked and app.our_direction %}
+                        {% include 'application/includes/book_member_template.html' %}
+                        {% endif %}
+                    </td>
+
+                    <td scope="row">
+                        <button type="button" class="btn btn-white" data-bs-toggle="modal"
+                                data-bs-target="#staticBackdropwish{{ app.id }}" aria-label="book">
+                            {% if app.is_in_wishlist %}
+                            <img src="{% static 'images/star-fill.svg' %}" alt="download file" width="20"
+                                 height="20">
+                            {% else %}
+                            <img src="{% static 'images/star.svg' %}" alt="download file" width="20" height="20">
+                            {% endif %} {{app.wishlist_len}}
+                        </button>
+                        {% if app.is_in_wishlist %}
+                        {% include 'application/includes/delete_from_wishlist_template.html' %}
+                        {% else %}
+                        {% include 'application/includes/add_in_wishlist_template.html' %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endblock %}
 

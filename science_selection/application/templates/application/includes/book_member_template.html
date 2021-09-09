@@ -1,0 +1,31 @@
+<div class="modal fade" id="staticBackdrop{{ app.id }}" data-bs-backdrop="static" tabindex="-1"
+     role="dialog"
+     aria-labelledby="staticBackdropLabel{{ app.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content bg-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="staticBackdropLabel{{ app.id }}">Отбор кандидата</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+            <form action="{% url 'book_member' app.id %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    В какой взвод вы хотите отобрать кандидата {{app.member}}?
+                    <select class="form-select mt-3" aria-label="Select direction" name="affiliation">
+                        {% for aff in app.available_affiliations %}
+                        <option value="{{aff.id}}">
+                            {{ aff }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+
+                    <button type="submit" class="btn btn-outline-dark">Забронировать кандидата</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

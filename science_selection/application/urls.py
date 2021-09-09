@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import DirectionView, ApplicationListView, ApplicationView, CreateApplicationView, \
     AddCompetencesView, DeleteCompetenceView, CreateCompetenceView, \
+    BookMemberView, UnBookMemberView, AddInWishlist, DeleteFromWishlist,\
     ChooseDirectionInAppView, ChooseCompetenceInAppView, EditApplicationView, CompetenceListView, MasterFileTemplatesView, DeleteFileView
 
 urlpatterns = [
@@ -22,4 +23,8 @@ urlpatterns = [
     path('competence/create/', CreateCompetenceView.as_view(), name='create_competence'),
     path('documents/templates/delete/<int:file_id>/', DeleteFileView.as_view(), name='delete_file'),
     path('documents/templates/', MasterFileTemplatesView.as_view(), name='documents_templates'),
+    path('booking/<int:app_id>/', BookMemberView.as_view(), name='book_member'),
+    path('booking/delete/<int:app_id>/<int:aff_id>/', UnBookMemberView.as_view(), name='un-book_member'),
+    path('wishlist/add/<int:app_id>/', AddInWishlist.as_view(), name='add_in_wishlist'),
+    path('wishlist/delete/<int:app_id>/', DeleteFromWishlist.as_view(), name='delete_from_wishlist')
 ]

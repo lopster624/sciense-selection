@@ -1,0 +1,25 @@
+<div class="modal fade" id="staticBackdrop{{ app.id }}" data-bs-backdrop="static" tabindex="-1"
+     role="dialog"
+     aria-labelledby="staticBackdropLabel{{ app.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content bg-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="staticBackdropLabel{{ app.id }}">Удаление кандидата из отбора</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+            <form action="{% url 'un-book_member' app.id app.affiliation.id %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body fw-normal">
+                    Вы действительно хотите удалить кандидата {{app.member}} из списка отбора {{app.affiliation}}?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+
+                    <button type="submit" class="btn btn-danger">Удалить кандидата</button>
+
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
