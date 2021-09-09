@@ -2,7 +2,7 @@ import datetime
 
 from django import forms
 from django.core.validators import MinValueValidator
-from django.forms.widgets import Input, SelectMultiple, Select, CheckboxInput
+from django.forms.widgets import DateInput, Input, SelectMultiple, Select, CheckboxInput, NumberInput, Textarea
 from django.forms import modelformset_factory, ModelForm, ModelMultipleChoiceField, ModelChoiceField
 
 from account.models import Member, Affiliation
@@ -46,15 +46,29 @@ class CreateCompetenceForm(ModelForm):
 
 
 class ApplicationCreateForm(forms.ModelForm):
-    birth_day = forms.DateField(label='Дата рождения', widget=Input(attrs={'placeholder': 'YYYY-MM-DD'}))
+    birth_day = forms.DateField(label='Дата рождения', widget=DateInput(attrs={'class': 'form-control', 'placeholder': 'DD.MM.YYYY'}))
     draft_year = forms.IntegerField(min_value=datetime.date.today().year,
                                     validators=[MinValueValidator(datetime.date.today().year)], label='Год призыва',
-                                    error_messages={'min_value': "Призыв на текущую дату закочен"})
+                                    error_messages={'min_value': "Призыв на текущую дату закочен"}, widget=NumberInput(attrs={'class': 'form-control'}))
 
     class Meta:
         model = Application
         exclude = ('create_date', 'update_date', 'fullness', 'final_score', 'member',
                    'competencies', 'directions')
+        widgets = {
+            'birth_place': Input(attrs={'class': 'form-control'}),
+            'nationality': Input(attrs={'class': 'form-control'}),
+            'military_commissariat': Input(attrs={'class': 'form-control'}),
+            'group_of_health': Input(attrs={'class': 'form-control'}),
+            'draft_season': Select(attrs={'class': 'form-select'}),
+            'ready_to_secret': CheckboxInput(attrs={'class': 'form-check-input'}),
+            'scientific_achievements': Textarea(attrs={'class': 'form-control'}),
+            'scholarships': Textarea(attrs={'class': 'form-control'}),
+            'candidate_exams': Textarea(attrs={'class': 'form-control'}),
+            'sporting_achievements': Textarea(attrs={'class': 'form-control'}),
+            'hobby': Textarea(attrs={'class': 'form-control'}),
+            'other_information': Textarea(attrs={'class': 'form-control'}),
+        }
 
     def clean_birth_day(self):
         bd_date = self.cleaned_data['birth_day']
@@ -66,7 +80,17 @@ class ApplicationCreateForm(forms.ModelForm):
 class EducationCreateForm(forms.ModelForm):
     class Meta:
         model = Education
-        exclude = ('application',)
+        exclude = ('application', 'id')
+
+        widgets = {
+            'university': Input(attrs={'class': 'form-control'}),
+            'specialization': Input(attrs={'class': 'form-control'}),
+            'avg_score': NumberInput(attrs={'class': 'form-control'}),
+            'end_year': NumberInput(attrs={'class': 'form-control'}),
+            'theme_of_diploma': Input(attrs={'class': 'form-control'}),
+            'is_ended': CheckboxInput(attrs={'class': 'form-check-input'}),
+            'education_type': Select(attrs={'class': 'form-select'}),
+        }
 
 
-EducationFormSet = modelformset_factory(Education, form=EducationCreateForm, extra=1)
+EducationFormSet = modelformset_factory(Education, form=EducationCreateForm, extra=1, can_delete=True)

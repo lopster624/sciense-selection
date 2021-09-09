@@ -16,33 +16,75 @@
             </button>
         </div>
     {% else %}
-    {% for level in levels %}
-    <div class="row col-md-6 offset-3 mb-2">
-            <div class="col">{{ level.0 }}</div>
-            <div class="col">{{ level.1 }}</div>
-    </div>
-    {% endfor %}
+    <div class="col-6 offset-3">
     <form action="{% url 'choose_app_competence' app_id %}" method="POST">
-    {% csrf_token %}
-    <div class="row row-cols-4">
-        {% for competence in competencies %}
-            <div class="col mb-2 text-center">{{ competence.name }}</div>
-            <div class="col mb-2">
-                <select class="custom-select mr-sm-2" id="{{ competence.id }}" name="{{ competence.id }}">
-                    {% for level in levels %}
-                        <option value="{{ level.0 }}" {% if competence.id in selected_competencies.keys and selected_competencies|getkey:competence.id == level.0 %} selected {% endif %}>
-                            {{ level.0 }}
-                        </option>
-                    {% endfor %}
-                </select>
+        {% csrf_token %}
+        {% for comp_lvl1 in competencies %}
+        <li class="list-group-item list-group-item-light mb-2">
+            <div class="form-group col-12">
+            <div class="row mb-1">
+                <div class="ms-1 fs-4 col-8">{{comp_lvl1.name}}</div>
+                {% if comp_lvl1.is_estimated %}
+                    <div class="col-2">
+                        <select class="form-select" id="{{ comp_lvl1.id }}" name="{{ comp_lvl1.id }}">
+                            {% for level in levels %}
+                                <option value="{{ level.0 }}" {% if comp_lvl1.id in selected_competencies.keys and selected_competencies|getkey:comp_lvl1.id == level.0 %} selected {% endif %}>
+                                    {{ level.0 }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
             </div>
+            </div>
+            {% for comp_lvl2 in comp_lvl1.child.all %}
+            <div class="ms-5">
+                <div class="form-group col-12">
+                <div class="row mb-1">
+                    <div class="ms-1 fs-5 col-8">{{comp_lvl2.name}}</div>
+                    {% if comp_lvl2.is_estimated %}
+                        <div class="col-2">
+                            <select class="form-select" id="{{ comp_lvl2.id }}" name="{{ comp_lvl2.id }}">
+                                {% for level in levels %}
+                                    <option value="{{ level.0 }}" {% if comp_lvl2.id in selected_competencies.keys and selected_competencies|getkey:comp_lvl2.id == level.0 %} selected {% endif %}>
+                                        {{ level.0 }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    {% endif %}
+                </div>
+                </div>
+
+                {% for comp_lvl3 in comp_lvl2.child.all %}
+                <div class="ms-5">
+                    <div class="form-group col-12">
+                    <div class="row mb-1">
+                        <div class="ms-1 fs-6 col-8">{{comp_lvl3.name}}</div>
+                        {% if comp_lvl3.is_estimated %}
+                            <div class="col-2">
+                                <select class="form-select" id="{{ comp_lvl3.id }}" name="{{ comp_lvl3.id }}">
+                                    {% for level in levels %}
+                                        <option value="{{ level.0 }}" {% if comp_lvl3.id in selected_competencies.keys and selected_competencies|getkey:comp_lvl3.id == level.0 %} selected {% endif %}>
+                                            {{ level.0 }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        {% endif %}
+                    </div>
+                    </div>
+
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </li>
         {% endfor %}
-    </div>
-    <button type="submit" class="w-10 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
+        <button type="submit" class="w-10 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
     </form>
+    </div>
     {% endif %}
 </div>
-
-
 
 {% endblock %}

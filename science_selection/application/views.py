@@ -96,8 +96,8 @@ class CreateApplicationView(LoginRequiredMixin, View):
                         user_education.application = new_app
                         user_education.save()
                 return redirect('application', app_id=new_app.pk)
-            else:
-                msg = 'Заявка пользователя уже существует'
+        else:
+            msg = 'Заявка пользователя уже существует'
         return render(request, 'application/application_create.html',
                       context={'app_form': app_form, 'education_formset': education_formset, 'app_active': True,
                                'msg': msg})
@@ -111,7 +111,7 @@ class CompetenceEditView(LoginRequiredMixin, View):
 class ApplicationView(LoginRequiredMixin, View):
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
-        user_education = Education.objects.filter(application=user_app)
+        user_education = Education.objects.filter(application=user_app).order_by('end_year')
         return render(request, 'application/application_detail.html',
                       context={'user_app': user_app, 'app_id': app_id, 'user_education': user_education, 'app_active': True})
 
@@ -133,10 +133,13 @@ class EditApplicationView(LoginRequiredMixin, View):
         if app_form.is_valid() and education_formset.is_valid():
             new_app = app_form.save()
             for form in education_formset:
-                if form.cleaned_data:
+                if not form.cleaned_data.get('DELETE') and form.cleaned_data:
                     user_education = form.save(commit=False)
                     user_education.application = new_app
                     user_education.save()
+                elif form.cleaned_data.get('DELETE'):
+                    educ = get_object_or_404(Education, id=form.cleaned_data['id'].id)
+                    educ.delete()
             return redirect('application', app_id=new_app.pk)
         return render(request, 'application/application_edit.html',
                       context={'app_form': app_form, 'app_id': app_id, 'education_formset': education_formset, 'app_active': True})
@@ -186,10 +189,10 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
             user_directions = user_app.directions.all()
             if user_directions:
                 user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
-                competencies = Competence.objects.filter(directions__in=user_directions).all()
+                competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).all()
                 selected_competencies = {_.competence.id: _.level for _ in user_competencies} if user_app else {}
                 competence_level = ApplicationCompetencies.competence_level
-                context.update({'competencies': competencies, 'levels': competence_level, 'selected_competencies': selected_competencies})
+                context.update({'levels': competence_level, 'selected_competencies': selected_competencies, 'competencies': competencies})
             else:
                 context.update({'msg': 'Заполните направления', 'name': 'choose_app_direction'})
         else:
@@ -199,10 +202,9 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         user_directions = user_app.directions.all()
-        competencies = Competence.objects.filter(directions__in=user_directions).all()
-        competence_ids = [_.id for _ in competencies]
+        competence_direction_ids = [_.id for _ in Competence.objects.filter(directions__in=user_directions).all()]
         user_app.competencies.clear()
-        for key in competence_ids:
+        for key in competence_direction_ids:
             level_competence = int(request.POST.get(str(key), 0))
             if level_competence and level_competence != 0:
                 competence = Competence.objects.filter(id=key).first()
@@ -210,9 +212,10 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
                                                        level=level_competence)
         user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
         selected_competencies = {_.competence.id: _.level for _ in user_competencies} if user_app else {}
-        competence_level = ApplicationCompetencies.competence_level
-        context = {'competencies': competencies, 'levels': competence_level, 'selected_competencies': selected_competencies,
-                   'app_id': app_id, 'competence_active': True}
+        competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).all()
+
+        context = {'competencies': competencies, 'levels': ApplicationCompetencies.competence_level,
+                   'selected_competencies': selected_competencies, 'app_id': app_id, 'competence_active': True}
         return render(request, 'application/application_competence_choose.html', context=context)
 
 
