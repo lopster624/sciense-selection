@@ -44,7 +44,7 @@ class ActivationView(LoginRequiredMixin, View):
         member.role = Role.objects.get(role_name=SLAVE_ROLE_NAME)
         member.save()
         link_object.delete()
-        return redirect('home')
+        return redirect('home_master')
 
 
 class HomeMasterView(LoginRequiredMixin, View):
