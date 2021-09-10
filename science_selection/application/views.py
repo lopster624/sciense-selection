@@ -394,7 +394,6 @@ class BookMemberView(LoginRequiredMixin, View):
         slave_member = Member.objects.get(application__id=app_id)
         booking_type = BookingType.objects.get(name=BOOKED)
         affiliation = Affiliation.objects.get(id=affiliation_id)
-        print(affiliation, booking_type, slave_member, master_member)
         Booking(booking_type=booking_type, master=master_member, slave=slave_member, affiliation=affiliation).save()
         return redirect('application_list')
 

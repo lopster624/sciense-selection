@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Главная
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-6 bg-white pb-3 fs-5">
+            <h5>Текущий сезон отбора кандидатов: {{recruiting_season}} {{recruiting_year}} г.</h5>
+            <h5>Всего заявок в этом сезоне: {{count_apps}}.</h5>
+            {% for affiliation in reports %}
+            <div class="card mt-3">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item fw-bold">{{affiliation.0}} ({{affiliation.0.direction}})</li>
+                    <li class="list-group-item">Количество полученных заявок в направление {{affiliation.0.direction}}:
+                        {{affiliation.1}}
+
+                    </li>
+                    <li class="list-group-item">Отобрано человек: {{affiliation.2}}/20
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: {{affiliation.3}}%;"
+                                 aria-valuenow="{{affiliation.3}}"
+                                 aria-valuemin="0" aria-valuemax="100">{{affiliation.3}}%
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
