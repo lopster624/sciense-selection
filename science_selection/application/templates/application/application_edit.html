@@ -39,8 +39,7 @@
         {% for ed_form in education_formset %}
             <div class="education-form border border-light rounded mb-1">
                 {% for e_f in ed_form %}
-                {% if e_f.label != 'Id' %}
-                    <div class="form-group row mb-2">
+                    <div class="form-group row mb-2 {% if e_f.label == 'Id' %}visually-hidden{% endif %}">
                         <label class="col-sm-3 col-form-label">{{ e_f.label }}</label>
                         <div class="col-sm-9">
                             {{ e_f }}
@@ -51,7 +50,6 @@
                             {{ e_f.errors }}
                         </div>
                     {% endif %}
-                {% endif %}
                 {% endfor %}
             </div>
         {% endfor %}
