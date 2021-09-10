@@ -413,7 +413,7 @@ class UnBookMemberView(LoginRequiredMixin, View):
             booking.delete()
             return redirect('application_list')
         return render(request, 'access_error.html',
-                      context={'error': 'Неверный запрос на удаление.'})
+                      context={'error': 'Ошибка. Нельзя удалить заявку, отобранную другим пользователем.'})
 
 
 class AddInWishlist(LoginRequiredMixin, View):
