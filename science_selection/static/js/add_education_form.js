@@ -8,8 +8,9 @@ addButton.addEventListener('click', addForm)
 
 function addForm(e){
     e.preventDefault()
+    let countForm = educationForm.length-1
 
-    let newForm = educationForm[0].cloneNode(true) //Clone the education form
+    let newForm = educationForm[countForm].cloneNode(true) //Clone the education form
     let formRegex = RegExp(`form-(\\d){1}-`,'g') //Regex to find all instances of the form number
 
     formNum++ //Increment the form number
