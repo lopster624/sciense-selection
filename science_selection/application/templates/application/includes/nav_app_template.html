@@ -13,7 +13,8 @@
                href="{% if app_id %}{% url 'choose_app_competence' app_id %}{% else %}#{% endif %}">Компетенции</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="#">Документы</a>
+            <a class="nav-link {% if document_active %}active{% endif %}"
+               href="{% if app_id %}{% url 'app_documents' app_id %}{% else %}#{% endif %}">Документы</a>
         </li>
 
     </ul>

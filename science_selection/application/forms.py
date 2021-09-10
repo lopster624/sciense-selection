@@ -81,7 +81,7 @@ class ApplicationCreateForm(forms.ModelForm):
 class EducationCreateForm(forms.ModelForm):
     class Meta:
         model = Education
-        exclude = ('application', 'id')
+        exclude = ('application',)
 
         widgets = {
             'university': Input(attrs={'class': 'form-control'}),

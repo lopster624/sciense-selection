@@ -65,14 +65,6 @@
     </div>
 </div>
 
-<script>
-    let educationForm = document.querySelectorAll(".education-form")
-    let container = document.querySelector("#form-container")
-    let addButton = document.querySelector("#add-form")
-    let totalForms = document.querySelector("#id_form-TOTAL_FORMS")
-
-    let formNum = educationForm.length-1 //Get the number of the last form on the page with zero-based indexing
-    addButton.addEventListener('click', addForm)
-</script>
+<script src="{% static 'js/add_education_form.js' %}" type="text/javascript"></script>
 {% endblock %}
 

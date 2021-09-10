@@ -1,3 +1,11 @@
+let educationForm = document.querySelectorAll(".education-form")
+let container = document.querySelector("#form-container")
+let addButton = document.querySelector("#add-form")
+let totalForms = document.querySelector("#id_form-TOTAL_FORMS")
+
+let formNum = educationForm.length-1 //Get the number of the last form on the page with zero-based indexing
+addButton.addEventListener('click', addForm)
+
 function addForm(e){
     e.preventDefault()
 

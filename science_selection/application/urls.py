@@ -3,7 +3,8 @@ from django.urls import path
 from .views import DirectionView, ApplicationListView, ApplicationView, CreateApplicationView, \
     AddCompetencesView, DeleteCompetenceView, CreateCompetenceView, \
     BookMemberView, UnBookMemberView, AddInWishlist, DeleteFromWishlist,\
-    ChooseDirectionInAppView, ChooseCompetenceInAppView, EditApplicationView, CompetenceListView, MasterFileTemplatesView, DeleteFileView
+    ChooseDirectionInAppView, ChooseCompetenceInAppView, EditApplicationView, CompetenceListView, MasterFileTemplatesView, DeleteFileView, \
+    DocumentsInAppView
 
 urlpatterns = [
     path('direction/', DirectionView.as_view(), name='direction'),
@@ -13,6 +14,7 @@ urlpatterns = [
     path('application/<int:app_id>/edit', EditApplicationView.as_view(), name='edit_application'),
     path('application/<int:app_id>/direction/', ChooseDirectionInAppView.as_view(), name='choose_app_direction'),
     path('application/<int:app_id>/competence/', ChooseCompetenceInAppView.as_view(), name='choose_app_competence'),
+    path('application/<int:app_id>/documents/', DocumentsInAppView.as_view(), name='app_documents'),
 
     path('application/list/', ApplicationListView.as_view(), name='application_list'),
 

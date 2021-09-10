@@ -91,7 +91,7 @@ class Education(models.Model):
     education_type = models.CharField(choices=education_program, max_length=1, verbose_name='Программа')
     university = models.CharField(max_length=256, verbose_name='Университет')
     specialization = models.CharField(max_length=256, verbose_name='Специальность')
-    avg_score = models.FloatField(verbose_name='Средний балл', validators=[validate_avg_score])
+    avg_score = models.FloatField(verbose_name='Средний балл', validators=[validate_avg_score], blank=True)
     end_year = models.IntegerField(verbose_name='Год окончания')
     is_ended = models.BooleanField(default=False, verbose_name='Окончено')
     theme_of_diploma = models.CharField(max_length=128, verbose_name='Тема диплома')
@@ -182,7 +182,7 @@ class Competence(models.Model):
 
 
 class ApplicationCompetencies(models.Model):
-    competence_level = [
+    competence_levels = [
         (0, ''),
         (1, 'Базовый'),
         (2, 'Можешь писать программы'),
@@ -190,7 +190,7 @@ class ApplicationCompetencies(models.Model):
     ]
     application = models.ForeignKey(Application, on_delete=models.CASCADE)
     competence = models.ForeignKey(Competence, on_delete=models.CASCADE)
-    level = models.IntegerField(choices=competence_level)
+    level = models.IntegerField(choices=competence_levels)
 
     class Meta:
         verbose_name = "Выбранная компетенция"
