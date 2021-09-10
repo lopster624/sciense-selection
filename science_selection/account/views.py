@@ -5,7 +5,7 @@ from django.shortcuts import render, redirect
 from django.views import View
 
 from application.models import Application
-from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED
+from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED, MASTER_ROLE_NAME
 from .forms import RegisterForm
 from .models import Member, ActivationLink, Role, Affiliation, Booking
 
@@ -44,7 +44,7 @@ class ActivationView(LoginRequiredMixin, View):
         member.role = Role.objects.get(role_name=SLAVE_ROLE_NAME)
         member.save()
         link_object.delete()
-        return redirect('home')
+        return redirect('home_master')
 
 
 class HomeMasterView(LoginRequiredMixin, View):
@@ -67,3 +67,16 @@ class HomeMasterView(LoginRequiredMixin, View):
         return render(request, 'account/home_master.html',
                       context={'recruiting_season': recruiting_season[1], 'count_apps': all_apps.count(),
                                'reports': affiliations_report, 'recruiting_year': current_date.year})
+
+
+class HomeView(LoginRequiredMixin, View):
+    def get(self, request):
+        if request.user.member.role.role_name == SLAVE_ROLE_NAME:
+            return redirect('home_slave')
+        if request.user.member.role.role_name == MASTER_ROLE_NAME:
+            return redirect('home_master')
+
+
+class HomeSlaveView(LoginRequiredMixin, View):
+    def get(self, request):
+        return render(request, 'account/home_slave.html', context={})

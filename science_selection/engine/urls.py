@@ -18,12 +18,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 
-from account.views import HomeMasterView
+from account.views import HomeMasterView, HomeView, HomeSlaveView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('accounts/', include('account.urls')),
-    path('app/', include('application.urls')),
-    path('', HomeMasterView.as_view(), name='home_master'),
-] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) \
+                  path('admin/', admin.site.urls),
+                  path('accounts/', include('account.urls')),
+                  path('app/', include('application.urls')),
+                  path('', HomeView.as_view(), name='home'),
+                  path('master/', HomeMasterView.as_view(), name='home_master'),
+                  path('operator/', HomeSlaveView.as_view(), name='home_slave'),
+              ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) \
               + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
