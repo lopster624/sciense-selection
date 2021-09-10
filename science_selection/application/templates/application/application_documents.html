@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Прикрепленные документы
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+{% include 'application/includes/nav_app_template.html' %}
+
+<div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
+    <div class="row mb-2">
+        <div class="col">
+            <h3>Необходимые шаблоны документов:</h3>
+            {% for file in file_templates %}
+            <li class="list-group-item list-group-item-light fs-5">
+                <img src="{% static 'images/file-earmark-arrow-down.svg' %}" alt="download file" width="32" height="32">
+                <a href="{{ file.file_path.url }}" class="mb-1">{{ file.file_name }}</a>
+            </li>
+            {% endfor %}
+        </div>
+        <div class="col">
+            <h3>Загруженные документы:</h3>
+            {% for file in user_files %}
+            <li class="list-group-item list-group-item-light fs-5">
+                <img src="{% static 'images/file-earmark-arrow-down.svg' %}" alt="download file" width="32" height="32">
+                <a href="{{ file.file_path.url }}" class="mb-1">{{ file.file_name }}</a>
+                <button type="button" class="btn-close ms-2" data-bs-toggle="modal"
+                        data-bs-target="#staticBackdrop{{ file.id }}" aria-label="Close"></button>
+
+                <div class="modal fade" id="staticBackdrop{{ file.id }}" data-bs-backdrop="static" tabindex="-1"
+                     role="dialog"
+                     aria-labelledby="staticBackdropLabel{{ file.id }}" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content bg-light">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="staticBackdropLabel{{ file.id }}">Удаление файла</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                Вы действительно хотите удалить файл "{{file.file_name}}"?
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                <form action="{% url 'delete_file' file.id %}">
+                                    <button type="submit" class="btn btn-danger">Удалить файл</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col text-center">
+            <h3>Загрузить документы:</h3>
+            <form enctype="multipart/form-data" action="{% url 'app_documents' app_id %}" method="post">
+                {% csrf_token %}
+                <input class="form-control" type="file" name='downloaded_files' id="formFileMultiple" multiple>
+                <div class="mt-2 mb-2 text-center">
+                    <button type="submit" class="btn btn-outline-dark">Сохранить документы</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
