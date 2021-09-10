@@ -143,7 +143,8 @@ class EditApplicationView(LoginRequiredMixin, View):
             return redirect('application', app_id=new_app.pk)
         else:
             msg = 'Некорректные данные в заявке'
-        context = {'app_form': app_form, 'app_id': app_id, 'education_formset': education_formset, 'app_active': True, 'msg': msg}
+        context = {'app_form': app_form, 'app_id': app_id, 'education_formset': education_formset, 'app_active': True,
+                   'msg': msg}
         return render(request, 'application/application_edit.html', context=context)
 
 
@@ -152,7 +153,8 @@ class DocumentsInAppView(LoginRequiredMixin, View):
         file_templates = File.objects.filter(is_template=True).all()
         app = Application.objects.filter(pk=app_id).first()
         user_files = File.objects.filter(member=app.member).all()
-        context = {'file_templates': file_templates, 'user_files': user_files, 'document_active': True, 'app_id': app_id}
+        context = {'file_templates': file_templates, 'user_files': user_files, 'document_active': True,
+                   'app_id': app_id}
         return render(request, 'application/application_documents.html', context=context)
 
     def post(self, request, app_id):
@@ -210,7 +212,8 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
                 competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).all()
                 selected_competencies = {_.competence.id: _.level for _ in user_competencies}
                 competence_levels = ApplicationCompetencies.competence_levels
-                context.update({'levels': competence_levels, 'selected_competencies': selected_competencies, 'competencies': competencies})
+                context.update({'levels': competence_levels, 'selected_competencies': selected_competencies,
+                                'competencies': competencies})
             else:
                 context.update({'msg': 'Заполните направления', 'name': 'choose_app_direction'})
         else:
@@ -226,7 +229,8 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
             level_competence = int(request.POST.get(str(comp_id), 0))
             if level_competence and level_competence != 0:
                 competence = Competence.objects.filter(pk=comp_id).first()
-                ApplicationCompetencies.objects.create(application=user_app, competence=competence, level=level_competence)
+                ApplicationCompetencies.objects.create(application=user_app, competence=competence,
+                                                       level=level_competence)
         user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
         selected_competencies = {_.competence.id: _.level for _ in user_competencies}
         competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).all()
@@ -372,6 +376,7 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         if self.request.GET:
             context['reset_filters'] = True
         context['application_active'] = True
+        context['master_affiliations'] = master_affiliations
         return context
 
 
