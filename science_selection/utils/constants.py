@@ -5,3 +5,4 @@ IN_WISHLIST = 'В избранном'
 MASTER_ROLE_NAME = 'Отбирающий'
 SLAVE_ROLE_NAME = 'Оператор'
 ACTIVATION_LINK = '127.0.0.1:8000/accounts/activation/'  # в переменные окружения
+MIDDLE_RECRUITING_DATE = {'day': 15, 'month': 7}

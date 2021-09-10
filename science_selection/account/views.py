@@ -1,10 +1,13 @@
+import datetime
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
 from django.views import View
 
-from utils.constants import SLAVE_ROLE_NAME
+from application.models import Application
+from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED
 from .forms import RegisterForm
-from .models import Member, ActivationLink, Role
+from .models import Member, ActivationLink, Role, Affiliation, Booking
 
 
 class RegistrationView(View):
@@ -44,6 +47,23 @@ class ActivationView(LoginRequiredMixin, View):
         return redirect('home')
 
 
-class HomeView(LoginRequiredMixin, View):
+class HomeMasterView(LoginRequiredMixin, View):
     def get(self, request):
-        return render(request, 'account/home.html', context={})
+        current_date = datetime.date.today()
+        middle_date = datetime.date(current_date.year, MIDDLE_RECRUITING_DATE['month'], MIDDLE_RECRUITING_DATE['day'])
+        recruiting_season = (2, 'Осень') if current_date > middle_date else (1, 'Весна')
+        master_member = Member.objects.get(user=self.request.user)
+        master_affiliations = Affiliation.objects.filter(member=master_member)
+        all_apps = Application.objects.filter(draft_season=recruiting_season[0], draft_year=current_date.year)
+        affiliations_report = []
+        for affiliation in master_affiliations:
+            direction_apps_count = all_apps.filter(directions=affiliation.direction).count()
+            booked_count = Booking.objects.filter(slave__id__in=all_apps.values_list('member'),
+                                                  booking_type__name=BOOKED,
+                                                  affiliation=affiliation).count()
+            booking_percent = int(booked_count / 20 * 100)
+            affiliations_report.append([affiliation, direction_apps_count, booked_count, booking_percent])
+
+        return render(request, 'account/home_master.html',
+                      context={'recruiting_season': recruiting_season[1], 'count_apps': all_apps.count(),
+                               'reports': affiliations_report, 'recruiting_year': current_date.year})
