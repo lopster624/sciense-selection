@@ -26,7 +26,7 @@
                 <div class="ms-1 fs-4 col-8">{{comp_lvl1.name}}</div>
                 {% if comp_lvl1.is_estimated %}
                     <div class="col-2">
-                        <select class="form-select" id="{{ comp_lvl1.id }}" name="{{ comp_lvl1.id }}">
+                        <select class="form-select" id="{{ comp_lvl1.id }}" name="{{ comp_lvl1.id }}" {% if user.member.role.id == 3 %}disabled{%endif%}>
                             {% for level in levels %}
                                 <option value="{{ level.0 }}" {% if comp_lvl1.id in selected_competencies.keys and selected_competencies|getkey:comp_lvl1.id == level.0 %} selected {% endif %}>
                                     {{ level.0 }}
@@ -44,7 +44,7 @@
                     <div class="ms-1 fs-5 col-8">{{comp_lvl2.name}}</div>
                     {% if comp_lvl2.is_estimated %}
                         <div class="col-2">
-                            <select class="form-select" id="{{ comp_lvl2.id }}" name="{{ comp_lvl2.id }}">
+                            <select class="form-select" id="{{ comp_lvl2.id }}" name="{{ comp_lvl2.id }}" {% if user.member.role.id == 3 %}disabled{%endif%}>
                                 {% for level in levels %}
                                     <option value="{{ level.0 }}" {% if comp_lvl2.id in selected_competencies.keys and selected_competencies|getkey:comp_lvl2.id == level.0 %} selected {% endif %}>
                                         {{ level.0 }}
@@ -63,7 +63,7 @@
                         <div class="ms-1 fs-6 col-8">{{comp_lvl3.name}}</div>
                         {% if comp_lvl3.is_estimated %}
                             <div class="col-2">
-                                <select class="form-select" id="{{ comp_lvl3.id }}" name="{{ comp_lvl3.id }}">
+                                <select class="form-select" id="{{ comp_lvl3.id }}" name="{{ comp_lvl3.id }}" {% if user.member.role.id == 3 %}disabled{%endif%}>
                                     {% for level in levels %}
                                         <option value="{{ level.0 }}" {% if comp_lvl3.id in selected_competencies.keys and selected_competencies|getkey:comp_lvl3.id == level.0 %} selected {% endif %}>
                                             {{ level.0 }}
@@ -81,7 +81,9 @@
             {% endfor %}
         </li>
         {% endfor %}
-        <button type="submit" class="w-10 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
+        {% if user.member.role.id == 1 %}
+            <button type="submit" class="w-10 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
+        {% endif %}
     </form>
     </div>
     {% endif %}
