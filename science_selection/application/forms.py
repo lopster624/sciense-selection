@@ -55,7 +55,7 @@ class ApplicationCreateForm(forms.ModelForm):
     class Meta:
         model = Application
         exclude = ('create_date', 'update_date', 'fullness', 'final_score', 'member',
-                   'competencies', 'directions')
+                   'competencies', 'directions', 'id')
         widgets = {
             'birth_place': Input(attrs={'class': 'form-control'}),
             'nationality': Input(attrs={'class': 'form-control'}),
@@ -81,7 +81,7 @@ class ApplicationCreateForm(forms.ModelForm):
 class EducationCreateForm(forms.ModelForm):
     class Meta:
         model = Education
-        exclude = ('application',)
+        exclude = ('application', 'id')
 
         widgets = {
             'university': Input(attrs={'class': 'form-control'}),
