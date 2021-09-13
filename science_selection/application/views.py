@@ -1,6 +1,7 @@
 import os
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views import View
@@ -8,23 +9,16 @@ from django.views.generic.list import ListView
 
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
-from utils.constants import BOOKED, IN_WISHLIST
+from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME
 
 from .forms import ApplicationCreateForm, EducationFormSet
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File
-from .utils import pick_competence, delete_competence, get_context
-
-
-class DirectionView(LoginRequiredMixin, ListView):
-    model = Direction
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['test'] = 'test'
-        return context
+from .utils import pick_competence, delete_competence, get_context, OnlyMasterAccessMixin, OnlySlaveAccessMixin, \
+    check_permission_decorator
 
 
 class ChooseDirectionInAppView(LoginRequiredMixin, View):
+    @check_permission_decorator(MASTER_ROLE_NAME)
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         context = {'direction_active': True, 'app_id': app_id}
@@ -36,6 +30,7 @@ class ChooseDirectionInAppView(LoginRequiredMixin, View):
             context.update({'msg': 'Создайте заявку', 'name': 'create_application'})
         return render(request, 'application/application_direction_choose.html', context=context)
 
+    @check_permission_decorator
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         selected_directions = request.POST.getlist('direction')
@@ -49,28 +44,7 @@ class ChooseDirectionInAppView(LoginRequiredMixin, View):
         return render(request, 'application/application_direction_choose.html', context=context)
 
 
-class ApplicationListView(LoginRequiredMixin, ListView):
-    model = Application
-
-    def get_queryset(self):
-        apps = Application.objects.all()
-        for app in apps:
-            try:
-                educations = Education.objects.filter(application__exact=app).order_by('-end_year')
-                app.university = educations[0].university
-                app.avg_score = educations[0].avg_score
-            except IndexError:
-                app.university = ''
-                app.avg_score = ''
-        return apps
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['application_active'] = True
-        return context
-
-
-class CreateApplicationView(LoginRequiredMixin, View):
+class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
     def get(self, request):
         user_app = Application.objects.filter(member=request.user.member).first()
         if user_app:
@@ -103,12 +77,8 @@ class CreateApplicationView(LoginRequiredMixin, View):
         return render(request, 'application/application_create.html', context=context)
 
 
-class CompetenceEditView(LoginRequiredMixin, View):
-    def get(self, request):
-        pass
-
-
 class ApplicationView(LoginRequiredMixin, View):
+    @check_permission_decorator(role_name=MASTER_ROLE_NAME)
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         user_education = Education.objects.filter(application=user_app).order_by('end_year').all()
@@ -117,6 +87,7 @@ class ApplicationView(LoginRequiredMixin, View):
 
 
 class EditApplicationView(LoginRequiredMixin, View):
+    @check_permission_decorator(MASTER_ROLE_NAME)
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         user_education = Education.objects.filter(application=user_app).order_by('end_year').all()
@@ -125,6 +96,7 @@ class EditApplicationView(LoginRequiredMixin, View):
         context = {'app_form': app_form, 'app_id': app_id, 'education_formset': education_formset, 'app_active': True}
         return render(request, 'application/application_edit.html', context=context)
 
+    @check_permission_decorator(MASTER_ROLE_NAME)
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         user_education = Education.objects.filter(application=user_app).all()
@@ -149,6 +121,7 @@ class EditApplicationView(LoginRequiredMixin, View):
 
 
 class DocumentsInAppView(LoginRequiredMixin, View):
+    @check_permission_decorator(MASTER_ROLE_NAME)
     def get(self, request, app_id):
         file_templates = File.objects.filter(is_template=True).all()
         app = Application.objects.filter(pk=app_id).first()
@@ -157,6 +130,7 @@ class DocumentsInAppView(LoginRequiredMixin, View):
                    'app_id': app_id}
         return render(request, 'application/application_documents.html', context=context)
 
+    @check_permission_decorator
     def post(self, request, app_id):
         new_files = request.FILES.getlist('downloaded_files')
         for file in new_files:
@@ -166,7 +140,7 @@ class DocumentsInAppView(LoginRequiredMixin, View):
         return redirect(request.path_info)
 
 
-class AddCompetencesView(LoginRequiredMixin, View):
+class AddCompetencesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def post(self, request, direction_id):
         # TODO: возможно нужно сделать автоматический выбор дочерних элементов при выборе родительских
         direction = Direction.objects.get(id=direction_id)
@@ -177,14 +151,18 @@ class AddCompetencesView(LoginRequiredMixin, View):
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
-class DeleteCompetenceView(LoginRequiredMixin, View):
+class DeleteCompetenceView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def get(self, request, competence_id, direction_id):
+        master_direction_id = Affiliation.objects.filter(member=request.user.member).values_list('direction__id',
+                                                                                                 flat=True)
+        if direction_id not in master_direction_id:
+            return PermissionDenied('Невозможно удалить компетенцию из чужого направления.')
         direction = Direction.objects.get(id=direction_id)
         delete_competence(competence_id, direction)
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
-class CreateCompetenceView(LoginRequiredMixin, View):
+class CreateCompetenceView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def get(self, request):
         form = CreateCompetenceForm(current_user=request.user)
         competence_list = Competence.objects.filter(parent_node__isnull=True)
@@ -202,6 +180,7 @@ class CreateCompetenceView(LoginRequiredMixin, View):
 
 
 class ChooseCompetenceInAppView(LoginRequiredMixin, View):
+    @check_permission_decorator(MASTER_ROLE_NAME)
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         context = {'competence_active': True, 'app_id': app_id}
@@ -220,6 +199,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
             context.update({'msg': 'Создайте заявку', 'name': 'create_application'})
         return render(request, 'application/application_competence_choose.html', context=context)
 
+    @check_permission_decorator
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         user_directions = user_app.directions.all()
@@ -240,7 +220,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
         return render(request, 'application/application_competence_choose.html', context=context)
 
 
-class MasterFileTemplatesView(LoginRequiredMixin, View):
+class MasterFileTemplatesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def get(self, request):
         files = File.objects.filter(is_template=True).all()
         # показывает список уже загруженных файлов на сервер и позволяет загрузить новые
@@ -248,9 +228,8 @@ class MasterFileTemplatesView(LoginRequiredMixin, View):
 
     def post(self, request):
         new_files = request.FILES.getlist('downloaded_files')
-        member = Member.objects.get(user=request.user)
         for file in new_files:
-            new_file = File(member=member, file_path=file, is_template=True)
+            new_file = File(member=request.user.member, file_path=file, is_template=True)
             new_file.save()
             new_file.file_name = new_file.file_path.name.split('/')[-1]  # отделяется название от пути загрузки
             new_file.save()
@@ -260,11 +239,13 @@ class MasterFileTemplatesView(LoginRequiredMixin, View):
 class DeleteFileView(LoginRequiredMixin, View):
     def get(self, request, file_id):
         file = File.objects.get(id=file_id)
+        if file.member != request.user.member:
+            return PermissionDenied('Только загрузивший пользователь может удалить файл.')
         file.delete()
         return redirect(request.META.get('HTTP_REFERER'))
 
 
-class ApplicationListView(LoginRequiredMixin, ListView):
+class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
     """
     Класс отображения списка заявок.
 
@@ -288,8 +269,7 @@ class ApplicationListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         apps = Application.objects.all()
-        master_member = Member.objects.get(user=self.request.user)
-        master_affiliations = Affiliation.objects.filter(member=master_member)
+        master_affiliations = Affiliation.objects.filter(member=self.request.user.member)
         master_direction_id = master_affiliations.values_list('direction__id', flat=True)
         if self.request.GET:
             # тут производится вся сортировка и фильтрация
@@ -362,8 +342,7 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         return apps
 
     def get_context_data(self, **kwargs):
-        master_member = Member.objects.get(user=self.request.user)
-        master_affiliations = Affiliation.objects.filter(member=master_member)
+        master_affiliations = Affiliation.objects.filter(member=self.request.user.member)
         context = super().get_context_data(**kwargs)
         directions_set = [(aff.direction.id, aff.direction) for aff in master_affiliations]
         in_wishlist_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
@@ -380,7 +359,7 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         return context
 
 
-class CompetenceListView(LoginRequiredMixin, View):
+class CompetenceListView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def get(self, request):
         context = get_context(self)
         return render(request, 'application/competence_list.html', context=context)
@@ -390,53 +369,52 @@ class CompetenceListView(LoginRequiredMixin, View):
         return render(request, 'application/competence_list.html', context=context)
 
 
-class BookMemberView(LoginRequiredMixin, View):
+class BookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def post(self, request, app_id):
-        # todo: спросить, может ли отбирающий с этого же направления удалять людей из бронирования
-        #  или только тот, кто бронировал
         affiliation_id = request.POST.get('affiliation', None)
-        master_member = Member.objects.get(user=request.user)
         slave_member = Member.objects.get(application__id=app_id)
         booking_type = BookingType.objects.get(name=BOOKED)
         affiliation = Affiliation.objects.get(id=affiliation_id)
-        Booking(booking_type=booking_type, master=master_member, slave=slave_member, affiliation=affiliation).save()
+        Booking(booking_type=booking_type, master=request.user.member, slave=slave_member,
+                affiliation=affiliation).save()
         return redirect('application_list')
 
 
-class UnBookMemberView(LoginRequiredMixin, View):
+class UnBookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def post(self, request, app_id, aff_id):
-        master_member = Member.objects.get(user=request.user)
         slave_member = Member.objects.get(application__id=app_id)
-        booking = Booking.objects.filter(master=master_member, slave=slave_member, booking_type__name=BOOKED,
+        booking = Booking.objects.filter(master=request.user.member, slave=slave_member, booking_type__name=BOOKED,
                                          affiliation__id=aff_id)
         if booking:
             booking.delete()
             return redirect('application_list')
+        booking = Booking.objects.filter(slave=slave_member, booking_type__name=BOOKED,
+                                         affiliation__id=aff_id).first()
+        master_name = booking.master if booking else ""
         return render(request, 'access_error.html',
-                      context={'error': 'Отказано в запросе на удаление. Удалять может только пользователь, отобравший '
-                                        'кандидатуру.'})
+                      context={
+                          'error': f'Отказано в запросе на удаление. Удалять может только {master_name}, отобравший '
+                                   'кандидатуру.'})
 
 
-class AddInWishlist(LoginRequiredMixin, View):
+class AddInWishlist(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def post(self, request, app_id):
         affiliations_id = request.POST.getlist('affiliations', None)
-        master_member = Member.objects.get(user=request.user)
         slave_member = Member.objects.get(application__id=app_id)
         booking_type = BookingType.objects.get(name=IN_WISHLIST)
         for affiliation_id in affiliations_id:
             affiliation = Affiliation.objects.get(id=affiliation_id)
-            Booking(booking_type=booking_type, master=master_member, slave=slave_member,
+            Booking(booking_type=booking_type, master=request.user.member, slave=slave_member,
                     affiliation=affiliation).save()
         return redirect('application_list')
 
 
-class DeleteFromWishlist(LoginRequiredMixin, View):
+class DeleteFromWishlist(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def post(self, request, app_id):
         affiliations_id = request.POST.getlist('affiliations', None)
-        master_member = Member.objects.get(user=request.user)
         slave_member = Member.objects.get(application__id=app_id)
         for affiliation_id in affiliations_id:
-            current_booking = Booking.objects.filter(booking_type__name=IN_WISHLIST, master=master_member,
+            current_booking = Booking.objects.filter(booking_type__name=IN_WISHLIST, master=request.user.member,
                                                      slave=slave_member, affiliation__id=affiliation_id)
             if current_booking:
                 current_booking.first().delete()
