@@ -8,7 +8,7 @@
 {% include 'application/includes/nav_app_template.html' %}
 {% load application_extras %}
 
-<div class="container mt-2">
+<div class="w-50 bg-white list-group-item" style="margin-left: 25%;">
     {% if msg %}
         <div class="btn w-50" style="margin-left: 25%"> {{msg}}
             <button type="button" class="btn btn-outline-primary">
@@ -16,14 +16,15 @@
             </button>
         </div>
     {% else %}
-    <div class="col-6 offset-3">
+    {% if user.member.role.id != 3 %}
     <form action="{% url 'choose_app_competence' app_id %}" method="POST">
         {% csrf_token %}
+    {% endif %}
         {% for comp_lvl1 in competencies %}
         <li class="list-group-item list-group-item-light mb-2">
-            <div class="form-group col-12">
+            <div class="form-group">
             <div class="row mb-1">
-                <div class="ms-1 fs-4 col-8">{{comp_lvl1.name}}</div>
+                <div class="ms-1 fs-4 col-9">{{comp_lvl1.name}}</div>
                 {% if comp_lvl1.is_estimated %}
                     <div class="col-2">
                         <select class="form-select" id="{{ comp_lvl1.id }}" name="{{ comp_lvl1.id }}" {% if user.member.role.id == 3 %}disabled{%endif%}>
@@ -41,7 +42,7 @@
             <div class="ms-5">
                 <div class="form-group col-12">
                 <div class="row mb-1">
-                    <div class="ms-1 fs-5 col-8">{{comp_lvl2.name}}</div>
+                    <div class="ms-1 fs-5 col-9">{{comp_lvl2.name}}</div>
                     {% if comp_lvl2.is_estimated %}
                         <div class="col-2">
                             <select class="form-select" id="{{ comp_lvl2.id }}" name="{{ comp_lvl2.id }}" {% if user.member.role.id == 3 %}disabled{%endif%}>
@@ -60,7 +61,7 @@
                 <div class="ms-5">
                     <div class="form-group col-12">
                     <div class="row mb-1">
-                        <div class="ms-1 fs-6 col-8">{{comp_lvl3.name}}</div>
+                        <div class="ms-1 fs-6 col-9">{{comp_lvl3.name}}</div>
                         {% if comp_lvl3.is_estimated %}
                             <div class="col-2">
                                 <select class="form-select" id="{{ comp_lvl3.id }}" name="{{ comp_lvl3.id }}" {% if user.member.role.id == 3 %}disabled{%endif%}>
@@ -84,8 +85,9 @@
         {% if user.member.role.id == 1 %}
             <button type="submit" class="w-10 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
         {% endif %}
+    {% if user.member.role.id != 3 %}
     </form>
-    </div>
+    {% endif %}
     {% endif %}
 </div>
 

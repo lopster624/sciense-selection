@@ -16,32 +16,38 @@
 </div>
 
 {% else %}
-<form action="{% url 'choose_app_direction' app_id %}" method="POST">
-  {% csrf_token %}
-  <div class="col-md-8 offset-2 row row-cols-1 row-cols-md-3 mt-4">
-  {% for direction in directions %}
-  <div class="col mb-4">
-    <div class="card h-100">
-      {% if direction.image_url %}
-      <img src="{{ direction.image_url }}" class="card-img-top" alt="{{ direction.name }}">
-      {% endif %}
-      <div class="card-body">
-        <h5 class="card-title"> {{ direction.name }} </h5>
-        <p class="card-text"> {{ direction.description }} </p>
-        <div class="custom-control custom-checkbox">
-          <input type="checkbox" class="custom-control-input"  name="direction" id="{{ direction.name }}" {% if user.member.role.id == 3 %}disabled{%endif%}
-                 value="{{ direction.id }}" {% if direction.id in selected_directions %} checked {% endif %}>
-          <label class="custom-control-label" for="{{direction.name }}"><small class="text-muted">Выбрать направление</small></label>
+<div class="w-50 bg-white list-group-item" style="margin-left: 25%;">
+  {% if user.member.role.id != 3 %}
+  <form action="{% url 'choose_app_direction' app_id %}" method="POST">
+    {% csrf_token %}
+  {% endif %}
+    <div class="row row-cols-1 row-cols-md-3">
+    {% for direction in directions %}
+    <div class="col mb-2">
+      <div class="card h-100">
+        {% if direction.image_url %}
+        <img src="{{ direction.image_url }}" class="card-img-top" alt="{{ direction.name }}">
+        {% endif %}
+        <div class="card-body">
+          <h5 class="card-title"> {{ direction.name }} </h5>
+          <p class="card-text"> {{ direction.description }} </p>
+          <div class="custom-control custom-checkbox">
+            <input type="checkbox" class="custom-control-input"  name="direction" id="{{ direction.name }}" {% if user.member.role.id == 3 %}disabled{%endif%}
+                   value="{{ direction.id }}" {% if direction.id in selected_directions %} checked {% endif %}>
+            <label class="custom-control-label"><small class="text-muted">Выбрать направление</small></label>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  {% endfor %}
-  </div>
-  {% if user.member.role.id == 1 %}
-    <button type="submit" class="w-10 mb-2 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
+    {% endfor %}
+    </div>
+    {% if user.member.role.id == 1 %}
+      <button type="submit" class="w-10 mb-2 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
+    {% endif %}
+  {% if user.member.role.id != 3 %}
+  </form>
   {% endif %}
-</form>
+</div>
 {% endif %}
 
 {% endblock %}
