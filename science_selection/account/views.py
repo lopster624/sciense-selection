@@ -4,7 +4,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
 from django.views import View
 
-from application.models import Application, Education
+from application.models import Application
+from application.utils import OnlyMasterAccessMixin, OnlySlaveAccessMixin
 from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED, MASTER_ROLE_NAME
 from .forms import RegisterForm
 from .models import Member, ActivationLink, Role, Affiliation, Booking
@@ -44,10 +45,10 @@ class ActivationView(LoginRequiredMixin, View):
         member.role = Role.objects.get(role_name=SLAVE_ROLE_NAME)
         member.save()
         link_object.delete()
-        return redirect('home_master')
+        return redirect('home')
 
 
-class HomeMasterView(LoginRequiredMixin, View):
+class HomeMasterView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def get(self, request):
         current_date = datetime.date.today()
         middle_date = datetime.date(current_date.year, MIDDLE_RECRUITING_DATE['month'], MIDDLE_RECRUITING_DATE['day'])
@@ -77,7 +78,7 @@ class HomeView(LoginRequiredMixin, View):
             return redirect('home_master')
 
 
-class HomeSlaveView(LoginRequiredMixin, View):
+class HomeSlaveView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
     def get(self, request):
         user_app = Application.objects.filter(member=request.user.member).first()
         filed_blocks = {

@@ -1,5 +1,8 @@
+from django.core.exceptions import PermissionDenied
+
 from account.models import Member, Affiliation
 from application.models import Competence, Direction
+from utils.constants import MASTER_ROLE_NAME, SLAVE_ROLE_NAME
 
 
 def check_role(user, role_name):
@@ -89,3 +92,34 @@ def check_kids_for_pick(competence, direction):
     if not competence.directions.all().filter(id=direction.id).exists():
         return False
     return True
+
+
+class OnlyMasterAccessMixin:
+    """Проверяет,что пользователь обладает ролью мастера"""
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.member.role.role_name != MASTER_ROLE_NAME:
+            raise PermissionDenied('Недостаточно прав для входа на данную страницу.')
+        return super().dispatch(request, *args, **kwargs)
+
+
+class OnlySlaveAccessMixin:
+    """Проверяет,что пользователь обладает ролью оператора"""
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.member.role.role_name != SLAVE_ROLE_NAME:
+            raise PermissionDenied('Недостаточно прав для входа на данную страницу.')
+        return super().dispatch(request, *args, **kwargs)
+
+
+def check_permission_decorator(role_name=None):
+    def decorator(func):
+        def wrapper(self, request, app_id, *args, **kwargs):
+            if request.user.member.role.role_name == role_name:
+                return func(self, request, app_id, *args, **kwargs)
+            member = Member.objects.filter(application__id=app_id).first()
+            if member != request.user.member:
+                raise PermissionDenied('Недостаточно прав для входа на данную страницу.')
+            return func(self, request, app_id, *args, **kwargs)
+        return wrapper
+    return decorator
