@@ -4,8 +4,7 @@ from .views import ApplicationListView, ApplicationView, CreateApplicationView, 
     AddCompetencesView, DeleteCompetenceView, CreateCompetenceView, \
     BookMemberView, UnBookMemberView, AddInWishlist, DeleteFromWishlist, \
     ChooseDirectionInAppView, ChooseCompetenceInAppView, EditApplicationView, CompetenceListView, \
-    MasterFileTemplatesView, DeleteFileView, \
-    DocumentsInAppView
+    MasterFileTemplatesView, DeleteFileView, DocumentsInAppView, CreateWordAppView
 
 urlpatterns = [
     path('application/', CreateApplicationView.as_view(), name='create_application'),
@@ -15,6 +14,7 @@ urlpatterns = [
     path('application/<int:app_id>/direction/', ChooseDirectionInAppView.as_view(), name='choose_app_direction'),
     path('application/<int:app_id>/competence/', ChooseCompetenceInAppView.as_view(), name='choose_app_competence'),
     path('application/<int:app_id>/documents/', DocumentsInAppView.as_view(), name='app_documents'),
+    path('application/<int:app_id>/word/', CreateWordAppView.as_view(), name='create_word_app'),
 
     path('application/list/', ApplicationListView.as_view(), name='application_list'),
 
