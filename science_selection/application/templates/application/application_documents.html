@@ -53,6 +53,7 @@
             {% endfor %}
         </div>
     </div>
+    {% if user.member.role.id != 3 %}
     <div class="row">
         <div class="col text-center">
             <h3>Загрузить документы:</h3>
@@ -65,6 +66,7 @@
             </form>
         </div>
     </div>
+    {% endif %}
 </div>
 
 {% endblock %}
