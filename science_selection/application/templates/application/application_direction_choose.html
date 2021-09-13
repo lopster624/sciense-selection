@@ -29,7 +29,8 @@
         <h5 class="card-title"> {{ direction.name }} </h5>
         <p class="card-text"> {{ direction.description }} </p>
         <div class="custom-control custom-checkbox">
-          <input type="checkbox" class="custom-control-input" name="direction" id="{{ direction.name }}" value="{{ direction.id }}" {% if direction.id in selected_directions %} checked {% endif %}>
+          <input type="checkbox" class="custom-control-input"  name="direction" id="{{ direction.name }}" {% if user.member.role.id == 3 %}disabled{%endif%}
+                 value="{{ direction.id }}" {% if direction.id in selected_directions %} checked {% endif %}>
           <label class="custom-control-label" for="{{direction.name }}"><small class="text-muted">Выбрать направление</small></label>
         </div>
       </div>
@@ -37,7 +38,9 @@
   </div>
   {% endfor %}
   </div>
-  <button type="submit" class="w-10 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
+  {% if user.member.role.id == 1 %}
+    <button type="submit" class="w-10 mb-2 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
+  {% endif %}
 </form>
 {% endif %}
 
