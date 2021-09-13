@@ -318,6 +318,8 @@ class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
                 app.affiliation = booking.first().affiliation
                 if booking.filter(affiliation__in=master_affiliations):
                     app.is_booked_our = True
+                    if booking.filter(affiliation__in=master_affiliations, master=self.request.user.member):
+                        app.can_unbook = True
             in_wishlist = Booking.objects.filter(slave=app.member, booking_type__name=IN_WISHLIST)
             if in_wishlist:
                 app.wishlist_len = len(in_wishlist)
