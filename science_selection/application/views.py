@@ -111,7 +111,7 @@ class CompetenceEditView(LoginRequiredMixin, View):
 class ApplicationView(LoginRequiredMixin, View):
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
-        user_education = Education.objects.filter(application=user_app).order_by('end_year').all()
+        user_education = user_app.education_set.order_by('end_year').all()
         context = {'user_app': user_app, 'app_id': app_id, 'user_education': user_education, 'app_active': True}
         return render(request, 'application/application_detail.html', context=context)
 
@@ -119,7 +119,7 @@ class ApplicationView(LoginRequiredMixin, View):
 class EditApplicationView(LoginRequiredMixin, View):
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
-        user_education = Education.objects.filter(application=user_app).order_by('end_year').all()
+        user_education = user_app.education_set.order_by('end_year').all()
         app_form = ApplicationCreateForm(instance=user_app)
         education_formset = EducationFormSet(queryset=user_education)
         context = {'app_form': app_form, 'app_id': app_id, 'education_formset': education_formset, 'app_active': True}
@@ -127,19 +127,17 @@ class EditApplicationView(LoginRequiredMixin, View):
 
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
-        user_education = Education.objects.filter(application=user_app).all()
+        user_education = user_app.education_set.all()
         app_form = ApplicationCreateForm(request.POST, instance=user_app)
         education_formset = EducationFormSet(request.POST, queryset=user_education)
         if app_form.is_valid() and education_formset.is_valid():
             new_app = app_form.save()
+            user_app.education_set.all().delete()
             for form in education_formset:
-                if not form.cleaned_data.get('DELETE') and form.cleaned_data:
+                if form.cleaned_data:
                     user_education = form.save(commit=False)
                     user_education.application = new_app
                     user_education.save()
-                elif form.cleaned_data.get('DELETE'):
-                    educ = get_object_or_404(Education, id=form.cleaned_data['id'].id)
-                    educ.delete()
             return redirect('application', app_id=new_app.pk)
         else:
             msg = 'Некорректные данные в заявке'

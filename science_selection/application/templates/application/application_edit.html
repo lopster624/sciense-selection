@@ -39,11 +39,19 @@
         {% for ed_form in education_formset %}
             <div class="education-form border border-light rounded mb-1">
                 {% for e_f in ed_form %}
+                    <p></p>
                     <div class="form-group row mb-2 {% if e_f.label == 'Id' %}visually-hidden{% endif %}">
-                        <label class="col-sm-3 col-form-label">{{ e_f.label }}</label>
-                        <div class="col-sm-9">
-                            {{ e_f }}
-                        </div>
+                        {% if e_f == ed_form.DELETE %}
+                            <label class="col-sm-3 col-form-label"></label>
+                            <div class="col-sm-9 delete-form">
+                                <button type="button" class="btn btn-outline-secondary">Удалить</button>
+                            </div>
+                        {% else %}
+                            <label class="col-sm-3 col-form-label">{{ e_f.label }}</label>
+                            <div class="col-sm-9">
+                                {{ e_f }}
+                            </div>
+                        {% endif %}
                     </div>
                     {% if ed_form.errors %}
                         <div class="mt-1 mb-0 alert-danger rounded">

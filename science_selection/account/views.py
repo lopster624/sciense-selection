@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
 from django.views import View
 
-from application.models import Application
+from application.models import Application, Education
 from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED, MASTER_ROLE_NAME
 from .forms import RegisterForm
 from .models import Member, ActivationLink, Role, Affiliation, Booking
@@ -79,4 +79,19 @@ class HomeView(LoginRequiredMixin, View):
 
 class HomeSlaveView(LoginRequiredMixin, View):
     def get(self, request):
-        return render(request, 'account/home_slave.html', context={})
+        user_app = Application.objects.filter(member=request.user.member).first()
+        filed_blocks = {
+            'Основные данные': False,
+            'Образование': False,
+            'Направления': False,
+            'Компетенции': False,
+        }
+        if user_app:
+            filed_blocks['Основные данные'] = True
+            filed_blocks['Образование'] = True if user_app.education_set.all() else False
+            filed_blocks['Направления'] = True if user_app.competencies.all() else False
+            filed_blocks['Компетенции'] = True if user_app.directions.all() else False
+        fullness = [v for k, v in filed_blocks.items() if v]
+        fullness = int(len(fullness) / len(filed_blocks) * 100)
+        context = {'filed_blocks': filed_blocks, 'fullness': fullness}
+        return render(request, 'account/home_slave.html', context=context)
