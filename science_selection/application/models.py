@@ -30,14 +30,16 @@ class Application(models.Model):
     group_of_health = models.CharField(max_length=32, verbose_name='Группа здоровья')
     draft_year = models.IntegerField(verbose_name='Год призыва', validators=[validate_draft_year])
     draft_season = models.IntegerField(choices=season, verbose_name='Сезон призыва')
-    scientific_achievements = models.TextField(blank=True, verbose_name='Достижения', help_text='Статьи ВАК, РИМС ...')
-    scholarships = models.TextField(blank=True, verbose_name='Стипендии', help_text='Президентская стипендия, ...')
+    scientific_achievements = models.TextField(blank=True, verbose_name='Научные достижения', help_text='Участие в конкурсах, олимпиадах, издательской деятельности, '
+                                                                                                        'научно-практические конференции, наличие патентов на изобретения, '
+                                                                                                        'свидетельств о регистрации программ, свидетельств о рационализаторских предложениях и т.п.')
+    scholarships = models.TextField(blank=True, verbose_name='Стипендии', help_text='Наличие грантов, именных премий, именных стипендий и т.п.')
     ready_to_secret = models.BooleanField(default=False, verbose_name='Готовность к секретности',
-                                          help_text='Готовность получить уровень секретности')
+                                          help_text='Готовность гражданина к оформлению допуска к сведениям, содержащим государственную тайну, по 3 форме')
     candidate_exams = models.TextField(blank=True, verbose_name='Кандидатские экзамены',
-                                       help_text='Экзамены на кандидатский минимум, ...')
-    sporting_achievements = models.TextField(blank=True, verbose_name='Спортивные достижения', help_text='Разряды ...')
-    hobby = models.TextField(blank=True, verbose_name='Хобби')
+                                       help_text='Наличие оформленного соискательства ученой степени и сданных экзаменов кандидатского минимума')
+    sporting_achievements = models.TextField(blank=True, verbose_name='Спортивные достижения', help_text='Наличие спортивных достижений и разрядов')
+    hobby = models.TextField(blank=True, verbose_name='Хобби', help_text='Увлечения и хобби')
     other_information = models.TextField(blank=True, verbose_name='Дополнительная информация')
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
@@ -106,6 +108,7 @@ class Education(models.Model):
     avg_score = models.FloatField(verbose_name='Средний балл', validators=[validate_avg_score], blank=True)
     end_year = models.IntegerField(verbose_name='Год окончания')
     is_ended = models.BooleanField(default=False, verbose_name='Окончено')
+    name_of_education_doc = models.CharField(max_length=256, verbose_name='Наименование документа об образовании', blank=True)
     theme_of_diploma = models.CharField(max_length=128, verbose_name='Тема диплома')
 
     def __str__(self):
