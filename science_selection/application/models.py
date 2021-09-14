@@ -41,7 +41,7 @@ class Application(models.Model):
     other_information = models.TextField(blank=True, verbose_name='Дополнительная информация')
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
-    fullness = models.FloatField(default=0, verbose_name='Процент заполненности')
+    fullness = models.IntegerField(default=0, verbose_name='Процент заполненности')
     final_score = models.IntegerField(default=0, verbose_name='Итоговая оценка заявки')
 
     class Meta:
@@ -49,12 +49,23 @@ class Application(models.Model):
         verbose_name = "Заявка"
         verbose_name_plural = "Заявки"
 
+    def get_filed_blocks(self):
+        return {
+            'Основные данные': True,
+            'Образование': True if self.education.all() else False,
+            'Направления': True if self.directions.all() else False,
+            'Компетенции': True if self.competencies.all() else False,
+            'Загруженные файлы': True if File.objects.filter(member=self.member) else False,
+        }
+
     def calculate_fullness(self) -> int:
         """
         Подсчет заполненности анкеты
         :return: значение заполненности в %
         """
-        return 1
+        filed_blocks = self.get_filed_blocks()
+        fullness = [v for k, v in filed_blocks.items() if v]
+        return int(len(fullness) / len(filed_blocks) * 100)
 
     def calculate_final_score(self) -> float:
         """
@@ -67,9 +78,9 @@ class Application(models.Model):
         return f'{self.season[self.draft_season - 1][1]} {self.draft_year}'
 
     def save(self, *args, **kwargs):
-        # self.fullness = self.calculate_fullness()
-        # self.final_score = self.calculate_final_score()
         super().save(*args, **kwargs)
+        self.fullness = self.calculate_fullness()
+        self.final_score = self.calculate_final_score()
 
     def __str__(self):
         return f'{self.member.user.first_name} {self.member.user.last_name}'
@@ -87,7 +98,8 @@ class Education(models.Model):
         ('a', 'Аспирантура'),
         ('s', 'Специалитет'),
     ]
-    application = models.ForeignKey(Application, on_delete=models.CASCADE, verbose_name='Заявка')
+    application = models.ForeignKey(Application, on_delete=models.CASCADE, verbose_name='Заявка',
+                                    related_name='education')
     education_type = models.CharField(choices=education_program, max_length=1, verbose_name='Программа')
     university = models.CharField(max_length=256, verbose_name='Университет')
     specialization = models.CharField(max_length=256, verbose_name='Специальность')
@@ -101,6 +113,10 @@ class Education(models.Model):
 
     def get_education_type_display(self):
         return next(name for ed_type, name in self.education_program if ed_type == self.education_type)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.application.save()
 
     class Meta:
         verbose_name = "Образование"
@@ -139,6 +155,10 @@ class File(models.Model):
     class Meta:
         verbose_name = "Вложение"
         verbose_name_plural = "Вложения"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.member.application.save()
 
 
 class AdditionField(models.Model):
@@ -198,3 +218,7 @@ class ApplicationCompetencies(models.Model):
 
     def __str__(self):
         return f'{self.application.member.user.first_name}: {self.competence.name}'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.application.save()

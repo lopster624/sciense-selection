@@ -40,6 +40,7 @@ class ChooseDirectionInAppView(LoginRequiredMixin, View):
         if selected_directions:
             directions = Direction.objects.filter(pk__in=selected_directions)
             user_app.directions.add(*list(directions))
+        user_app.save()
         directions = Direction.objects.all()
         context = {'directions': directions, 'selected_directions': list(map(int, selected_directions)),
                    'direction_active': True, 'app_id': app_id}
@@ -83,7 +84,7 @@ class ApplicationView(LoginRequiredMixin, View):
     @check_permission_decorator(role_name=MASTER_ROLE_NAME)
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
-        user_education = user_app.education_set.order_by('end_year').all()
+        user_education = user_app.education.order_by('end_year').all()
         context = {'user_app': user_app, 'app_id': app_id, 'user_education': user_education, 'app_active': True}
         return render(request, 'application/application_detail.html', context=context)
 
@@ -92,7 +93,7 @@ class EditApplicationView(LoginRequiredMixin, View):
     @check_permission_decorator(MASTER_ROLE_NAME)
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
-        user_education = user_app.education_set.order_by('end_year').all()
+        user_education = user_app.education.order_by('end_year').all()
         app_form = ApplicationCreateForm(instance=user_app)
         education_formset = EducationFormSet(queryset=user_education)
         context = {'app_form': app_form, 'app_id': app_id, 'education_formset': education_formset, 'app_active': True}
@@ -101,12 +102,12 @@ class EditApplicationView(LoginRequiredMixin, View):
     @check_permission_decorator(MASTER_ROLE_NAME)
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
-        user_education = user_app.education_set.all()
+        user_education = user_app.education.all()
         app_form = ApplicationCreateForm(request.POST, instance=user_app)
         education_formset = EducationFormSet(request.POST, queryset=user_education)
         if app_form.is_valid() and education_formset.is_valid():
             new_app = app_form.save()
-            user_app.education_set.all().delete()
+            user_app.education.all().delete()
             for form in education_formset:
                 if form.cleaned_data:
                     user_education = form.save(commit=False)
@@ -223,6 +224,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
                 competence = Competence.objects.filter(pk=comp_id).first()
                 ApplicationCompetencies.objects.create(application=user_app, competence=competence,
                                                        level=level_competence)
+        user_app.save()
         user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
         selected_competencies = {_.competence.id: _.level for _ in user_competencies}
         competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).all()
@@ -254,6 +256,7 @@ class DeleteFileView(LoginRequiredMixin, View):
         if file.member != request.user.member:
             return PermissionDenied('Только загрузивший пользователь может удалить файл.')
         file.delete()
+        request.user.member.application.save()
         return redirect(request.META.get('HTTP_REFERER'))
 
 
