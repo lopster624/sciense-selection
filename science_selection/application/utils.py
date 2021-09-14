@@ -1,7 +1,12 @@
+import os
+
+from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
+from docxtpl import DocxTemplate
+from io import BytesIO
 
 from account.models import Member, Affiliation
-from application.models import Competence, Direction
+from application.models import Competence, Direction, Application, Education
 from utils.constants import MASTER_ROLE_NAME, SLAVE_ROLE_NAME
 
 
@@ -123,3 +128,25 @@ def check_permission_decorator(role_name=None):
             return func(self, request, app_id, *args, **kwargs)
         return wrapper
     return decorator
+
+
+def create_word_app(app_id, path_to_template=None):
+    path_to_template = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\sample_app.docx') if not path_to_template else path_to_template
+    template = DocxTemplate(path_to_template)
+    context = _create_context_to_word_app(app_id)
+    user_docx = BytesIO()
+    template.render(context)
+    template.save(user_docx)
+    user_docx.seek(0)
+    return user_docx
+
+
+def _create_context_to_word_app(app_id):
+    user_app = Application.objects.filter(pk=app_id).values()
+    user_education = Education.objects.filter(application=user_app[0]['id']).order_by('-end_year').values()
+    member = Member.objects.filter(pk=user_app[0]['member_id']).first()
+    user = User.objects.filter(pk=member.user_id).first()
+    context = {**user_app[0], **user_education[0], **user_education[0]}
+    context.update({'father_name': member.father_name, 'phone': member.phone})
+    context.update({'first_name': user.first_name, 'last_name': user.last_name})
+    return context

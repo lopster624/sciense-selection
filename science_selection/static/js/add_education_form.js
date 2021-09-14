@@ -19,9 +19,8 @@ function addForm(e){
     let educationForm = document.querySelectorAll(".education-form")
     let formNum = educationForm.length-1 //Get the number of the last form on the page with zero-based indexing
     e.preventDefault()
-    let countForm = educationForm.length-1
 
-    let newForm = educationForm[countForm].cloneNode(true) //Clone the education form
+    let newForm = educationForm[formNum].cloneNode(true) //Clone the education form
     newForm.style.display = ''
     let formRegex = RegExp(`form-(\\d){1}-`,'g') //Regex to find all instances of the form number
 
@@ -31,10 +30,7 @@ function addForm(e){
 
     totalForms.setAttribute('value', `${formNum+1}`) //Increment the number of total forms in the form management
 
-    let btns = document.querySelectorAll('.delete-form')
-    btns.forEach(function(btn) {
-        btn.addEventListener('click', deleteForm)})
-
+    addActionToBtn()
 }
 
 function deleteForm(e){
@@ -44,7 +40,6 @@ function deleteForm(e){
     let formNum = educationForm.length
     totalForms.setAttribute('value', `${formNum-1}`)
     initial_forms.setAttribute('value', '0')
-    console.log(total_forms)
 
     let table_ed = event.target.closest('div.education-form')
     table_ed.remove()
