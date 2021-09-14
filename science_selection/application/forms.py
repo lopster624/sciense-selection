@@ -89,6 +89,7 @@ class EducationCreateForm(forms.ModelForm):
             'avg_score': NumberInput(attrs={'class': 'form-control'}),
             'end_year': NumberInput(attrs={'class': 'form-control'}),
             'theme_of_diploma': Input(attrs={'class': 'form-control'}),
+            'name_of_education_doc': Input(attrs={'class': 'form-control'}),
             'is_ended': CheckboxInput(attrs={'class': 'form-check-input'}),
             'education_type': Select(attrs={'class': 'form-select'}),
         }
