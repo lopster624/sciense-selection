@@ -141,7 +141,7 @@ class DocumentsInAppView(LoginRequiredMixin, View):
 
 
 class CreateWordAppView(LoginRequiredMixin, View):
-    # @check_permission_decorator(MASTER_ROLE_NAME)
+    @check_permission_decorator(MASTER_ROLE_NAME)
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         filename = f"Анкета_{user_app.member.user.last_name}.docx"
@@ -203,7 +203,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
                 selected_competencies = {_.competence.id: _.level for _ in user_competencies}
                 competence_levels = ApplicationCompetencies.competence_levels
                 context.update({'levels': competence_levels, 'selected_competencies': selected_competencies,
-                                'competencies': competencies})
+                                'competencies': competencies, 'selected_directions': user_directions})
             else:
                 context.update({'msg': 'Заполните направления', 'name': 'choose_app_direction'})
         else:
@@ -227,7 +227,8 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
         competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).distinct()
 
         context = {'competencies': competencies, 'levels': ApplicationCompetencies.competence_levels,
-                   'selected_competencies': selected_competencies, 'app_id': app_id, 'competence_active': True}
+                   'selected_competencies': selected_competencies, 'app_id': app_id, 'competence_active': True,
+                   'selected_directions': user_directions}
         return render(request, 'application/application_competence_choose.html', context=context)
 
 
