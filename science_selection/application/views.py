@@ -30,7 +30,7 @@ class ChooseDirectionInAppView(LoginRequiredMixin, View):
             context.update({'msg': 'Создайте заявку', 'name': 'create_application'})
         return render(request, 'application/application_direction_choose.html', context=context)
 
-    @check_permission_decorator
+    @check_permission_decorator()
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         selected_directions = request.POST.getlist('direction')
@@ -128,7 +128,7 @@ class DocumentsInAppView(LoginRequiredMixin, View):
                    'app_id': app_id}
         return render(request, 'application/application_documents.html', context=context)
 
-    @check_permission_decorator
+    @check_permission_decorator()
     def post(self, request, app_id):
         new_files = request.FILES.getlist('downloaded_files')
         for file in new_files:
@@ -197,7 +197,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
             context.update({'msg': 'Создайте заявку', 'name': 'create_application'})
         return render(request, 'application/application_competence_choose.html', context=context)
 
-    @check_permission_decorator
+    @check_permission_decorator()
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         user_directions = user_app.directions.all()
