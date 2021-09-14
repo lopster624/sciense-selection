@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load application_extras %}
 {% block title %}
 Список компетенций
 {% endblock %}
@@ -80,8 +81,8 @@
                 <span class="{% if not comp_lvl1.is_estimated %} fw-bold {% endif %} ms-1 fs-4">{{comp_lvl1.name}}</span>
                 <button type="button" class="btn-close ms-3" data-bs-toggle="modal"
                         data-bs-target="#staticBackdrop{{ comp_lvl1.id }}" aria-label="Close"></button>
-                {% include 'application/includes/delete_competence_lvl1_template.html' %}
 
+                {% get_delete_competence_modal competence=comp_lvl1 direction=selected_direction %}
                 {% endif %}
                 {% for comp_lvl2 in comp_lvl1.child.all %}
                 <div class="ms-5">
@@ -89,7 +90,7 @@
                     <span class="{% if not comp_lvl2.is_estimated %} fw-bold {% endif %} ms-1 fs-5">{{comp_lvl2.name}}</span>
                     <button type="button" class="btn-close ms-3" data-bs-toggle="modal"
                             data-bs-target="#staticBackdrop{{ comp_lvl2.id }}" aria-label="Close"></button>
-                    {% include 'application/includes/delete_competence_lvl2_template.html' %}
+                    {% get_delete_competence_modal competence=comp_lvl2 direction=selected_direction %}
                     {% endif %}
                     {% for comp_lvl3 in comp_lvl2.child.all %}
                     {% if selected_direction in comp_lvl3.directions.all %}
@@ -97,7 +98,7 @@
                         <span class="{% if not comp_lvl3.is_estimated %} fw-bold {% endif %} ms-1 fs-6">{{comp_lvl3.name}}</span>
                         <button type="button" class="btn-close ms-3" data-bs-toggle="modal"
                                 data-bs-target="#staticBackdrop{{ comp_lvl3.id }}" aria-label="Close"></button>
-                        {% include 'application/includes/delete_competence_lvl3_template.html' %}
+                        {% get_delete_competence_modal competence=comp_lvl3 direction=selected_direction %}
                     </div>
                     {% endif %}
                     {% endfor %}
