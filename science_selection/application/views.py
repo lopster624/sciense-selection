@@ -1,13 +1,13 @@
 import os
 
-from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils.encoding import escape_uri_path
 from django.core.exceptions import PermissionDenied
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse
 from django.views import View
 from django.views.generic.list import ListView
-from docxtpl import DocxTemplate
+
 
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
@@ -16,7 +16,7 @@ from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME
 from .forms import ApplicationCreateForm, EducationFormSet
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File
 from .utils import pick_competence, delete_competence, get_context, OnlyMasterAccessMixin, OnlySlaveAccessMixin, \
-    check_permission_decorator
+    check_permission_decorator, create_word_app
 
 
 class ChooseDirectionInAppView(LoginRequiredMixin, View):
@@ -143,13 +143,12 @@ class DocumentsInAppView(LoginRequiredMixin, View):
 class CreateWordAppView(LoginRequiredMixin, View):
     # @check_permission_decorator(MASTER_ROLE_NAME)
     def get(self, request, app_id):
-        test_path = os.path.join(os.path.abspath(os.curdir), 'static\docx\\templates\\sample_app.docx')
-        print(test_path)
-        template = DocxTemplate(test_path)
-        context = {'test': 'test', 'test2': 'test2'}
-        template.render(context)
-        template.save('test.docx')
-        return redirect(request.META.get('HTTP_REFERER'))
+        user_app = get_object_or_404(Application, pk=app_id)
+        filename = f"Анкета_{user_app.member.user.last_name}.docx"
+        user_docx = create_word_app(app_id)
+        response = HttpResponse(user_docx, content_type='application/docx')
+        response['Content-Disposition'] = 'attachment; filename="' + escape_uri_path(filename) + '"'
+        return response
 
 
 class AddCompetencesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
@@ -200,7 +199,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
             user_directions = user_app.directions.all()
             if user_directions:
                 user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
-                competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).all()
+                competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).distinct()
                 selected_competencies = {_.competence.id: _.level for _ in user_competencies}
                 competence_levels = ApplicationCompetencies.competence_levels
                 context.update({'levels': competence_levels, 'selected_competencies': selected_competencies,
@@ -215,7 +214,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         user_directions = user_app.directions.all()
-        competence_direction_ids = [_.id for _ in Competence.objects.filter(directions__in=user_directions).all()]
+        competence_direction_ids = [_.id for _ in Competence.objects.filter(directions__in=user_directions).distinct()]
         user_app.competencies.clear()
         for comp_id in competence_direction_ids:
             level_competence = int(request.POST.get(str(comp_id), 0))
@@ -225,7 +224,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
                                                        level=level_competence)
         user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
         selected_competencies = {_.competence.id: _.level for _ in user_competencies}
-        competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).all()
+        competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).distinct()
 
         context = {'competencies': competencies, 'levels': ApplicationCompetencies.competence_levels,
                    'selected_competencies': selected_competencies, 'app_id': app_id, 'competence_active': True}
