@@ -22,8 +22,11 @@
             <h5 class="text-center mb-3">Дополнительная информация</h5>
         {% endif %}
             <div class="form-group row mb-2">
-                <label class="col-sm-3 col-form-label">{{ f.label }}</label>
-                <div class="col-sm-9">
+                <div class="col-4">
+                    <label class="col-form-label">{{ f.label }}</label>
+                    <small class="form-text text-muted d-block">{{ f.help_text }}</small>
+                </div>
+                <div class="col-8">
                     {{ f }}
                 </div>
             </div>

@@ -12,6 +12,9 @@ function addActionToBtn(e){
         btn.addEventListener('click', deleteForm)})
 }
 
+let edForm = document.querySelectorAll(".education-form")
+edForm[edForm.length-1].style.display = 'none'
+
 function addForm(e){
     let educationForm = document.querySelectorAll(".education-form")
     let formNum = educationForm.length-1 //Get the number of the last form on the page with zero-based indexing
@@ -19,6 +22,7 @@ function addForm(e){
     let countForm = educationForm.length-1
 
     let newForm = educationForm[countForm].cloneNode(true) //Clone the education form
+    newForm.style.display = ''
     let formRegex = RegExp(`form-(\\d){1}-`,'g') //Regex to find all instances of the form number
 
     formNum++ //Increment the form number

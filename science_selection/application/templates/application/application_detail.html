@@ -13,6 +13,9 @@
     <div class="mb-3 text-center position-relative">
         <h4 class="d-inline"> Анкета оператора</h4>
         <button class="btn btn-outline-secondary position-absolute top-0 end-0"><a href="{%url 'edit_application' app_id %}">Редактировать</a></button>
+        <button class="btn btn-outline-secondary position-absolute top-0 start-0"><a href="{%url 'create_word_app' app_id %}">
+            <img src="{% static 'images/word.svg' %}" alt="download file" width="20" height="20"></a>
+        </button>
     </div>
     <ul class="list-group">
         <li class="list-group-item mb-2">

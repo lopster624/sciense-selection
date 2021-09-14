@@ -1,11 +1,13 @@
 import os
 
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views import View
 from django.views.generic.list import ListView
+from docxtpl import DocxTemplate
 
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
@@ -136,6 +138,18 @@ class DocumentsInAppView(LoginRequiredMixin, View):
             new_file = File(member=request.user.member, file_path=file, file_name=file_name, is_template=False)
             new_file.save()
         return redirect(request.path_info)
+
+
+class CreateWordAppView(LoginRequiredMixin, View):
+    # @check_permission_decorator(MASTER_ROLE_NAME)
+    def get(self, request, app_id):
+        test_path = os.path.join(os.path.abspath(os.curdir), 'static\docx\\templates\\sample_app.docx')
+        print(test_path)
+        template = DocxTemplate(test_path)
+        context = {'test': 'test', 'test2': 'test2'}
+        template.render(context)
+        template.save('test.docx')
+        return redirect(request.META.get('HTTP_REFERER'))
 
 
 class AddCompetencesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
