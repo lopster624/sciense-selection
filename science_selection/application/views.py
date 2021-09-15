@@ -8,7 +8,6 @@ from django.urls import reverse
 from django.views import View
 from django.views.generic.list import ListView
 
-
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
 from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME
