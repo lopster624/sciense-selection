@@ -80,9 +80,9 @@ class Application(models.Model):
         return f'{self.season[self.draft_season - 1][1]} {self.draft_year}'
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
         self.fullness = self.calculate_fullness()
         self.final_score = self.calculate_final_score()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.member.user.first_name} {self.member.user.last_name}'
