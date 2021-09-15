@@ -4,7 +4,7 @@ from .views import ApplicationListView, ApplicationView, CreateApplicationView, 
     AddCompetencesView, DeleteCompetenceView, CreateCompetenceView, \
     BookMemberView, UnBookMemberView, AddInWishlist, DeleteFromWishlist, \
     ChooseDirectionInAppView, ChooseCompetenceInAppView, EditApplicationView, CompetenceListView, \
-    MasterFileTemplatesView, DeleteFileView, DocumentsInAppView, CreateWordAppView
+    MasterFileTemplatesView, DeleteFileView, DocumentsInAppView, CreateWordAppView, EditApplicationNote
 
 urlpatterns = [
     path('application/', CreateApplicationView.as_view(), name='create_application'),
@@ -15,7 +15,7 @@ urlpatterns = [
     path('application/<int:app_id>/competence/', ChooseCompetenceInAppView.as_view(), name='choose_app_competence'),
     path('application/<int:app_id>/documents/', DocumentsInAppView.as_view(), name='app_documents'),
     path('application/<int:app_id>/word/', CreateWordAppView.as_view(), name='create_word_app'),
-
+    path('application/<int:app_id>/add_note/', EditApplicationNote.as_view(), name='add_application_note'),
     path('application/list/', ApplicationListView.as_view(), name='application_list'),
 
     path('competence/add/<int:direction_id>/', AddCompetencesView.as_view(), name='add_competences'),
@@ -28,5 +28,6 @@ urlpatterns = [
     path('booking/<int:app_id>/', BookMemberView.as_view(), name='book_member'),
     path('booking/delete/<int:app_id>/<int:aff_id>/', UnBookMemberView.as_view(), name='un-book_member'),
     path('wishlist/add/<int:app_id>/', AddInWishlist.as_view(), name='add_in_wishlist'),
-    path('wishlist/delete/<int:app_id>/', DeleteFromWishlist.as_view(), name='delete_from_wishlist')
+    path('wishlist/delete/<int:app_id>/', DeleteFromWishlist.as_view(), name='delete_from_wishlist'),
+
 ]

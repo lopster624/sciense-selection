@@ -8,13 +8,12 @@ from django.urls import reverse
 from django.views import View
 from django.views.generic.list import ListView
 
-
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
 from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME
 
 from .forms import ApplicationCreateForm, EducationFormSet
-from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File
+from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote
 from .utils import pick_competence, delete_competence, get_context, OnlyMasterAccessMixin, OnlySlaveAccessMixin, \
     check_permission_decorator, create_word_app
 
@@ -200,7 +199,8 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
             user_directions = user_app.directions.all()
             if user_directions:
                 user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
-                competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).distinct()
+                competencies = Competence.objects.filter(directions__in=user_directions,
+                                                         parent_node__isnull=True).distinct()
                 selected_competencies = {_.competence.id: _.level for _ in user_competencies}
                 competence_levels = ApplicationCompetencies.competence_levels
                 context.update({'levels': competence_levels, 'selected_competencies': selected_competencies,
@@ -436,3 +436,25 @@ class DeleteFromWishlist(LoginRequiredMixin, OnlyMasterAccessMixin, View):
             if current_booking:
                 current_booking.first().delete()
         return redirect('application_list')
+
+
+class EditApplicationNote(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+    def post(self, request, app_id):
+        text = request.POST.get('note_text', '')
+        master_affiliations = Affiliation.objects.filter(member=request.user.member)
+        app_note = ApplicationNote.objects.filter(application__id=app_id, affiliations__in=master_affiliations).first()
+        if app_note:
+            current_note = app_note
+            current_note.author = request.user.member
+            current_note.text = text
+            new_affiliations = current_note.affiliations.all() | master_affiliations
+            current_note.affiliations.clear()
+            current_note.affiliations.add(*list(new_affiliations))
+            current_note.save()
+        else:
+            application = get_object_or_404(Application, pk=app_id)
+            new_note = ApplicationNote(text=text, application=application, author=request.user.member)
+            new_note.save()
+            new_note.affiliations.add(*list(master_affiliations))
+            new_note.save()
+        return redirect('application', app_id=app_id)
