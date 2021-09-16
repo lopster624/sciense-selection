@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load application_extras %}
 {% block title %}
 Создание заявки
 {% endblock %}
@@ -7,177 +8,198 @@
 {% include 'includes/header_template.html' %}
 {% include 'application/includes/nav_app_template.html' %}
 
-
-<div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
-    <!--<div class="container">-->
-    <div class="mb-3 text-center position-relative">
-        <h4 class="d-inline"> Анкета оператора</h4>
-        <button class="btn btn-outline-secondary position-absolute top-0 end-0"><a href="{%url 'edit_application' app_id %}">Редактировать</a></button>
-        <button class="btn btn-outline-secondary position-absolute top-0 start-0"><a href="{%url 'create_word_app' app_id %}">
-            <img src="{% static 'images/word.svg' %}" alt="download file" width="20" height="20"></a>
-        </button>
+<div class="container-fluid">
+    <div class="row justify-content-end">
+        <div class="col-6 bg-white list-group-item list-group-item-light">
+            <div class="mb-3 text-center position-relative">
+                <h4 class="d-inline"> Анкета оператора</h4>
+                <form>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault">
+                        <label class="form-check-label" for="flexSwitchCheckDefault">Default switch checkbox
+                            input</label>
+                    </div>
+                </form>
+                <button class="btn btn-outline-secondary position-absolute top-0 end-0"><a
+                        href="{%url 'edit_application' app_id %}">Редактировать</a></button>
+                <button class="btn btn-outline-secondary position-absolute top-0 start-0"><a
+                        href="{%url 'create_word_app' app_id %}">
+                    <img src="{% static 'images/word.svg' %}" alt="download file" width="20" height="20"></a>
+                </button>
+            </div>
+            <ul class="list-group">
+                <li class="list-group-item mb-2">
+                    <h5 class="text-center mb-3">Основная информация</h5>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            ФИО:
+                        </div>
+                        <div class="col">
+                            {{ user_app.member }}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Телефон:
+                        </div>
+                        <div class="col">
+                            {{ user_app.member.phone }}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Email:
+                        </div>
+                        <div class="col">
+                            {{ user_app.member.user.email }}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Дата рождения:
+                        </div>
+                        <div class="col">
+                            {{ user_app.birth_day }}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Место рождения:
+                        </div>
+                        <div class="col">
+                            {{ user_app.birth_place }}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Национальность:
+                        </div>
+                        <div class="col">
+                            {{ user_app.nationality }}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Военный комиссариат:
+                        </div>
+                        <div class="col">
+                            {{ user_app.military_commissariat }}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Группа здоровья:
+                        </div>
+                        <div class="col">
+                            {{ user_app.group_of_health }}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Год призыва:
+                        </div>
+                        <div class="col">
+                            {{ user_app.draft_year }}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Сезон призыва:
+                        </div>
+                        <div class="col">
+                            {{ user_app.get_draft_season_display }}
+                        </div>
+                    </div>
+                </li>
+                <li class="list-group-item mb-2">
+                    <h5 class="text-center mb-3">Образование</h5>
+                    {% for educate in user_education %}
+                    <div class="card text-center mb-1">
+                        <div class="card-header"><h6>{{ educate.get_education_type_display }}</h6></div>
+                        <div class="card-body text-dark">
+                            <p class="card-title">Университет: {{ educate.university }}</p>
+                            <p class="card-text">Специальнсть: {{ educate.specialization }} </p>
+                            <p class="card-text">Средний балл: {{ educate.avg_score }}</p>
+                            <p class="card-text">Наименование документа: {{ educate.name_of_education_doc }}</p>
+                            <p class="card-text">Тема диплома: {{ educate.theme_of_diploma }}</p>
+                            <p class="card-text">Год окончания: {{ educate.end_year }}</p>
+                            <p class="card-text">Статус окончия: {% if educate.is_ended %}Окончил
+                                {% else %}Не окончил{% endif %}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </li>
+                <li class="list-group-item mb-2">
+                    <h5 class="text-center mb-3">Дополнительная информация</h5>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Достижения:
+                        </div>
+                        <div class="col">
+                            {% if user_app.scientific_achievements %}{{ user_app.scientific_achievements }}
+                            {% else %}Отсутсвует{% endif %}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Стипендии:
+                        </div>
+                        <div class="col">
+                            {% if user_app.scholarships %}{{ user_app.scholarships }}{% else %}Отсутсвует{% endif %}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Готовность к секретности:
+                        </div>
+                        <div class="col">
+                            {% if user_app.scholarships %}Готов{% else %}Не готов{% endif %}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Кандидатские экзамены:
+                        </div>
+                        <div class="col">
+                            {% if user_app.candidate_exams %}{{ user_app.candidate_exams }}
+                            {% else %}Отсутсвует{% endif %}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Спортивные достижения:
+                        </div>
+                        <div class="col">
+                            {% if user_app.sporting_achievements %}{{ user_app.sporting_achievements }}
+                            {% else %}Отсутсвует{% endif %}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Хобби:
+                        </div>
+                        <div class="col">
+                            {% if user_app.hobby %}{{ user_app.hobby }}{% else %}Отсутсвует{% endif %}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
+                            Дополнительная Информация:
+                        </div>
+                        <div class="col">
+                            {% if user_app.other_information %}{{ user_app.other_information }}
+                            {% else %}Отсутсвует{% endif %}
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="col-3">
+            {% if user.member.role.id == 3 %}
+             {% get_delete_competence_modal application=user_app user=user %}
+            {% endif %}
+        </div>
     </div>
-    <ul class="list-group">
-        <li class="list-group-item mb-2">
-            <h5 class="text-center mb-3">Основная информация</h5>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  ФИО:
-                </div>
-                <div class="col">
-                  {{ user_app.member }}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Телефон:
-                </div>
-                <div class="col">
-                  {{ user_app.member.phone }}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Email:
-                </div>
-                <div class="col">
-                  {{ user_app.member.user.email }}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Дата рождения:
-                </div>
-                <div class="col">
-                  {{ user_app.birth_day }}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Место рождения:
-                </div>
-                <div class="col">
-                  {{ user_app.birth_place }}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Национальность:
-                </div>
-                <div class="col">
-                  {{ user_app.nationality }}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Военный комиссариат:
-                </div>
-                <div class="col">
-                  {{ user_app.military_commissariat }}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Группа здоровья:
-                </div>
-                <div class="col">
-                  {{ user_app.group_of_health }}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Год призыва:
-                </div>
-                <div class="col">
-                  {{ user_app.draft_year }}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Сезон призыва:
-                </div>
-                <div class="col">
-                  {{ user_app.get_draft_season_display }}
-                </div>
-            </div>
-        </li>
-        <li class="list-group-item mb-2">
-            <h5 class="text-center mb-3">Образование</h5>
-            {% for educate in user_education %}
-            <div class="card text-center mb-1">
-              <div class="card-header"><h6>{{ educate.get_education_type_display }}</h6></div>
-              <div class="card-body text-dark">
-                <p class="card-title">Университет: {{ educate.university }}</p>
-                <p class="card-text">Специальнсть: {{ educate.specialization }} </p>
-                <p class="card-text">Средний балл: {{ educate.avg_score }}</p>
-                <p class="card-text">Наименование документа: {{ educate.name_of_education_doc }}</p>
-                <p class="card-text">Тема диплома: {{ educate.theme_of_diploma }}</p>
-                <p class="card-text">Год окончания: {{ educate.end_year }}</p>
-                <p class="card-text">Статус окончия: {% if educate.is_ended %}Окончил{% else %}Не окончил{% endif %}</p>
-              </div>
-            </div>
-            {% endfor %}
-        </li>
-        <li class="list-group-item mb-2">
-            <h5 class="text-center mb-3">Дополнительная информация</h5>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Достижения:
-                </div>
-                <div class="col">
-                  {% if user_app.scientific_achievements %}{{ user_app.scientific_achievements }}{% else %}Отсутсвует{% endif %}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Стипендии:
-                </div>
-                <div class="col">
-                  {% if user_app.scholarships %}{{ user_app.scholarships }}{% else %}Отсутсвует{% endif %}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Готовность к секретности:
-                </div>
-                <div class="col">
-                  {% if user_app.scholarships %}Готов{% else %}Не готов{% endif %}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Кандидатские экзамены:
-                </div>
-                <div class="col">
-                  {% if user_app.candidate_exams %}{{ user_app.candidate_exams }}{% else %}Отсутсвует{% endif %}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Спортивные достижения:
-                </div>
-                <div class="col">
-                  {% if user_app.sporting_achievements %}{{ user_app.sporting_achievements }}{% else %}Отсутсвует{% endif %}
-                </div>
-            </div>
-            <div class="row col-12 mb-2">
-                <div class="col">
-                  Хобби:
-                </div>
-                <div class="col">
-                  {% if user_app.hobby %}{{ user_app.hobby }}{% else %}Отсутсвует{% endif %}
-                </div>
-            </div>
-                <div class="row col-12 mb-2">
-                <div class="col">
-                  Дополнительная Информация:
-                </div>
-                <div class="col">
-                  {% if user_app.other_information %}{{ user_app.other_information }}{% else %}Отсутсвует{% endif %}
-                </div>
-            </div>
-        </li>
-    </ul>
 </div>
 
 {% endblock %}

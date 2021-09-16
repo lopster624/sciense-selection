@@ -9,6 +9,7 @@ urlpatterns = [
     path('application/<int:app_id>/competence/', views.ChooseCompetenceInAppView.as_view(), name='choose_app_competence'),
     path('application/<int:app_id>/documents/', views.DocumentsInAppView.as_view(), name='app_documents'),
     path('application/<int:app_id>/word/', views.CreateWordAppView.as_view(), name='create_word_app'),
+    path('application/<int:app_id>/add_note/', views.EditApplicationNote.as_view(), name='add_application_note'),
     path('application/list/', views.ApplicationListView.as_view(), name='application_list'),
 
     path('competence/add/<int:direction_id>/', views.AddCompetencesView.as_view(), name='add_competences'),

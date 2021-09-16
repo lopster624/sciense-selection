@@ -1,0 +1,10 @@
+<form method="post" action="{% url 'add_application_note' application.id %}" class="bg-white">
+    {% csrf_token %}
+    <h5>Заметка:</h5>
+    <div class="form-floating">
+        <textarea class="form-control" placeholder="Leave a comment here" name='note_text' id="floatingTextarea2"
+                  style="height: 100px">{{app_note.text}}</textarea>
+        <label for="floatingTextarea2">{{app_note.author}}</label>
+    </div>
+    <button type="submit" class="mt-2 btn btn-outline-dark">Сохранить</button>
+</form>
