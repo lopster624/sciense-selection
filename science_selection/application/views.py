@@ -10,12 +10,12 @@ from django.views.generic.list import ListView
 
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
-from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME
+from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME, SLAVE_ROLE_NAME
 
 from .forms import ApplicationCreateForm, EducationFormSet
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote
 from .utils import pick_competence, delete_competence, get_context, OnlyMasterAccessMixin, OnlySlaveAccessMixin, \
-    check_permission_decorator, create_word_app
+    check_permission_decorator, create_word_app, check_booking_our
 
 
 class ChooseDirectionInAppView(LoginRequiredMixin, View):
@@ -92,6 +92,8 @@ class EditApplicationView(LoginRequiredMixin, View):
     @check_permission_decorator(MASTER_ROLE_NAME)
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
+        if user_app.is_final and request.user.member.role.role_name == SLAVE_ROLE_NAME:
+            raise PermissionDenied('Редактирование анкеты недоступно.')
         user_education = user_app.education.order_by('end_year').all()
         app_form = ApplicationCreateForm(instance=user_app)
         education_formset = EducationFormSet(queryset=user_education)
@@ -101,6 +103,8 @@ class EditApplicationView(LoginRequiredMixin, View):
     @check_permission_decorator(MASTER_ROLE_NAME)
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
+        if user_app.is_final and request.user.member.role.role_name == SLAVE_ROLE_NAME:
+            raise PermissionDenied('Редактирование анкеты недоступно.')
         user_education = user_app.education.all()
         app_form = ApplicationCreateForm(request.POST, instance=user_app)
         education_formset = EducationFormSet(request.POST, queryset=user_education)
@@ -414,7 +418,7 @@ class UnBookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
                                    'кандидатуру.'})
 
 
-class AddInWishlist(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+class AddInWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def post(self, request, app_id):
         affiliations_id = request.POST.getlist('affiliations', None)
         slave_member = Member.objects.get(application__id=app_id)
@@ -426,7 +430,7 @@ class AddInWishlist(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         return redirect('application_list')
 
 
-class DeleteFromWishlist(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+class DeleteFromWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def post(self, request, app_id):
         affiliations_id = request.POST.getlist('affiliations', None)
         slave_member = Member.objects.get(application__id=app_id)
@@ -438,7 +442,7 @@ class DeleteFromWishlist(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         return redirect('application_list')
 
 
-class EditApplicationNote(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+class EditApplicationNoteView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def post(self, request, app_id):
         text = request.POST.get('note_text', '')
         master_affiliations = Affiliation.objects.filter(member=request.user.member)
@@ -447,9 +451,7 @@ class EditApplicationNote(LoginRequiredMixin, OnlyMasterAccessMixin, View):
             current_note = app_note
             current_note.author = request.user.member
             current_note.text = text
-            new_affiliations = current_note.affiliations.all() | master_affiliations
-            current_note.affiliations.clear()
-            current_note.affiliations.add(*list(new_affiliations))
+            current_note.affiliations.add(*list(master_affiliations))
             current_note.save()
         else:
             application = get_object_or_404(Application, pk=app_id)
@@ -458,3 +460,14 @@ class EditApplicationNote(LoginRequiredMixin, OnlyMasterAccessMixin, View):
             new_note.affiliations.add(*list(master_affiliations))
             new_note.save()
         return redirect('application', app_id=app_id)
+
+
+class ChangeAppFinishedView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+    def post(self, request, app_id):
+        is_final = True if request.POST.get('is_final', None) == 'on' else False
+        if check_booking_our(app_id=app_id, user=request.user):
+            application = get_object_or_404(Application, pk=app_id)
+            application.is_final = is_final
+            application.save()
+            return redirect('application', app_id=app_id)
+        raise PermissionDenied('Данный пользователь не отобран на ваше направление.')

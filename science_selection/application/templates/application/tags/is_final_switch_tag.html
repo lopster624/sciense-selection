@@ -1,0 +1,13 @@
+{% load static %}
+{% if user_app %}
+<form class="position-absolute top-0 start-0 mt-2" style="margin-left: 7%;" id="form"
+      action="{% url 'change_finished' user_app.id %}" method="post">
+    {% csrf_token %}
+    <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" name="is_final" id="switch_submit"
+               {% if user_app.is_final %} checked {% endif %}>
+        <label class="form-check-label" for="switch_submit">Заблокировать редактирование</label>
+    </div>
+</form>
+<script src="{% static 'js/submit_form.js' %}" type="text/javascript"></script>
+{% endif %}

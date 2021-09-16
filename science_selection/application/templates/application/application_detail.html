@@ -13,15 +13,11 @@
         <div class="col-6 bg-white list-group-item list-group-item-light">
             <div class="mb-3 text-center position-relative">
                 <h4 class="d-inline"> Анкета оператора</h4>
-                <form>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault">
-                        <label class="form-check-label" for="flexSwitchCheckDefault">Default switch checkbox
-                            input</label>
-                    </div>
-                </form>
+                {% get_is_final_switch application=user_app user=user%}
+                {% if not user_app.is_final or user.member.role.id == 3 %}
                 <button class="btn btn-outline-secondary position-absolute top-0 end-0"><a
                         href="{%url 'edit_application' app_id %}">Редактировать</a></button>
+                {% endif %}
                 <button class="btn btn-outline-secondary position-absolute top-0 start-0"><a
                         href="{%url 'create_word_app' app_id %}">
                     <img src="{% static 'images/word.svg' %}" alt="download file" width="20" height="20"></a>
@@ -196,10 +192,9 @@
         </div>
         <div class="col-3">
             {% if user.member.role.id == 3 %}
-             {% get_delete_competence_modal application=user_app user=user %}
+            {% get_application_note application=user_app user=user %}
             {% endif %}
         </div>
     </div>
 </div>
-
 {% endblock %}

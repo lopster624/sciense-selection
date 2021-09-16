@@ -5,11 +5,17 @@ from . import models
 
 @admin.register(models.Member)
 class MemberAdmin(admin.ModelAdmin):
-    list_display = ('user', 'role', 'father_name', 'phone', 'get_affiliations')
+    list_display = ('user', 'role', 'get_fullname', 'phone', 'get_affiliations')
     list_filter = ('role',)
+
+    def get_fullname(self, obj):
+        return f'{obj.user.member}'
 
     def get_affiliations(self, obj):
         return '; '.join([d.__str__() for d in obj.affiliations.all()])
+
+    get_fullname.short_description = 'ФИО'
+    get_affiliations.short_description = 'Взводы'
 
 
 @admin.register(models.Role)
