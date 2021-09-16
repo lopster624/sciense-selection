@@ -1,10 +1,19 @@
-<form method="post" action="{% url 'add_application_note' application.id %}" class="bg-white">
+<form method="post" action="{% url 'add_application_note' application.id %}" class="text-center bg-white">
     {% csrf_token %}
-    <h5>Заметка:</h5>
-    <div class="form-floating">
-        <textarea class="form-control" placeholder="Leave a comment here" name='note_text' id="floatingTextarea2"
-                  style="height: 100px">{{app_note.text}}</textarea>
-        <label for="floatingTextarea2">{{app_note.author}}</label>
+    <h5>Заметки:</h5>
+
+    {% for note in other_notes %}
+
+    <div class="form-floating m-2">
+        <textarea class="form-control" name='note_text' id="{{note.id}}"
+                  style="height: 100px" disabled>{{note.text}}</textarea>
+        <label for="{{note.id}}">{{note.author}}</label>
     </div>
-    <button type="submit" class="mt-2 btn btn-outline-dark">Сохранить</button>
+    {% endfor %}
+    <div class="form-floating m-2">
+        <textarea class="form-control" name='note_text' id="{{app_note.id}}"
+                  style="height: 100px" >{{app_note.text}}</textarea>
+        <label for="{{app_note.id}}">{{app_note.author}}</label>
+    </div>
+    <button type="submit" class="mt-2 mb-3 btn btn-outline-dark">Сохранить</button>
 </form>

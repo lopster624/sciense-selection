@@ -26,6 +26,8 @@ class ChooseDirectionInAppView(LoginRequiredMixin, View):
         user_app = get_object_or_404(Application, pk=app_id)
         context = {'direction_active': True, 'app_id': app_id}
         if user_app:
+            if request.user.member.role.role_name == MASTER_ROLE_NAME or user_app.is_final:
+                context.update({'blocked': True})
             directions = Direction.objects.all()
             selected_directions = [_.id for _ in user_app.directions.all()]
             context.update({'directions': directions, 'selected_directions': selected_directions})
@@ -36,6 +38,8 @@ class ChooseDirectionInAppView(LoginRequiredMixin, View):
     @check_permission_decorator()
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
+        if user_app.is_final:
+            return redirect(request.path_info)
         selected_directions = request.POST.getlist('direction')
         user_app.directions.clear()
         if selected_directions:
@@ -202,6 +206,8 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
         user_app = get_object_or_404(Application, pk=app_id)
         context = {'competence_active': True, 'app_id': app_id}
         if user_app:
+            if request.user.member.role.role_name == MASTER_ROLE_NAME or user_app.is_final:
+                context.update({'blocked': True})
             user_directions = user_app.directions.all()
             if user_directions:
                 user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
@@ -220,6 +226,8 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
     @check_permission_decorator()
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
+        if user_app.is_final:
+            return redirect(request.path_info)
         user_directions = user_app.directions.all()
         competence_direction_ids = [_.id for _ in Competence.objects.filter(directions__in=user_directions).distinct()]
         user_app.competencies.clear()
@@ -361,6 +369,15 @@ class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
 
             else:
                 app.our_direction = False
+            app_author_note = ApplicationNote.objects.filter(application=app, affiliations__in=master_affiliations,
+                                                             author=self.request.user.member).distinct().first()
+            app_other_notes = ApplicationNote.objects.filter(application=app,
+                                                             affiliations__in=master_affiliations, ).distinct().exclude(
+                author=self.request.user.member).first()
+            if app_author_note:
+                app.note = app_author_note
+            elif app_other_notes:
+                app.note = app_other_notes
 
         return apps
 
@@ -460,13 +477,15 @@ class EditApplicationNote(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def post(self, request, app_id):
         text = request.POST.get('note_text', '')
         master_affiliations = Affiliation.objects.filter(member=request.user.member)
-        app_note = ApplicationNote.objects.filter(application__id=app_id, affiliations__in=master_affiliations).first()
+        app_note = ApplicationNote.objects.filter(application=app_id, affiliations__in=master_affiliations,
+                                                  author=request.user.member).distinct().first()
         if app_note:
-            current_note = app_note
-            current_note.author = request.user.member
-            current_note.text = text
-            current_note.affiliations.add(*list(master_affiliations))
-            current_note.save()
+            if text == '':
+                app_note.delete()
+            else:
+                app_note.text = text
+                app_note.affiliations.add(*list(master_affiliations))
+                app_note.save()
         else:
             application = get_object_or_404(Application, pk=app_id)
             new_note = ApplicationNote(text=text, application=application, author=request.user.member)

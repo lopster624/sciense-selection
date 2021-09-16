@@ -38,6 +38,7 @@
                     <td scope="col" class="text-nowrap">Заполнил, %</td>
                     <td scope="col">Отобран</td>
                     <td scope="col" class="text-nowrap">В избранном</td>
+                    <td scope="col">Заметки</td>
                 </tr>
                 </thead>
                 <tbody>
@@ -114,6 +115,9 @@
                         {% else %}
                         {% include 'application/includes/add_in_wishlist_template.html' %}
                         {% endif %}
+                    </td>
+                    <td scope="row">
+                        {{app.note.text|truncatewords:2}}
                     </td>
                 </tr>
                 {% endfor %}

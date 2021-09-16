@@ -17,7 +17,7 @@
 
 {% else %}
 <div class="w-50 bg-white list-group-item" style="margin-left: 25%;">
-  {% if user.member.role.id != 3 %}
+  {% if not blocked %}
   <form action="{% url 'choose_app_direction' app_id %}" method="POST">
     {% csrf_token %}
   {% endif %}
@@ -32,7 +32,7 @@
           <h5 class="card-title"> {{ direction.name }} </h5>
           <p class="card-text"> {{ direction.description }} </p>
           <div class="custom-control custom-checkbox">
-            <input type="checkbox" class="custom-control-input"  name="direction" id="{{ direction.name }}" {% if user.member.role.id == 3 %}disabled{%endif%}
+            <input type="checkbox" class="custom-control-input"  name="direction" id="{{ direction.name }}" {% if blocked %}disabled{%endif%}
                    value="{{ direction.id }}" {% if direction.id in selected_directions %} checked {% endif %}>
             <label class="custom-control-label"><small class="text-muted">Выбрать направление</small></label>
           </div>
@@ -41,10 +41,10 @@
     </div>
     {% endfor %}
     </div>
-    {% if user.member.role.id == 1 %}
+    {% if not blocked %}
       <button type="submit" class="w-10 mb-2 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
     {% endif %}
-  {% if user.member.role.id != 3 %}
+  {% if blocked %}
   </form>
   {% endif %}
 </div>

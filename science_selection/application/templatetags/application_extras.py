@@ -28,8 +28,11 @@ def get_delete_competence_modal(competence, direction):
 @register.inclusion_tag('application/tags/application_note_tag.html')
 def get_application_note(application, user):
     master_affiliations = Affiliation.objects.filter(member=user.member)
-    app_note = ApplicationNote.objects.filter(application=application, affiliations__in=master_affiliations).distinct()
-    return {'app_note': app_note.first(), 'application': application}
+    other_notes = ApplicationNote.objects.filter(application=application, affiliations__in=master_affiliations,
+                                                 ).exclude(author=user.member).distinct()
+    app_note = ApplicationNote.objects.filter(application=application, affiliations__in=master_affiliations,
+                                              author=user.member).distinct()
+    return {'app_note': app_note.first(), 'application': application, 'other_notes': other_notes}
 
 
 @register.inclusion_tag('application/tags/is_final_switch_tag.html')
