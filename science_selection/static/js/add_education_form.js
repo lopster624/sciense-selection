@@ -4,16 +4,18 @@ let addButton = document.querySelector("#add-form")
 let totalForms = document.querySelector("#id_form-TOTAL_FORMS")
 
 addButton.addEventListener('click', addForm)
+addButton.addEventListener('click', searchEducation)
 addActionToBtn()
+searchEducation()
+
+let edForm = document.querySelectorAll(".education-form")
+edForm[edForm.length-1].style.display = 'none'
 
 function addActionToBtn(e){
     let btns = document.querySelectorAll('.delete-form')
     btns.forEach(function(btn) {
         btn.addEventListener('click', deleteForm)})
 }
-
-let edForm = document.querySelectorAll(".education-form")
-edForm[edForm.length-1].style.display = 'none'
 
 function addForm(e){
     let educationForm = document.querySelectorAll(".education-form")
@@ -31,6 +33,12 @@ function addForm(e){
     totalForms.setAttribute('value', `${formNum+1}`) //Increment the number of total forms in the form management
 
     addActionToBtn()
+}
+
+function searchEducation(){
+    $(".university").autocomplete({
+        source: "/app/search/universities/",
+  });
 }
 
 function deleteForm(e){

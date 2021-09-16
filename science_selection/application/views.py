@@ -1,4 +1,5 @@
 import os
+import json
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils.encoding import escape_uri_path
@@ -13,7 +14,7 @@ from application.forms import CreateCompetenceForm, FilterForm
 from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME
 
 from .forms import ApplicationCreateForm, EducationFormSet
-from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File
+from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, Universities
 from .utils import pick_competence, delete_competence, get_context, OnlyMasterAccessMixin, OnlySlaveAccessMixin, \
     check_permission_decorator, create_word_app
 
@@ -435,3 +436,15 @@ class DeleteFromWishlist(LoginRequiredMixin, OnlyMasterAccessMixin, View):
             if current_booking:
                 current_booking.first().delete()
         return redirect('application_list')
+
+
+def ajax_search_universities(request):
+    result = []
+    if request.is_ajax():
+        term = request.GET.get('term', '')
+        universities = Universities.objects.filter(name__icontains=term)
+        result = [{'id': university.id,
+                   'value': university.name,
+                   'label': university.name} for university in universities]
+        result = json.dumps(result)
+    return HttpResponse(result)

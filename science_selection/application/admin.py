@@ -55,3 +55,10 @@ class AdditionFieldAppAdmin(admin.ModelAdmin):
 class ApplicationCompetenciesAdmin(admin.ModelAdmin):
     list_display = ('application', 'competence', 'level',)
     list_filter = ('application', 'competence', 'level',)
+
+
+@admin.register(models.Universities)
+class UniversitiesAdmin(admin.ModelAdmin):
+    list_display = ('name', 'rating_place')
+    list_filter = ('name', 'rating_place')
+    search_fields = ('name',)
