@@ -232,6 +232,18 @@ class ApplicationCompetencies(models.Model):
         self.application.save()
 
 
+class Universities(models.Model):
+    name = models.CharField(max_length=256, verbose_name='Название университета', )
+    rating_place = models.IntegerField(verbose_name='Рейтинговое место', null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = 'Университет'
+        verbose_name_plural = 'Университеты'
+
+
 class ApplicationNote(models.Model):
     application = models.ForeignKey(Application, verbose_name='Анкета', on_delete=models.CASCADE)
     affiliations = models.ManyToManyField(Affiliation, verbose_name="Принадлежность", blank=True)

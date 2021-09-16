@@ -84,7 +84,7 @@ class EducationCreateForm(forms.ModelForm):
         exclude = ('application', 'id')
 
         widgets = {
-            'university': Input(attrs={'class': 'form-control'}),
+            'university': Input(attrs={'class': 'form-control university'}),
             'specialization': Input(attrs={'class': 'form-control'}),
             'avg_score': NumberInput(attrs={'class': 'form-control'}),
             'end_year': NumberInput(attrs={'class': 'form-control'}),

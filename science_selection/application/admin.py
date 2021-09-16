@@ -67,3 +67,10 @@ class ApplicationNoteAdmin(admin.ModelAdmin):
         return '; '.join([d.__str__() for d in obj.affiliations.all()])
 
     get_affiliations.short_description = 'Взводы'
+
+
+@admin.register(models.Universities)
+class UniversitiesAdmin(admin.ModelAdmin):
+    list_display = ('name', 'rating_place')
+    list_filter = ('name', 'rating_place')
+    search_fields = ('name',)

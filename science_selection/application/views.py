@@ -1,4 +1,5 @@
 import os
+import json
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils.encoding import escape_uri_path
@@ -13,7 +14,8 @@ from application.forms import CreateCompetenceForm, FilterForm
 from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME, SLAVE_ROLE_NAME
 
 from .forms import ApplicationCreateForm, EducationFormSet
-from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote
+from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
+    Universities
 from .utils import pick_competence, delete_competence, get_context, OnlyMasterAccessMixin, OnlySlaveAccessMixin, \
     check_permission_decorator, create_word_app, check_booking_our
 
@@ -442,7 +444,19 @@ class DeleteFromWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         return redirect('application_list')
 
 
-class EditApplicationNoteView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+def ajax_search_universities(request):
+    result = []
+    if request.is_ajax():
+        term = request.GET.get('term', '')
+        universities = Universities.objects.filter(name__icontains=term)
+        result = [{'id': university.id,
+                   'value': university.name,
+                   'label': university.name} for university in universities]
+        result = json.dumps(result)
+    return HttpResponse(result)
+
+
+class EditApplicationNote(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def post(self, request, app_id):
         text = request.POST.get('note_text', '')
         master_affiliations = Affiliation.objects.filter(member=request.user.member)

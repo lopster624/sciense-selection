@@ -1,11 +1,5 @@
 from django.urls import path
-
-from .views import ApplicationListView, ApplicationView, CreateApplicationView, \
-    AddCompetencesView, DeleteCompetenceView, CreateCompetenceView, \
-    BookMemberView, UnBookMemberView, AddInWishlistView, DeleteFromWishlistView, \
-    ChooseDirectionInAppView, ChooseCompetenceInAppView, EditApplicationView, CompetenceListView, \
-    MasterFileTemplatesView, DeleteFileView, DocumentsInAppView, CreateWordAppView, EditApplicationNoteView, \
-    ChangeAppFinishedView
+from . import views
 
 urlpatterns = [
     path('application/', CreateApplicationView.as_view(), name='create_application'),
@@ -16,7 +10,7 @@ urlpatterns = [
     path('application/<int:app_id>/competence/', ChooseCompetenceInAppView.as_view(), name='choose_app_competence'),
     path('application/<int:app_id>/documents/', DocumentsInAppView.as_view(), name='app_documents'),
     path('application/<int:app_id>/word/', CreateWordAppView.as_view(), name='create_word_app'),
-    path('application/<int:app_id>/add_note/', EditApplicationNoteView.as_view(), name='add_application_note'),
+    path('application/<int:app_id>/add_note/', EditApplicationNote.as_view(), name='add_application_note'),
     path('application/list/', ApplicationListView.as_view(), name='application_list'),
     path('application/<int:app_id>/finished/', ChangeAppFinishedView.as_view(), name='change_finished'),
 
@@ -32,4 +26,5 @@ urlpatterns = [
     path('wishlist/add/<int:app_id>/', AddInWishlistView.as_view(), name='add_in_wishlist'),
     path('wishlist/delete/<int:app_id>/', DeleteFromWishlistView.as_view(), name='delete_from_wishlist'),
 
+    path('search/universities/', views.ajax_search_universities, name='ajax_search_universities'),
 ]
