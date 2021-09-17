@@ -1,14 +1,15 @@
 import datetime
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 
 from application.models import Application
 from application.utils import OnlyMasterAccessMixin, OnlySlaveAccessMixin
 from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED, MASTER_ROLE_NAME
+
 from .forms import RegisterForm
-from .models import Member, ActivationLink, Role, Affiliation, Booking
+from .models import Member, ActivationLink, Role, Affiliation, Booking, BookingType
 
 
 class RegistrationView(View):
@@ -80,18 +81,16 @@ class HomeView(LoginRequiredMixin, View):
 
 class HomeSlaveView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
     def get(self, request):
-        user_app = Application.objects.filter(member=request.user.member).first()
-        if user_app:
-            filed_blocks = user_app.get_filed_blocks()
-            fullness = user_app.fullness
-        else:
-            fullness = 0
-            filed_blocks = {
-                'Основные данные': False,
-                'Образование': False,
-                'Направления': False,
-                'Компетенции': False,
-                'Документы': False
-            }
-        context = {'filed_blocks': filed_blocks, 'fullness': fullness}
+        user_app = get_object_or_404(Application, member=request.user.member)
+        filed_blocks, fullness = user_app.get_filed_blocks(), user_app.fullness
+
+        selected_type = BookingType.objects.filter(name='Отобран').first()
+        booking = Booking.objects.filter(slave=request.user.member, booking_type=selected_type).first()
+        chooser = {
+            'full_name': booking.master,
+            'direction': booking.affiliation.direction,
+            'phone': booking.master.phone
+        } if booking else {}
+
+        context = {'filed_blocks': filed_blocks, 'fullness': fullness, 'chooser': chooser}
         return render(request, 'account/home_slave.html', context=context)

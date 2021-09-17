@@ -22,6 +22,11 @@
                     </li>
                 {% endfor %}
             </ul>
+            {% if chooser %}
+            <h5>Текущая конкурсная ситуация</h5>
+            <p class="text-center">Вы проходите в рейтинговом отборе в научную роту на направление "{{ chooser.direction }}"</p>
+            <p class="text-center">Отбирающий: {{ chooser.full_name }}, телефон: {{ chooser.phone }}</p>
+            {% endif %}
         </div>
     </div>
 </div>
