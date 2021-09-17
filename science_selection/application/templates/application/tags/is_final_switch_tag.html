@@ -1,6 +1,6 @@
 {% load static %}
 {% if user_app %}
-<form class="position-absolute top-0 start-0 mt-2" style="margin-left: 7%;" id="form"
+<form class="m-2 mt-3" style="margin-left: 7%;" id="form"
       action="{% url 'change_finished' user_app.id %}" method="post">
     {% csrf_token %}
     <div class="form-check form-switch">
