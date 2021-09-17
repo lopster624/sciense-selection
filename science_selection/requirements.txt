@@ -1,3 +1,4 @@
 django
 docxtpl
 Pillow
+django-autocomplete-light
