@@ -24,8 +24,10 @@
             </ul>
             {% if chooser %}
             <h5>Текущая конкурсная ситуация</h5>
-            <p class="text-center">Вы проходите в рейтинговом отборе в научную роту на направление "{{ chooser.direction }}"</p>
-            <p class="text-center">Отбирающий: {{ chooser.full_name }}, телефон: {{ chooser.phone }}</p>
+            <div class="container bg-success p-2 text-dark bg-opacity-25 rounded">
+                <p class="text-center">Вы проходите в рейтинговом отборе в научную роту на направление "{{ chooser.direction }}"</p>
+                <p class="text-center">Отбирающий: {{ chooser.full_name }}, телефон: {{ chooser.phone }}</p>
+            </div>
             {% endif %}
         </div>
     </div>

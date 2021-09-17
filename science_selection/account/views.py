@@ -1,12 +1,12 @@
 import datetime
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.views import View
 
 from application.models import Application
 from application.utils import OnlyMasterAccessMixin, OnlySlaveAccessMixin
-from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED, MASTER_ROLE_NAME
+from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED, MASTER_ROLE_NAME, DEFAULT_FILED_BLOCKS
 
 from .forms import RegisterForm
 from .models import Member, ActivationLink, Role, Affiliation, Booking, BookingType
@@ -73,6 +73,8 @@ class HomeMasterView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 class HomeView(LoginRequiredMixin, View):
     def get(self, request):
+        if not request.user.member.role:
+            return render(request, 'access_error.html', context={'error': 'Пройдите по ссылке из сообщения, отправленного вам на почту, для активации аккаунта'})
         if request.user.member.role.role_name == SLAVE_ROLE_NAME:
             return redirect('home_slave')
         if request.user.member.role.role_name == MASTER_ROLE_NAME:
@@ -81,16 +83,19 @@ class HomeView(LoginRequiredMixin, View):
 
 class HomeSlaveView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
     def get(self, request):
-        user_app = get_object_or_404(Application, member=request.user.member)
-        filed_blocks, fullness = user_app.get_filed_blocks(), user_app.fullness
+        user_app = Application.objects.filter(member=request.user.member).first()
+        filed_blocks, fullness, chooser = DEFAULT_FILED_BLOCKS, 0, {}
+        if user_app:
+            filed_blocks, fullness = user_app.get_filed_blocks(), user_app.fullness
 
-        selected_type = BookingType.objects.filter(name='Отобран').first()
-        booking = Booking.objects.filter(slave=request.user.member, booking_type=selected_type).first()
-        chooser = {
-            'full_name': booking.master,
-            'direction': booking.affiliation.direction,
-            'phone': booking.master.phone
-        } if booking else {}
+            selected_type = BookingType.objects.filter(name='Отобран').first()
+            booking = Booking.objects.filter(slave=request.user.member, booking_type=selected_type).first()
+            if booking:
+                chooser = {
+                    'full_name': booking.master,
+                    'direction': booking.affiliation.direction,
+                    'phone': booking.master.phone
+                }
 
         context = {'filed_blocks': filed_blocks, 'fullness': fullness, 'chooser': chooser}
         return render(request, 'account/home_slave.html', context=context)
