@@ -105,6 +105,19 @@ class Application(models.Model):
         verbose_name_plural = "Заявки"
 
     def get_filed_blocks(self):
+        blocks = {
+            'Основные данные': True,
+            'Образование': False,
+            'Направления': False,
+            'Компетенции': False,
+            'Загруженные файлы': True if File.objects.filter(member=self.member) else False,
+        }
+        if self.education:
+            blocks.update({'Образование': True if self.education.all() else False})
+        if self.directions:
+            blocks.update({'Направления': True if self.directions.all() else False})
+        if self.competencies:
+            blocks.update({'Компетенции': True if self.competencies.all() else False})
         return {
             'Основные данные': True,
             'Образование': True if self.education.all() else False,
@@ -166,8 +179,10 @@ class Application(models.Model):
         return f'{self.season[self.draft_season - 1][1]} {self.draft_year}'
 
     def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
         self.fullness = self.calculate_fullness()
-        print(self.calculate_final_score())
+        if not ApplicationScores.objects.filter(application=self):
+            ApplicationScores(application=self).save()
         self.final_score = self.calculate_final_score()
         super().save(*args, **kwargs)
 
@@ -345,25 +360,18 @@ class ApplicationScores(models.Model):
     application = models.OneToOneField(Application, on_delete=models.CASCADE, verbose_name='Заявка',
                                        related_name='scores')
     # поля без форм
-    a1 = models.FloatField(default=0.0, verbose_name='Оценка кандидата по критерию "Склонность к научной деятельности"',
-                           blank=True)
+    a1 = models.FloatField(default=0.0, verbose_name='Оценка кандидата по критерию "Склонность к научной деятельности"')
     a2 = models.FloatField(default=0.0,
-                           verbose_name='Оценка кандидата по критерию "Средний балл диплома о высшем образовании"',
-                           blank=True)
+                           verbose_name='Оценка кандидата по критерию "Средний балл диплома о высшем образовании"')
     a3 = models.FloatField(default=0.0,
-                           verbose_name='Оценка кандидата по критерию "Соответствие направления подготовки высшего образования кандидата профилю научных исследований,выполняемых соответствующей научной ротой"',
-                           blank=True)
+                           verbose_name='Оценка кандидата по критерию "Соответствие направления подготовки высшего образования кандидата профилю научных исследований,выполняемых соответствующей научной ротой"')
     a4 = models.FloatField(default=0.0,
-                           verbose_name='Оценка кандидата по критерию "Результативность образовательной деятельности"',
-                           blank=True)
+                           verbose_name='Оценка кандидата по критерию "Результативность образовательной деятельности"')
     a5 = models.FloatField(default=0.0,
-                           verbose_name='Оценка кандидата по критерию "Подготовка по программе аспирантуры и наличие ученой степени"',
-                           blank=True)
+                           verbose_name='Оценка кандидата по критерию "Подготовка по программе аспирантуры и наличие ученой степени"')
     a6 = models.FloatField(default=0.0,
-                           verbose_name='Оценка кандидата по критерию "Опыт работы по профилю научных исследований, выполняемых соответствующей научной ротой"',
-                           blank=True)
-    a7 = models.FloatField(default=0.0, verbose_name='Оценка кандидата по критерию "Мотивация к военной службе"',
-                           blank=True)
+                           verbose_name='Оценка кандидата по критерию "Опыт работы по профилю научных исследований, выполняемых соответствующей научной ротой"')
+    a7 = models.FloatField(default=0.0, verbose_name='Оценка кандидата по критерию "Мотивация к военной службе"')
 
     class Meta:
         verbose_name = "Оценки кандидата"

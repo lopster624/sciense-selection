@@ -73,7 +73,6 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
                 new_app = app_form.save(commit=False)
                 new_app.member = request.user.member
                 new_app.save()
-                ApplicationScores(application=new_app).save()
                 for ed_form in education_formset:
                     if ed_form.cleaned_data:
                         user_education = ed_form.save(commit=False)
