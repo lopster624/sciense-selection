@@ -1,4 +1,5 @@
 {% csrf_token %}
+{{ form.media }}
 {% for f in form %}
     <div class="form-group mb-1 clearfix">
         <label class="mb-1">{{ f.label }}</label>

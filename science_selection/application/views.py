@@ -1,7 +1,9 @@
 import os
 import json
 
+from dal import autocomplete
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 from django.utils.encoding import escape_uri_path
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
@@ -461,6 +463,7 @@ class DeleteFromWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         return redirect('application_list')
 
 
+@login_required
 def ajax_search_universities(request):
     result = []
     if request.is_ajax():
@@ -493,6 +496,11 @@ class EditApplicationNote(LoginRequiredMixin, OnlyMasterAccessMixin, View):
             new_note.affiliations.add(*list(master_affiliations))
             new_note.save()
         return redirect('application', app_id=app_id)
+
+
+class CompetenceAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        return Competence.objects.filter(name__istartswith=self.q) if self.q else Competence.objects.all()
 
 
 class ChangeAppFinishedView(LoginRequiredMixin, OnlyMasterAccessMixin, View):

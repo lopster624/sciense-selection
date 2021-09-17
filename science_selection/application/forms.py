@@ -1,5 +1,6 @@
 import datetime
 
+from dal import autocomplete
 from django import forms
 from django.core.validators import MinValueValidator
 from django.forms import modelformset_factory, ModelForm, ModelMultipleChoiceField, ModelChoiceField
@@ -21,7 +22,7 @@ class CreateCompetenceForm(ModelForm):
         queryset=Competence.objects.all(),
         label='Компетенция-родитель',
         required=False,
-        widget=Select(attrs={'class': 'form-control bg-light'}),
+        widget=autocomplete.Select2(url='search_competencies', attrs={'class': 'bg-light'},),
     )
 
     def __init__(self, *args, **kwargs):

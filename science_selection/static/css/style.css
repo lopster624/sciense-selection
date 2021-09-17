@@ -6,3 +6,22 @@ a {
     overflow-y: auto;
     overflow-x: hidden;
 }
+.select2-container {
+    width: 100% !important;
+    min-width: 2em !important;
+}
+.related-widget-wrapper{
+    padding-right: 16px;
+    position: relative;
+}
+.related-widget-wrapper-link{
+    position: absolute;
+    top: 3px;
+    right: 0px;
+}
+span.select2-selection.select2-selection--single {
+    height: 33px;
+}
+span.select2-selection__placeholder {
+    font-size: 14px;
+}

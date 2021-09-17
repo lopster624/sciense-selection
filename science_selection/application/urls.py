@@ -27,4 +27,5 @@ urlpatterns = [
     path('wishlist/delete/<int:app_id>/', views.DeleteFromWishlistView.as_view(), name='delete_from_wishlist'),
 
     path('search/universities/', views.ajax_search_universities, name='ajax_search_universities'),
+    path('search/competencies/', views.CompetenceAutocomplete.as_view(), name='search_competencies',),
 ]
