@@ -18,6 +18,7 @@ class Application(models.Model):
         (1, 'Весна'),
         (2, 'Осень')
     ]
+
     member = models.OneToOneField(Member, on_delete=models.CASCADE, verbose_name='Пользователь',
                                   related_name='application')
     competencies = models.ManyToManyField('Competence', verbose_name='Выбранные компетенции',
@@ -50,6 +51,71 @@ class Application(models.Model):
     final_score = models.IntegerField(default=0, verbose_name='Итоговая оценка заявки')
     is_final = models.BooleanField(default=False, verbose_name='Законченность анкеты')
 
+    # дальше идут новые поля для калькулятора
+    international_articles = models.BooleanField(default=False,
+                                                 verbose_name="Наличие опубликованных научных статей в международных изданиях")
+    patents = models.BooleanField(default=False, verbose_name="Наличие патентов на изобретения и полезные модели")
+    vac_articles = models.BooleanField(default=False,
+                                       verbose_name="Наличие опубликованных научных статей в научных изданиях, рекомендуемых ВАК")
+    innovation_proposals = models.BooleanField(default=False,
+                                               verbose_name="Наличие свидетельств нарационализаторские предложения")
+    rinc_articles = models.BooleanField(default=False,
+                                        verbose_name="Наличие опубликованных научных статей в изданиях РИНЦ")
+    evm_register = models.BooleanField(default=False,
+                                       verbose_name="Наличие свидетельств о регистрации баз данных и программ для ЭВМ")
+    international_olympics = models.BooleanField(default=False,
+                                                 verbose_name="Наличие призовых мест на международных олимпиадах")
+    president_scholarship = models.BooleanField(default=False,
+                                                verbose_name="Стипендиат государственных стипендий Президента Российской Федерации")
+    country_olympics = models.BooleanField(default=False,
+                                           verbose_name="Наличие призовых мест на олимпиадах всероссийского уровня")
+    government_scholarship = models.BooleanField(default=False,
+                                                 verbose_name="Стипендиат государственных стипендий Правительства Российской Федерации")
+    military_grants = models.BooleanField(default=False,
+                                          verbose_name="Обладательгрантов по научным работам, имеющим прикладное значение дляМинобороны России, которые подтверждены органами военного управления")
+    region_olympics = models.BooleanField(default=False,
+                                          verbose_name="Наличие призовых мест на олимпиадах областного уровня")
+    city_olympics = models.BooleanField(default=False,
+                                        verbose_name="Наличие призовых мест на олимпиадах на уровне города")
+    commercial_experience = models.BooleanField(default=False,
+                                                verbose_name="Наличие опыта работы по специальности в коммерческих предприятиях (не менее 1 года)")
+    opk_experience = models.BooleanField(default=False,
+                                         verbose_name="Наличие опыта работы по специальности на предприятиях ОПК (не менее 1 года)")
+    science_experience = models.BooleanField(default=False,
+                                             verbose_name="Наличие опыта работы по специальности в научных организациях (подразделениях) на должностях научных сотрудников (не менее 1 года)")
+    military_sport_achievements = models.BooleanField(default=False,
+                                                      verbose_name="Наличие спортивных достижений по военно-прикладным видам спорта, в том числе выполнение нормативов ГТО")
+
+    sport_achievements = models.BooleanField(default=False,
+                                             verbose_name="Наличие спортивных достижений по иным видам спорта")
+
+    # поля только для мастера
+    compliance_prior_direction = models.BooleanField(default=False,
+                                                     verbose_name="Соответствие приоритетному направлению высшего образования")
+    compliance_additional_direction = models.BooleanField(default=False,
+                                                          verbose_name="Соответствие дополнительному направлению высшего образования")
+
+    # поля без форм
+    a1 = models.FloatField(default=0.0, verbose_name='Оценка кандидата по критерию "Склонность к научной деятельности"',
+                           blank=True)
+    a2 = models.FloatField(default=0.0,
+                           verbose_name='Оценка кандидата по критерию "Средний балл диплома о высшем образовании"',
+                           blank=True)
+    a3 = models.FloatField(default=0.0,
+                           verbose_name='Оценка кандидата по критерию "Соответствие направления подготовки высшего образования кандидата профилю научных исследований,выполняемых соответствующей научной ротой"',
+                           blank=True)
+    a4 = models.FloatField(default=0.0,
+                           verbose_name='Оценка кандидата по критерию "Результативность образовательной деятельности"',
+                           blank=True)
+    a5 = models.FloatField(default=0.0,
+                           verbose_name='Оценка кандидата по критерию "Подготовка по программе аспирантуры и наличие ученой степени"',
+                           blank=True)
+    a6 = models.FloatField(default=0.0,
+                           verbose_name='Оценка кандидата по критерию "Опыт работы по профилю научных исследований, выполняемых соответствующей научной ротой"',
+                           blank=True)
+    a7 = models.FloatField(default=0.0, verbose_name='Оценка кандидата по критерию "Мотивация к военной службе"',
+                           blank=True)
+
     class Meta:
         ordering = ['create_date']
         verbose_name = "Заявка"
@@ -78,6 +144,20 @@ class Application(models.Model):
         Подсчет рейтингового балла заявки оператора по формуле
         :return: рассчитание значение
         """
+        self.a1 = int(self.international_articles) * const.INTERNATIONAL_ARTICLES_SCORE + int(
+            self.patents) * const.PATENTS_SCORE + int(self.vac_articles) * const.VAC_ARTICLES_SCORE + int(
+            self.innovation_proposals) * const.INNOVATION_PROPOSALS_SCORE + int(
+            self.rinc_articles) * const.RINC_ARTICLES_SCORE + int(self.evm_register) * const.EVM_REGISTER_SCORE
+        self.a2 = None
+        self.a3 = int(self.compliance_prior_direction) * const.COMPLIANCE_PRIOR_DIRECTION_SCORE + int(
+            self.compliance_additional_direction) * const.COMPLIANCE_ADDITIONAL_DIRECTION_SCORE
+        self.a4 = None
+        self.a5 = None
+        self.a6 = int(self.science_experience) * const.SCIENCE_EXPERIENCE_SCORE + int(
+            self.opk_experience) * const.OPK_EXPERIENCE_SCORE + int(
+            self.commercial_experience) * const.COMMERCIAL_EXPERIENCE_SCORE
+        self.a7 = int(self.military_sport_achievements) * const.MILITARY_SPORT_ACHIEVEMENTS_SCORE + int(
+            self.sport_achievements) * const.SPORT_ACHIEVEMENTS_SCORE
         return 1
 
     def get_draft_time(self):
