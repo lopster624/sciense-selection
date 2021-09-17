@@ -38,3 +38,11 @@ SCIENCE_EXPERIENCE_SCORE = 6
 # баллы, начисляемые в критерии a7
 MILITARY_SPORT_ACHIEVEMENTS_SCORE = 4
 SPORT_ACHIEVEMENTS_SCORE = 2
+
+DEFAULT_FILED_BLOCKS = {
+    'Основные данные': False,
+    'Образование': False,
+    'Направления': False,
+    'Компетенции': False,
+    'Загруженные файлы': False,
+}
