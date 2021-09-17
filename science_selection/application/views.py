@@ -17,7 +17,7 @@ from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME, SLAVE_ROLE_NA
 
 from .forms import ApplicationCreateForm, EducationFormSet
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
-    Universities
+    Universities, ApplicationScores
 from .utils import pick_competence, delete_competence, get_context, OnlyMasterAccessMixin, OnlySlaveAccessMixin, \
     check_permission_decorator, create_word_app, check_booking_our
 
@@ -73,6 +73,7 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
                 new_app = app_form.save(commit=False)
                 new_app.member = request.user.member
                 new_app.save()
+                ApplicationScores(application=new_app).save()
                 for ed_form in education_formset:
                     if ed_form.cleaned_data:
                         user_education = ed_form.save(commit=False)

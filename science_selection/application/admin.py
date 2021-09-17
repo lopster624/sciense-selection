@@ -36,6 +36,7 @@ class CompetenceAdmin(admin.ModelAdmin):
 
     get_directions.short_description = 'Направления'
 
+
 @admin.register(models.Direction)
 class DirectionAdmin(admin.ModelAdmin):
     list_display = ('name',)
@@ -74,3 +75,9 @@ class UniversitiesAdmin(admin.ModelAdmin):
     list_display = ('name', 'rating_place')
     list_filter = ('name', 'rating_place')
     search_fields = ('name',)
+
+
+@admin.register(models.ApplicationScores)
+class ApplicationScoresAdmin(admin.ModelAdmin):
+    list_display = ('application', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7')
+    list_filter = ('application', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7')
