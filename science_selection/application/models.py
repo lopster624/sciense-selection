@@ -245,7 +245,14 @@ class Universities(models.Model):
 
 
 class ApplicationNote(models.Model):
-    application = models.ForeignKey(Application, on_delete=models.CASCADE)
+    application = models.ForeignKey(Application, verbose_name='Анкета', on_delete=models.CASCADE)
     affiliations = models.ManyToManyField(Affiliation, verbose_name="Принадлежность", blank=True)
     author = models.ForeignKey(Member, on_delete=models.CASCADE, verbose_name='Автор заметки')
     text = models.TextField(blank=True, verbose_name='Текст заметки')
+
+    class Meta:
+        verbose_name = "Заметка об анкете"
+        verbose_name_plural = "Заметки об анкетах"
+
+    def __str__(self):
+        return f'{self.text}'

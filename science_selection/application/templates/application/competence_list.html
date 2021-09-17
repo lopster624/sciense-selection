@@ -14,7 +14,7 @@
             {% if directions %}
             <form id="form" action=" {% url 'competence_list' %}">
                 <h3>Список добавленных компетенций в направление:</h3>
-                <select class="form-select mt-3" aria-label="Select direction" name="direction" id="select_direction">
+                <select class="form-select mt-3" aria-label="Select direction" name="direction" id="switch_submit">
                     {% for dir in directions %}
                     <option {% ifequal selected_direction_id dir.id %} selected {% endifequal %} value="{{dir.id}}">
                         {{dir.name }}

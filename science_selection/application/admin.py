@@ -34,6 +34,7 @@ class CompetenceAdmin(admin.ModelAdmin):
     def get_directions(self, obj):
         return ', '.join([d.name for d in obj.directions.all()])
 
+    get_directions.short_description = 'Направления'
 
 @admin.register(models.Direction)
 class DirectionAdmin(admin.ModelAdmin):
@@ -55,6 +56,17 @@ class AdditionFieldAppAdmin(admin.ModelAdmin):
 class ApplicationCompetenciesAdmin(admin.ModelAdmin):
     list_display = ('application', 'competence', 'level',)
     list_filter = ('application', 'competence', 'level',)
+
+
+@admin.register(models.ApplicationNote)
+class ApplicationNoteAdmin(admin.ModelAdmin):
+    list_display = ('application', 'author', 'text', 'get_affiliations')
+    list_filter = ('application', 'author')
+
+    def get_affiliations(self, obj):
+        return '; '.join([d.__str__() for d in obj.affiliations.all()])
+
+    get_affiliations.short_description = 'Взводы'
 
 
 @admin.register(models.Universities)
