@@ -17,7 +17,7 @@ from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME, SLAVE_ROLE_NA
 
 from .forms import ApplicationCreateForm, EducationFormSet
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
-    Universities
+    Universities, ApplicationScores
 from .utils import pick_competence, delete_competence, get_context, OnlyMasterAccessMixin, OnlySlaveAccessMixin, \
     check_permission_decorator, create_word_app, check_booking_our
 

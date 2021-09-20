@@ -48,7 +48,7 @@ class Application(models.Model):
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
     fullness = models.IntegerField(default=0, verbose_name='Процент заполненности')
-    final_score = models.IntegerField(default=0, verbose_name='Итоговая оценка заявки')
+    final_score = models.FloatField(default=0, verbose_name='Итоговая оценка заявки')
     is_final = models.BooleanField(default=False, verbose_name='Законченность анкеты')
 
     # дальше идут новые поля для калькулятора
@@ -72,7 +72,7 @@ class Application(models.Model):
     government_scholarship = models.BooleanField(default=False,
                                                  verbose_name="Стипендиат государственных стипендий Правительства Российской Федерации")
     military_grants = models.BooleanField(default=False,
-                                          verbose_name="Обладательгрантов по научным работам, имеющим прикладное значение дляМинобороны России, которые подтверждены органами военного управления")
+                                          verbose_name="Обладательгрантов по научным работам, имеющим прикладное значение для Минобороны России, которые подтверждены органами военного управления")
     region_olympics = models.BooleanField(default=False,
                                           verbose_name="Наличие призовых мест на олимпиадах областного уровня")
     city_olympics = models.BooleanField(default=False,
@@ -94,27 +94,10 @@ class Application(models.Model):
                                                      verbose_name="Соответствие приоритетному направлению высшего образования")
     compliance_additional_direction = models.BooleanField(default=False,
                                                           verbose_name="Соответствие дополнительному направлению высшего образования")
-
-    # поля без форм
-    a1 = models.FloatField(default=0.0, verbose_name='Оценка кандидата по критерию "Склонность к научной деятельности"',
-                           blank=True)
-    a2 = models.FloatField(default=0.0,
-                           verbose_name='Оценка кандидата по критерию "Средний балл диплома о высшем образовании"',
-                           blank=True)
-    a3 = models.FloatField(default=0.0,
-                           verbose_name='Оценка кандидата по критерию "Соответствие направления подготовки высшего образования кандидата профилю научных исследований,выполняемых соответствующей научной ротой"',
-                           blank=True)
-    a4 = models.FloatField(default=0.0,
-                           verbose_name='Оценка кандидата по критерию "Результативность образовательной деятельности"',
-                           blank=True)
-    a5 = models.FloatField(default=0.0,
-                           verbose_name='Оценка кандидата по критерию "Подготовка по программе аспирантуры и наличие ученой степени"',
-                           blank=True)
-    a6 = models.FloatField(default=0.0,
-                           verbose_name='Оценка кандидата по критерию "Опыт работы по профилю научных исследований, выполняемых соответствующей научной ротой"',
-                           blank=True)
-    a7 = models.FloatField(default=0.0, verbose_name='Оценка кандидата по критерию "Мотивация к военной службе"',
-                           blank=True)
+    postgraduate_additional_direction = models.BooleanField(default=False,
+                                                            verbose_name="Наличие ученой степени по специальности, не соответствующей профилю научных исследований научной роты")
+    postgraduate_prior_direction = models.BooleanField(default=False,
+                                                       verbose_name="Наличие ученой степени по специальности, соответствующей профилю научных исследований научной роты")
 
     class Meta:
         ordering = ['create_date']
@@ -122,6 +105,19 @@ class Application(models.Model):
         verbose_name_plural = "Заявки"
 
     def get_filed_blocks(self):
+        blocks = {
+            'Основные данные': True,
+            'Образование': False,
+            'Направления': False,
+            'Компетенции': False,
+            'Загруженные файлы': True if File.objects.filter(member=self.member) else False,
+        }
+        if self.education:
+            blocks.update({'Образование': True if self.education.all() else False})
+        if self.directions:
+            blocks.update({'Направления': True if self.directions.all() else False})
+        if self.competencies:
+            blocks.update({'Компетенции': True if self.competencies.all() else False})
         return {
             'Основные данные': True,
             'Образование': True if self.education.all() else False,
@@ -144,27 +140,49 @@ class Application(models.Model):
         Подсчет рейтингового балла заявки оператора по формуле
         :return: рассчитание значение
         """
-        self.a1 = int(self.international_articles) * const.INTERNATIONAL_ARTICLES_SCORE + int(
+        self.scores.a1 = round(int(self.international_articles) * const.INTERNATIONAL_ARTICLES_SCORE + int(
             self.patents) * const.PATENTS_SCORE + int(self.vac_articles) * const.VAC_ARTICLES_SCORE + int(
             self.innovation_proposals) * const.INNOVATION_PROPOSALS_SCORE + int(
-            self.rinc_articles) * const.RINC_ARTICLES_SCORE + int(self.evm_register) * const.EVM_REGISTER_SCORE
-        self.a2 = None
-        self.a3 = int(self.compliance_prior_direction) * const.COMPLIANCE_PRIOR_DIRECTION_SCORE + int(
-            self.compliance_additional_direction) * const.COMPLIANCE_ADDITIONAL_DIRECTION_SCORE
-        self.a4 = None
-        self.a5 = None
-        self.a6 = int(self.science_experience) * const.SCIENCE_EXPERIENCE_SCORE + int(
+            self.rinc_articles) * const.RINC_ARTICLES_SCORE + int(self.evm_register) * const.EVM_REGISTER_SCORE, 2)
+        last_education = self.education.all().order_by('-end_year').first()
+        if last_education:
+            if last_education.education_type == 'b':
+                score = round(last_education.avg_score * const.BACHELOR_COEF, 2)
+            else:
+                score = round(last_education.avg_score * const.SPECIAL_AND_MORE_COEF, 2)
+            self.scores.a2 = score
+        self.scores.a3 = round(int(self.compliance_prior_direction) * const.COMPLIANCE_PRIOR_DIRECTION_SCORE + int(
+            self.compliance_additional_direction) * const.COMPLIANCE_ADDITIONAL_DIRECTION_SCORE, 2)
+        self.scores.a4 = round(int(self.international_olympics) * const.INTERNATIONAL_OLYMPICS_SCORE + int(
+            self.president_scholarship) * const.PRESIDENT_SCHOLARSHIP_SCORE + int(
+            self.country_olympics) * const.COUNTRY_OLYMPICS_SCORE + int(
+            self.government_scholarship) * const.GOVERNMENT_SCHOLARSHIP_SCORE + int(
+            self.military_grants) * const.MILITARY_GRANTS_SCORE + int(
+            self.region_olympics) * const.REGION_OLYMPICS_SCORE + int(self.city_olympics) * const.CITY_OLYMPICS_SCORE,
+                               2)
+        if self.education.filter(education_type=Education.education_program[2][0], is_ended=True):
+            self.scores.a5 = round(const.POSTGRADUATE_ENDED_SCORE + int(
+                self.postgraduate_prior_direction) * const.POSTGRADUATE_PRIOR_DIRECTION_SCORE + int(
+                self.compliance_additional_direction) * const.POSTGRADUATE_ADDITIONAL_DIRECTION_SCORE, 2)
+        self.scores.a6 = round(int(self.science_experience) * const.SCIENCE_EXPERIENCE_SCORE + int(
             self.opk_experience) * const.OPK_EXPERIENCE_SCORE + int(
-            self.commercial_experience) * const.COMMERCIAL_EXPERIENCE_SCORE
-        self.a7 = int(self.military_sport_achievements) * const.MILITARY_SPORT_ACHIEVEMENTS_SCORE + int(
-            self.sport_achievements) * const.SPORT_ACHIEVEMENTS_SCORE
-        return 1
+            self.commercial_experience) * const.COMMERCIAL_EXPERIENCE_SCORE, 2)
+        self.scores.a7 = round(int(self.military_sport_achievements) * const.MILITARY_SPORT_ACHIEVEMENTS_SCORE + int(
+            self.sport_achievements) * const.SPORT_ACHIEVEMENTS_SCORE, 2)
+        self.scores.save()
+        return round(self.scores.a1 * const.MEANING_COEFFICIENTS['k1'] + self.scores.a2 * const.MEANING_COEFFICIENTS[
+            'k2'] + self.scores.a3 * const.MEANING_COEFFICIENTS['k3'] + self.scores.a4 * const.MEANING_COEFFICIENTS[
+                         'k4'] + self.scores.a5 * const.MEANING_COEFFICIENTS['k5'] + self.scores.a6 * \
+                     const.MEANING_COEFFICIENTS['k6'] + self.scores.a7 * const.MEANING_COEFFICIENTS['k7'], 2)
 
     def get_draft_time(self):
         return f'{self.season[self.draft_season - 1][1]} {self.draft_year}'
 
     def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
         self.fullness = self.calculate_fullness()
+        if not ApplicationScores.objects.filter(application=self):
+            ApplicationScores(application=self).save()
         self.final_score = self.calculate_final_score()
         super().save(*args, **kwargs)
 
@@ -336,3 +354,28 @@ class ApplicationNote(models.Model):
 
     def __str__(self):
         return f'{self.text}'
+
+
+class ApplicationScores(models.Model):
+    application = models.OneToOneField(Application, on_delete=models.CASCADE, verbose_name='Заявка',
+                                       related_name='scores')
+    # поля без форм
+    a1 = models.FloatField(default=0.0, verbose_name='Оценка кандидата по критерию "Склонность к научной деятельности"')
+    a2 = models.FloatField(default=0.0,
+                           verbose_name='Оценка кандидата по критерию "Средний балл диплома о высшем образовании"')
+    a3 = models.FloatField(default=0.0,
+                           verbose_name='Оценка кандидата по критерию "Соответствие направления подготовки высшего образования кандидата профилю научных исследований,выполняемых соответствующей научной ротой"')
+    a4 = models.FloatField(default=0.0,
+                           verbose_name='Оценка кандидата по критерию "Результативность образовательной деятельности"')
+    a5 = models.FloatField(default=0.0,
+                           verbose_name='Оценка кандидата по критерию "Подготовка по программе аспирантуры и наличие ученой степени"')
+    a6 = models.FloatField(default=0.0,
+                           verbose_name='Оценка кандидата по критерию "Опыт работы по профилю научных исследований, выполняемых соответствующей научной ротой"')
+    a7 = models.FloatField(default=0.0, verbose_name='Оценка кандидата по критерию "Мотивация к военной службе"')
+
+    class Meta:
+        verbose_name = "Оценки кандидата"
+        verbose_name_plural = "Оценки кандидата"
+
+    def __str__(self):
+        return f'{self.application}'

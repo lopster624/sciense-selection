@@ -48,6 +48,7 @@ class CreateCompetenceForm(ModelForm):
 
 
 class ApplicationCreateForm(forms.ModelForm):
+    """Todo: убрать ненужные поля и сделать так, чтобы мастеру показывались скрытые поля для него"""
     birth_day = forms.DateField(label='Дата рождения', widget=DateInput(attrs={'class': 'form-control', 'placeholder': 'DD.MM.YYYY'}))
     draft_year = forms.IntegerField(min_value=datetime.date.today().year,
                                     validators=[MinValueValidator(datetime.date.today().year)], label='Год призыва',
