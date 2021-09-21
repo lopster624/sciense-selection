@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils.encoding import escape_uri_path
 from django.views import View
 from django.views.generic import CreateView, FormView
@@ -184,20 +184,20 @@ class DeleteCompetenceView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
-class CreateCompetenceView(DataApplicationMixin, LoginRequiredMixin, OnlyMasterAccessMixin, FormView):
+class CreateCompetenceView(DataApplicationMixin, LoginRequiredMixin, OnlyMasterAccessMixin, CreateView):
     template_name = 'application/create_competence.html'
-
-    def get_form(self, form_class=None):
-        return CreateCompetenceForm(current_user=self.request.user)
-
-    def form_valid(self, form):
-        form.save(commit=True)
-        return super().form_valid(form)
+    form_class = CreateCompetenceForm
+    success_url = reverse_lazy('create_competence')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update({'competence_active': True})
         return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({'current_user': self.request.user})
+        return kwargs
 
 
 class ChooseCompetenceInAppView(LoginRequiredMixin, View):
