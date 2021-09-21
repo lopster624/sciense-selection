@@ -47,8 +47,7 @@ class CreateCompetenceForm(ModelForm):
         }
 
 
-class ApplicationCreateForm(forms.ModelForm):
-    """Todo: убрать ненужные поля и сделать так, чтобы мастеру показывались скрытые поля для него"""
+class ApplicationMasterForm(forms.ModelForm):
     birth_day = forms.DateField(label='Дата рождения', widget=DateInput(attrs={'class': 'form-control', 'placeholder': 'DD.MM.YYYY'}))
     draft_year = forms.IntegerField(min_value=datetime.date.today().year,
                                     validators=[MinValueValidator(datetime.date.today().year)], label='Год призыва',
@@ -78,6 +77,12 @@ class ApplicationCreateForm(forms.ModelForm):
         if bd_date > datetime.date.today():
             raise forms.ValidationError("Дата рождения не может быть больше текущей")
         return bd_date
+
+
+class ApplicationCreateForm(ApplicationMasterForm):
+    class Meta(ApplicationMasterForm.Meta):
+        fields = ('birth_day', 'birth_place', 'nationality', 'military_commissariat', 'group_of_health', 'draft_year', 'draft_season',
+                  'scientific_achievements', 'scholarships', 'ready_to_secret', 'candidate_exams', 'sporting_achievements', 'hobby', 'other_information')
 
 
 class EducationCreateForm(forms.ModelForm):

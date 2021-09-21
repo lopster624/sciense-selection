@@ -9,14 +9,14 @@ from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse
 from django.utils.encoding import escape_uri_path
 from django.views import View
-from django.views.generic import CreateView, FormView
+from django.views.generic import FormView
 from django.views.generic.list import ListView
 
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
 from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME, SLAVE_ROLE_NAME, PATH_TO_INTERVIEW_LIST, PATH_TO_CANDIDATES_LIST, PATH_TO_RATING_LIST
 
-from .forms import ApplicationCreateForm, EducationFormSet
+from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities
 from .utils import pick_competence, delete_competence, get_context, OnlyMasterAccessMixin, OnlySlaveAccessMixin, \
@@ -101,10 +101,11 @@ class EditApplicationView(LoginRequiredMixin, View):
     @check_permission_decorator(MASTER_ROLE_NAME)
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
-        if user_app.is_final and request.user.member.role.role_name == SLAVE_ROLE_NAME:
+        user_role = request.user.member.role.role_name
+        if user_app.is_final and user_role == SLAVE_ROLE_NAME:
             raise PermissionDenied('Редактирование анкеты недоступно.')
         user_education = user_app.education.order_by('end_year').all()
-        app_form = ApplicationCreateForm(instance=user_app)
+        app_form = ApplicationCreateForm(instance=user_app) if user_role == SLAVE_ROLE_NAME else ApplicationMasterForm(instance=user_app)
         education_formset = EducationFormSet(queryset=user_education)
         context = {'app_form': app_form, 'app_id': app_id, 'education_formset': education_formset, 'app_active': True}
         return render(request, 'application/application_edit.html', context=context)
@@ -112,10 +113,11 @@ class EditApplicationView(LoginRequiredMixin, View):
     @check_permission_decorator(MASTER_ROLE_NAME)
     def post(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
-        if user_app.is_final and request.user.member.role.role_name == SLAVE_ROLE_NAME:
+        user_role = request.user.member.role.role_name
+        if user_app.is_final and user_role == SLAVE_ROLE_NAME:
             raise PermissionDenied('Редактирование анкеты недоступно.')
         user_education = user_app.education.all()
-        app_form = ApplicationCreateForm(request.POST, instance=user_app)
+        app_form = ApplicationCreateForm(request.POST, instance=user_app) if user_role == SLAVE_ROLE_NAME else ApplicationMasterForm(request.POST, instance=user_app)
         education_formset = EducationFormSet(request.POST, queryset=user_education)
         if app_form.is_valid() and education_formset.is_valid():
             new_app = app_form.save()
