@@ -13,13 +13,13 @@ from django.views.generic.list import ListView
 
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
-from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME, SLAVE_ROLE_NAME
+from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME, SLAVE_ROLE_NAME, PATH_TO_INTERVIEW_LIST, PATH_TO_CANDIDATES_LIST, PATH_TO_RATING_LIST
 
 from .forms import ApplicationCreateForm, EducationFormSet
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities, ApplicationScores
 from .utils import pick_competence, delete_competence, get_context, OnlyMasterAccessMixin, OnlySlaveAccessMixin, \
-    check_permission_decorator, create_word_app, check_booking_our
+    check_permission_decorator, WordTemplate, check_booking_our
 
 
 class ChooseDirectionInAppView(LoginRequiredMixin, View):
@@ -157,7 +157,9 @@ class CreateWordAppView(LoginRequiredMixin, View):
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
         filename = f"Анкета_{user_app.member.user.last_name}.docx"
-        user_docx = create_word_app(app_id)
+        word_template = WordTemplate(request, PATH_TO_INTERVIEW_LIST)
+        context = word_template.create_context_to_interview_list(app_id)
+        user_docx = word_template.create_word_in_buffer(context)
         response = HttpResponse(user_docx, content_type='application/docx')
         response['Content-Disposition'] = 'attachment; filename="' + escape_uri_path(filename) + '"'
         return response
@@ -512,3 +514,25 @@ class ChangeAppFinishedView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
             application.save()
             return redirect('application', app_id=app_id)
         raise PermissionDenied('Данный пользователь не отобран на ваше направление.')
+
+
+class CreateRatingListView(LoginRequiredMixin, View):
+    def get(self, request):
+        filename = "Рейтинговый список призыва.docx"
+        word_template = WordTemplate(request, PATH_TO_RATING_LIST)
+        context = word_template.create_context_to_rating_list()
+        user_docx = word_template.create_word_in_buffer(context)
+        response = HttpResponse(user_docx, content_type='application/docx')
+        response['Content-Disposition'] = 'attachment; filename="' + escape_uri_path(filename) + '"'
+        return response
+
+
+class CreateCandidatesListView(LoginRequiredMixin, View):
+    def get(self, request):
+        filename = "Итоговый список кандидатов.docx"
+        word_template = WordTemplate(request, PATH_TO_CANDIDATES_LIST)
+        context = word_template.create_context_to_rating_list()
+        user_docx = word_template.create_word_in_buffer(context)
+        response = HttpResponse(user_docx, content_type='application/docx')
+        response['Content-Disposition'] = 'attachment; filename="' + escape_uri_path(filename) + '"'
+        return response
