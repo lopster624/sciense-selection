@@ -9,18 +9,19 @@ from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.utils.encoding import escape_uri_path
 from django.views import View
-from django.views.generic import FormView
+from django.views.generic import CreateView
 from django.views.generic.list import ListView
 
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
-from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME, SLAVE_ROLE_NAME, PATH_TO_INTERVIEW_LIST, PATH_TO_CANDIDATES_LIST, PATH_TO_RATING_LIST
-
+from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME, SLAVE_ROLE_NAME, PATH_TO_INTERVIEW_LIST, \
+    PATH_TO_CANDIDATES_LIST, PATH_TO_RATING_LIST
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
+from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, DataApplicationMixin, MasterDataMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities
-from .utils import pick_competence, delete_competence, get_context, OnlyMasterAccessMixin, OnlySlaveAccessMixin, \
-    check_permission_decorator, WordTemplate, check_booking_our, DataApplicationMixin
+from .utils import pick_competence, delete_competence, get_context, \
+    check_permission_decorator, WordTemplate, check_booking_our, check_role
 
 
 class ChooseDirectionInAppView(LoginRequiredMixin, View):
@@ -101,11 +102,10 @@ class EditApplicationView(LoginRequiredMixin, View):
     @check_permission_decorator(MASTER_ROLE_NAME)
     def get(self, request, app_id):
         user_app = get_object_or_404(Application, pk=app_id)
-        user_role = request.user.member.role.role_name
-        if user_app.is_final and user_role == SLAVE_ROLE_NAME:
+        if user_app.is_final and check_role(request.user, SLAVE_ROLE_NAME):
             raise PermissionDenied('Редактирование анкеты недоступно.')
         user_education = user_app.education.order_by('end_year').all()
-        app_form = ApplicationCreateForm(instance=user_app) if user_role == SLAVE_ROLE_NAME else ApplicationMasterForm(instance=user_app)
+        app_form = ApplicationCreateForm(instance=user_app) if check_role(request.user, SLAVE_ROLE_NAME) else ApplicationMasterForm(instance=user_app)
         education_formset = EducationFormSet(queryset=user_education)
         context = {'app_form': app_form, 'app_id': app_id, 'education_formset': education_formset, 'app_active': True}
         return render(request, 'application/application_edit.html', context=context)
@@ -189,7 +189,7 @@ class DeleteCompetenceView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
-class CreateCompetenceView(DataApplicationMixin, LoginRequiredMixin, OnlyMasterAccessMixin, CreateView):
+class CreateCompetenceView(MasterDataMixin, CreateView):
     """ Показывает список всех компетенций. Создает новую компетенцию. """
     template_name = 'application/create_competence.html'
     form_class = CreateCompetenceForm
@@ -280,7 +280,7 @@ class DeleteFileView(LoginRequiredMixin, View):
         return redirect(request.META.get('HTTP_REFERER'))
 
 
-class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
+class ApplicationListView(MasterDataMixin, ListView):
     """
     Класс отображения списка заявок.
 
@@ -304,7 +304,7 @@ class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
 
     def get_queryset(self):
         apps = Application.objects.all()
-        self.master_affiliations = Affiliation.objects.filter(member=self.request.user.member)
+        self.master_affiliations = self.get_master_affiliations()
         master_direction_id = self.master_affiliations.values_list('direction__id', flat=True)
         if self.request.GET:
             # тут производится вся сортировка и фильтрация
@@ -379,11 +379,7 @@ class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
             app_other_notes = ApplicationNote.objects.filter(application=app,
                                                              affiliations__in=self.master_affiliations, ).distinct().exclude(
                 author=self.request.user.member).first()
-            if app_author_note:
-                app.note = app_author_note
-            elif app_other_notes:
-                app.note = app_other_notes
-
+            app.note = app_author_note if app_author_note else app_other_notes
         return apps
 
     def get_context_data(self, **kwargs):
@@ -399,7 +395,6 @@ class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
         if self.request.GET:
             context['reset_filters'] = True
         context['application_active'] = True
-        context['master_affiliations'] = self.master_affiliations
         return context
 
 
@@ -506,6 +501,7 @@ class CompetenceAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetVie
 
 
 class ChangeAppFinishedView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+    """ Обработка post запроса на блокирование редактирования анкеты пользователя"""
     def post(self, request, app_id):
         is_final = True if request.POST.get('is_final', None) == 'on' else False
         if check_booking_our(app_id=app_id, user=request.user):

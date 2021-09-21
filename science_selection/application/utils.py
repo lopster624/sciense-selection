@@ -66,14 +66,12 @@ def get_context(obj):
 
 def check_kids(competence, direction):
     """
-    TODO: проверяет фильтр, только у бездетных
     Рекурсивно проверяет компетенцию и все ее дочерние компетенции.
     Если хотя бы одна из них принадлежит выбранному направлению, то возвращает true
     :param competence: компетенция родитель
     :param direction: направление
     :return: True or False, соответственно, принадлежит ли одна из дочерних компетенций данному направлению или нет.
     """
-    # print(competence, competence.directions.all())
     if competence.directions.all().filter(id=direction.id).exists():
         return True
     for child in competence.child.all():
@@ -96,24 +94,6 @@ def check_kids_for_pick(competence, direction):
     if not competence.directions.all().filter(id=direction.id).exists():
         return False
     return True
-
-
-class OnlyMasterAccessMixin:
-    """Проверяет,что пользователь обладает ролью мастера"""
-
-    def dispatch(self, request, *args, **kwargs):
-        if request.user.member.role.role_name != MASTER_ROLE_NAME:
-            raise PermissionDenied('Недостаточно прав для входа на данную страницу.')
-        return super().dispatch(request, *args, **kwargs)
-
-
-class OnlySlaveAccessMixin:
-    """Проверяет,что пользователь обладает ролью оператора"""
-
-    def dispatch(self, request, *args, **kwargs):
-        if request.user.member.role.role_name != SLAVE_ROLE_NAME:
-            raise PermissionDenied('Недостаточно прав для входа на данную страницу.')
-        return super().dispatch(request, *args, **kwargs)
 
 
 def check_permission_decorator(role_name=None):
@@ -154,7 +134,7 @@ class WordTemplate:
         context.update({'first_name': user.first_name, 'last_name': user.last_name})
         return context
 
-    #TODO спросить про то, кого заносить в список (всех отобранных?) + все роты или только те, которые закреплены за пользователем
+    # TODO спросить про то, кого заносить в список (всех отобранных?) + все роты или только те, которые закреплены за пользователем
     # подумать про штуку со следующим отбором (забронированные кандидаты же остануться, а их не надо выводить) => после отрефакторить
     def create_context_to_candidates_list(self):
         fixed_directions = self.request.user.member.affiliations.all()
@@ -221,8 +201,3 @@ def check_booking_our(app_id, user):
     if booking:
         return True
     return False
-
-
-class DataApplicationMixin:
-    def get_root_competences(self):
-        return Competence.objects.filter(parent_node__isnull=True)

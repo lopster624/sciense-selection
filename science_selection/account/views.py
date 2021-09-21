@@ -4,8 +4,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
 from django.views import View
 
+from application.mixins import OnlyMasterAccessMixin, OnlySlaveAccessMixin
 from application.models import Application
-from application.utils import OnlyMasterAccessMixin, OnlySlaveAccessMixin
 from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED, MASTER_ROLE_NAME, DEFAULT_FILED_BLOCKS
 
 from .forms import RegisterForm
