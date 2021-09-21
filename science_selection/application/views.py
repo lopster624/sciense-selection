@@ -1,14 +1,15 @@
-import os
 import json
+import os
 
 from dal import autocomplete
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
-from django.utils.encoding import escape_uri_path
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse
+from django.utils.encoding import escape_uri_path
 from django.views import View
+from django.views.generic import CreateView, FormView
 from django.views.generic.list import ListView
 
 from account.models import Member, Affiliation, Booking, BookingType
@@ -17,9 +18,9 @@ from utils.constants import BOOKED, IN_WISHLIST, MASTER_ROLE_NAME, SLAVE_ROLE_NA
 
 from .forms import ApplicationCreateForm, EducationFormSet
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
-    Universities, ApplicationScores
+    Universities
 from .utils import pick_competence, delete_competence, get_context, OnlyMasterAccessMixin, OnlySlaveAccessMixin, \
-    check_permission_decorator, WordTemplate, check_booking_our
+    check_permission_decorator, WordTemplate, check_booking_our, DataApplicationMixin
 
 
 class ChooseDirectionInAppView(LoginRequiredMixin, View):
@@ -167,7 +168,6 @@ class CreateWordAppView(LoginRequiredMixin, View):
 
 class AddCompetencesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def post(self, request, direction_id):
-        # TODO: возможно нужно сделать автоматический выбор дочерних элементов при выборе родительских
         direction = Direction.objects.get(id=direction_id)
         chosen_competences = request.POST.getlist('chosen_competences')
         chosen_competences_id = [int(competence_id) for competence_id in chosen_competences]
@@ -187,21 +187,20 @@ class DeleteCompetenceView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
-class CreateCompetenceView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
-    def get(self, request):
-        form = CreateCompetenceForm(current_user=request.user)
-        competence_list = Competence.objects.filter(parent_node__isnull=True)
-        return render(request, 'application/create_competence.html',
-                      context={'form': form, 'competence_active': True, 'competence_list': competence_list})
+class CreateCompetenceView(DataApplicationMixin, LoginRequiredMixin, OnlyMasterAccessMixin, FormView):
+    template_name = 'application/create_competence.html'
 
-    def post(self, request):
-        bound_form = CreateCompetenceForm(request.POST, current_user=request.user)
-        competence_list = Competence.objects.filter(parent_node__isnull=True)
-        if not bound_form.is_valid():
-            return render(request, 'application/create_competence.html',
-                          context={'form': bound_form, 'competence_active': True, 'competence_list': competence_list})
-        bound_form.save(commit=True)
-        return redirect(request.path_info)
+    def get_form(self, form_class=None):
+        return CreateCompetenceForm(current_user=self.request.user)
+
+    def form_valid(self, form):
+        form.save(commit=True)
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({'competence_active': True})
+        return context
 
 
 class ChooseCompetenceInAppView(LoginRequiredMixin, View):
@@ -302,8 +301,8 @@ class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
 
     def get_queryset(self):
         apps = Application.objects.all()
-        master_affiliations = Affiliation.objects.filter(member=self.request.user.member)
-        master_direction_id = master_affiliations.values_list('direction__id', flat=True)
+        self.master_affiliations = Affiliation.objects.filter(member=self.request.user.member)
+        master_direction_id = self.master_affiliations.values_list('direction__id', flat=True)
         if self.request.GET:
             # тут производится вся сортировка и фильтрация
             # фильтрация по направлениям
@@ -346,21 +345,20 @@ class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
                 app.university = educations[0].university
                 app.avg_score = educations[0].avg_score
                 app.education_type = educations[0].get_education_type_display()
-            app.draft_time = app.get_draft_time()
             booking = Booking.objects.filter(slave=app.member, booking_type__name=BOOKED)
             if booking:
                 app.is_booked = True  # данный человек в принципе забронирован
                 app.affiliation = booking.first().affiliation
-                if booking.filter(affiliation__in=master_affiliations):
+                if booking.filter(affiliation__in=self.master_affiliations):
                     app.is_booked_our = True
-                    if booking.filter(affiliation__in=master_affiliations, master=self.request.user.member):
+                    if booking.filter(affiliation__in=self.master_affiliations, master=self.request.user.member):
                         app.can_unbook = True
             in_wishlist = Booking.objects.filter(slave=app.member, booking_type__name=IN_WISHLIST)
             if in_wishlist:
                 app.wishlist_len = len(in_wishlist)
                 wishlist = Booking.objects.filter(slave=app.member, booking_type__name=IN_WISHLIST,
-                                                  affiliation__in=master_affiliations).values_list('affiliation',
-                                                                                                   flat=True)
+                                                  affiliation__in=self.master_affiliations).values_list('affiliation',
+                                                                                                        flat=True)
                 if wishlist:
                     app.wishlist_affiliations = Affiliation.objects.filter(id__in=wishlist)
                     app.is_in_wishlist = True  # данный человек находится в вишлисте мастера
@@ -369,14 +367,14 @@ class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
             available_directions = slave_directions.filter(id__in=master_direction_id)
             if available_directions:
                 app.our_direction = True
-                app.available_affiliations = master_affiliations.filter(direction__in=slave_directions)
+                app.available_affiliations = self.master_affiliations.filter(direction__in=slave_directions)
 
             else:
                 app.our_direction = False
-            app_author_note = ApplicationNote.objects.filter(application=app, affiliations__in=master_affiliations,
+            app_author_note = ApplicationNote.objects.filter(application=app, affiliations__in=self.master_affiliations,
                                                              author=self.request.user.member).distinct().first()
             app_other_notes = ApplicationNote.objects.filter(application=app,
-                                                             affiliations__in=master_affiliations, ).distinct().exclude(
+                                                             affiliations__in=self.master_affiliations, ).distinct().exclude(
                 author=self.request.user.member).first()
             if app_author_note:
                 app.note = app_author_note
@@ -386,10 +384,9 @@ class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
         return apps
 
     def get_context_data(self, **kwargs):
-        master_affiliations = Affiliation.objects.filter(member=self.request.user.member)
         context = super().get_context_data(**kwargs)
-        directions_set = [(aff.direction.id, aff.direction) for aff in master_affiliations]
-        in_wishlist_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
+        directions_set = [(aff.direction.id, aff.direction) for aff in self.master_affiliations]
+        in_wishlist_set = [(affiliation.id, affiliation) for affiliation in self.master_affiliations]
         draft_year_set = Application.objects.order_by(
             'draft_year').distinct().values_list('draft_year', 'draft_year')
         filter_form = FilterForm(self.request.GET, directions_set=directions_set, in_wishlist_set=in_wishlist_set,
@@ -399,7 +396,7 @@ class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
         if self.request.GET:
             context['reset_filters'] = True
         context['application_active'] = True
-        context['master_affiliations'] = master_affiliations
+        context['master_affiliations'] = self.master_affiliations
         return context
 
 

@@ -21,7 +21,7 @@
             <h3>
                 Уже созданные компетенции:
             </h3>
-            {% for comp_lvl1 in competence_list %}
+            {% for comp_lvl1 in view.get_root_competences %}
             <li class="list-group-item list-group-item-light">
                 <span class="{% if not comp_lvl1.is_estimated %} fw-bold {% endif %} ms-1 fs-4">{{comp_lvl1.name}}</span>
                 {% for comp_lvl2 in comp_lvl1.child.all %}
