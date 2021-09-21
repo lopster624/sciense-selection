@@ -185,6 +185,7 @@ class DeleteCompetenceView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 
 class CreateCompetenceView(DataApplicationMixin, LoginRequiredMixin, OnlyMasterAccessMixin, CreateView):
+    """ Показывает список всех компетенций. Создает новую компетенцию. """
     template_name = 'application/create_competence.html'
     form_class = CreateCompetenceForm
     success_url = reverse_lazy('create_competence')
