@@ -165,3 +165,9 @@ def check_booking_our(app_id, user):
     if booking:
         return True
     return False
+
+
+class DataApplicationMixin:
+    def get_root_competences(self):
+        print('get', Competence.objects.filter(parent_node__isnull=True))
+        return Competence.objects.filter(parent_node__isnull=True)
