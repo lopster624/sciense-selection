@@ -10,57 +10,7 @@
 <div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
     <div class="row">
     <form action="{% url 'create_application' %}" class="form-horizontal" method="post" id="form-container">
-        {% csrf_token %}
-        {% if msg %}
-            <div class="alert alert-danger">{{ msg }}</div>
-        {% endif %}
-
-        {% for f in app_form %}
-        {% if f.label == 'Дата рождения' %}
-            <h5 class="text-center mb-3">Основная информация</h5>
-        {% elif f.label == 'Достижения' %}
-            <h5 class="text-center mb-3">Дополнительная информация</h5>
-        {% endif %}
-            <div class="form-group row mb-2">
-                <label class="col-sm-3 col-form-label">{{ f.label }}</label>
-                <div class="col-sm-9">
-                    {{ f }}
-                </div>
-            </div>
-            {% if app_form.errors %}
-                <div class="mt-1 mb-0 alert-danger rounded">
-                    {{ f.errors }}
-                </div>
-            {% endif %}
-        {% endfor %}
-
-        <h5 class="text-center mb-3">Образование</h5>
-        {{ education_formset.management_form }}
-        {% for ed_form in education_formset %}
-            <div class="education-form">
-            {% for e_f in ed_form %}
-                <div class="form-group row mb-2">
-                    <label class="col-sm-3 col-form-label">{{ e_f.label }}</label>
-                    <div class="col-sm-9">
-                        {{ e_f }}
-                    </div>
-                </div>
-                {% if ed_form.errors %}
-                    <div class="mt-1 mb-0 alert-danger rounded">
-                        {{ e_f.errors }}
-                    </div>
-                {% endif %}
-            {% endfor %}
-            </div>
-
-        {% endfor %}
-        <div id="add-form" class="mb-2">
-            <button type="button" class="btn btn-outline-secondary">Добавить образование</button>
-        </div>
-        <div class="mb-2">
-            <button type="submit" class="btn btn-primary">Сохранить</button>
-        </div>
-
+        {% include 'includes/app_form_field_template.html' %}
     </form>
     </div>
 </div>

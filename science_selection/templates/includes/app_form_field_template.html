@@ -1,0 +1,61 @@
+{% csrf_token %}
+{% if msg %}
+    <div class="alert alert-danger">{{ msg }}</div>
+{% endif %}
+
+{% for f in app_form %}
+{% if f.label == 'Дата рождения' %}
+    <h5 class="text-center mb-3">Основная информация</h5>
+{% elif f.label == 'Достижения' %}
+    <h5 class="text-center mb-3">Дополнительная информация</h5>
+{% endif %}
+    <div class="form-group row mb-2">
+        <div class="col-4">
+            <label class="col-form-label">{{ f.label }}</label>
+            <small class="form-text text-muted d-block">{{ f.help_text }}</small>
+        </div>
+        <div class="col-8">
+            {{ f }}
+        </div>
+    </div>
+    {% if app_form.errors %}
+        <div class="mt-1 mb-0 alert-danger rounded">
+            {{ f.errors }}
+        </div>
+    {% endif %}
+{% endfor %}
+
+<h5 class="text-center mb-3">Образование</h5>
+{{ education_formset.management_form }}
+{% for ed_form in education_formset %}
+    <div class="education-form border border-light rounded mb-1">
+        {% for e_f in ed_form %}
+            <p></p>
+            <div class="form-group row mb-2 {% if e_f.label == 'Id' %}visually-hidden{% endif %}">
+                {% if e_f == ed_form.DELETE %}
+                    <label class="col-sm-3 col-form-label"></label>
+                    <div class="col-sm-9 delete-form">
+                        <button type="button" class="btn btn-outline-secondary">Удалить</button>
+                    </div>
+                {% else %}
+                    <label class="col-sm-3 col-form-label">{{ e_f.label }}</label>
+                    <div class="col-sm-9">
+                        {{ e_f }}
+                    </div>
+                {% endif %}
+            </div>
+            {% if ed_form.errors %}
+                <div class="mt-1 mb-0 alert-danger rounded">
+                    {{ e_f.errors }}
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endfor %}
+
+<div id="add-form" class="mb-2 text-center">
+    <button type="button" class="btn btn-outline-secondary">Добавить образование</button>
+</div>
+<div class="mb-2 text-center">
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+</div>

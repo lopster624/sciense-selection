@@ -13,6 +13,8 @@ urlpatterns = [
     path('application/<int:app_id>/add_note/', views.EditApplicationNote.as_view(), name='add_application_note'),
     path('application/list/', views.ApplicationListView.as_view(), name='application_list'),
     path('application/<int:app_id>/finished/', views.ChangeAppFinishedView.as_view(), name='change_finished'),
+    path('application/list/rating-list/', views.CreateRatingListView.as_view(), name='create_rating_list_word'),
+    path('application/list/candidates-list/', views.CreateCandidatesListView.as_view(), name='create_candidates_list_word'),
 
     path('competence/add/<int:direction_id>/', views.AddCompetencesView.as_view(), name='add_competences'),
     path('competence/list/', views.CompetenceListView.as_view(), name='competence_list'),

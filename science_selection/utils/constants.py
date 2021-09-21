@@ -1,3 +1,6 @@
+import os
+
+
 MINIMUM_SCORE = 1
 MAX_SCORE = 5
 BOOKED = 'Отобран'
@@ -55,3 +58,7 @@ DEFAULT_FILED_BLOCKS = {
     'Компетенции': False,
     'Загруженные файлы': False,
 }
+
+PATH_TO_INTERVIEW_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\interview_list.docx')
+PATH_TO_CANDIDATES_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\list_of_candidates.docx')
+PATH_TO_RATING_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\rating_list.docx')
