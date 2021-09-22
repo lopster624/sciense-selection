@@ -6,7 +6,8 @@ from io import BytesIO
 
 from account.models import Member, Affiliation, Booking, BookingType
 from application.models import Competence, Direction, Application, Education
-from utils.constants import MASTER_ROLE_NAME, SLAVE_ROLE_NAME, BOOKED
+from utils.constants import MASTER_ROLE_NAME, SLAVE_ROLE_NAME, BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
+    PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT
 
 
 def check_role(user, role_name):
@@ -156,9 +157,9 @@ class WordTemplate:
 
     #TODO спросить про то, кого заносить в список (всех отобранных?) + все роты или только те, которые закреплены за пользователем
     # подумать про штуку со следующим отбором (забронированные кандидаты же остануться, а их не надо выводить) => после отрефакторить
-    def create_context_to_candidates_list(self):
+    def create_context_to_word_files(self, document_type):
         fixed_directions = self.request.user.member.affiliations.all()
-        selected_type = BookingType.objects.filter(name='Отобран').first()
+        selected_type = BookingType.objects.filter(name=BOOKED).first()
         context = {'directions': []}
         for direction in fixed_directions:
             platoon_data = {
@@ -170,46 +171,43 @@ class WordTemplate:
             for i, b in enumerate(booked):
                 user_app = Application.objects.filter(member=b.slave).first()
                 user_last_education = user_app.education.order_by('-end_year').first()
-                platoon_data['members'].append({
+                general_info, additional_info = {
                     'number': i + 1,
                     'first_name': b.slave.user.first_name,
                     'last_name': b.slave.user.last_name,
                     'father_name': b.slave.father_name,
-                    'birth_day': user_app.birth_day.year,
-                    'avg_score': user_last_education.avg_score,
                     'final_score': user_app.final_score,
-                })
+                }, {}
+                if document_type == PATH_TO_CANDIDATES_LIST:
+                    additional_info = self._get_candidates_info(user_app, user_last_education)
+                elif document_type == PATH_TO_RATING_LIST:
+                    additional_info = self._get_rating_info(user_app, user_last_education)
+                elif document_type == PATH_TO_EVALUATION_STATEMENT:
+                    additional_info = self._get_evaluation_st_info(user_app)
+                platoon_data['members'].append({**additional_info, **general_info})
             context['directions'].append(platoon_data)
         return context
 
-    def create_context_to_rating_list(self):
-        fixed_directions = self.request.user.member.affiliations.all()
-        selected_type = BookingType.objects.filter(name='Отобран').first()
-        context = {'directions': []}
-        for direction in fixed_directions:
-            platoon_data = {
-                'name': direction.direction.name,
-                'company_number': direction.company,
-                'members': []
-            }
-            booked = Booking.objects.filter(affiliation=direction, booking_type=selected_type)
-            for i, b in enumerate(booked):
-                user_app = Application.objects.filter(member=b.slave).first()
-                user_last_education = user_app.education.order_by('-end_year').first()
-                platoon_data['members'].append({
-                    'number': i + 1,
-                    'first_name': b.slave.user.first_name,
-                    'last_name': b.slave.user.last_name,
-                    'father_name': b.slave.father_name,
-                    'birth_day': user_app.birth_day,
-                    'military_commissariat': user_app.military_commissariat,
-                    'university': user_last_education.university,
-                    'specialization': user_last_education.specialization,
-                    'avg_score': user_last_education.avg_score,
-                    'final_score': user_app.final_score,
-                })
-            context['directions'].append(platoon_data)
-        return context
+    def _get_evaluation_st_info(self, user_app):
+        return {
+            **user_app.scores.__dict__,
+            **MEANING_COEFFICIENTS,
+        }
+
+    def _get_rating_info(self, user_app, user_last_education):
+        return {
+            'birth_day': user_app.birth_day,
+            'military_commissariat': user_app.military_commissariat,
+            'university': user_last_education.university,
+            'specialization': user_last_education.specialization,
+            'avg_score': user_last_education.avg_score,
+        }
+
+    def _get_candidates_info(self, user_app, user_last_education):
+        return {
+            'birth_day': user_app.birth_day.year,
+            'avg_score': user_last_education.avg_score,
+        }
 
 
 def check_booking_our(app_id, user):
