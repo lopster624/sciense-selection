@@ -105,19 +105,6 @@ class Application(models.Model):
         verbose_name_plural = "Заявки"
 
     def get_filed_blocks(self):
-        blocks = {
-            'Основные данные': True,
-            'Образование': False,
-            'Направления': False,
-            'Компетенции': False,
-            'Загруженные файлы': True if File.objects.filter(member=self.member) else False,
-        }
-        if self.education:
-            blocks.update({'Образование': True if self.education.all() else False})
-        if self.directions:
-            blocks.update({'Направления': True if self.directions.all() else False})
-        if self.competencies:
-            blocks.update({'Компетенции': True if self.competencies.all() else False})
         return {
             'Основные данные': True,
             'Образование': True if self.education.all() else False,

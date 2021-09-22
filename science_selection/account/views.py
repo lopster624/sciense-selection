@@ -91,7 +91,7 @@ class HomeSlaveView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
         if user_app:
             filed_blocks, fullness = user_app.get_filed_blocks(), user_app.fullness
 
-            selected_type = BookingType.objects.filter(name='Отобран').first()
+            selected_type = BookingType.objects.filter(name=BOOKED).first()
             booking = Booking.objects.filter(slave=request.user.member, booking_type=selected_type).first()
             if booking:
                 chooser = {

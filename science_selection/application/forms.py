@@ -47,12 +47,6 @@ class CreateCompetenceForm(ModelForm):
             self.fields['directions'].queryset = directions
 
 
-class ApplicationCreateForm(forms.ModelForm):
-    """Todo: убрать ненужные поля и сделать так, чтобы мастеру показывались скрытые поля для него"""
-    birth_day = forms.DateField(label='Дата рождения',
-                                widget=DateInput(attrs={'class': 'form-control', 'placeholder': 'DD.MM.YYYY'}))
-
-
 class ApplicationMasterForm(forms.ModelForm):
     birth_day = forms.DateField(label='Дата рождения',
                                 widget=DateInput(attrs={'class': 'form-control', 'placeholder': 'DD.MM.YYYY'}))
@@ -89,10 +83,9 @@ class ApplicationMasterForm(forms.ModelForm):
 
 class ApplicationCreateForm(ApplicationMasterForm):
     class Meta(ApplicationMasterForm.Meta):
-        fields = ('birth_day', 'birth_place', 'nationality', 'military_commissariat', 'group_of_health', 'draft_year',
-                  'draft_season',
-                  'scientific_achievements', 'scholarships', 'ready_to_secret', 'candidate_exams',
-                  'sporting_achievements', 'hobby', 'other_information')
+        exclude = ApplicationMasterForm.Meta.exclude + ('compliance_prior_direction', 'compliance_additional_direction',
+                                                        'postgraduate_additional_direction',
+                                                        'postgraduate_prior_direction')
 
 
 class EducationCreateForm(forms.ModelForm):

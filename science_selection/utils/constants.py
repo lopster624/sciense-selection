@@ -62,3 +62,10 @@ DEFAULT_FILED_BLOCKS = {
 PATH_TO_INTERVIEW_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\interview_list.docx')
 PATH_TO_CANDIDATES_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\list_of_candidates.docx')
 PATH_TO_RATING_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\rating_list.docx')
+PATH_TO_EVALUATION_STATEMENT = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\evaluation_statement.docx')
+
+TYPE_SERVICE_DOCUMENT = {
+    'candidates': (PATH_TO_CANDIDATES_LIST, "Итоговый список кандидатов.docx"),
+    'rating': (PATH_TO_RATING_LIST, "Рейтинговый список призыва.docx"),
+    'evaluation-statement': (PATH_TO_EVALUATION_STATEMENT, "Итоговый список кандидатов.docx"),
+}

@@ -8,46 +8,25 @@
 {% include 'application/includes/nav_app_template.html' %}
 
 {% if msg %}
-<div class="btn w-50 mt-2" style="margin-left: 25%">
-  {{ msg }}
-  <button type="button" class="btn btn-outline-primary">
-    <a href="{% url name app_id %}">Выбрать</a>
-  </button>
-</div>
+  <div class="btn w-50 mt-2" style="margin-left: 25%">
+    {{ msg }}
+    <button type="button" class="btn btn-outline-primary">
+      <a href="{% url name app_id %}">Выбрать</a>
+    </button>
+  </div>
 
 {% else %}
-<div class="w-50 bg-white list-group-item" style="margin-left: 25%;">
-  {% if not blocked %}
-  <form action="{% url 'choose_app_direction' app_id %}" method="POST">
-    {% csrf_token %}
-  {% endif %}
-    <div class="row row-cols-1 row-cols-md-3">
-    {% for direction in directions %}
-    <div class="col mb-2">
-      <div class="card h-100">
-        {% if direction.image_url %}
-        <img src="{{ direction.image_url }}" class="card-img-top" alt="{{ direction.name }}">
-        {% endif %}
-        <div class="card-body">
-          <h5 class="card-title"> {{ direction.name }} </h5>
-          <p class="card-text"> {{ direction.description }} </p>
-          <div class="custom-control custom-checkbox">
-            <input type="checkbox" class="custom-control-input"  name="direction" id="{{ direction.name }}" {% if blocked %}disabled{%endif%}
-                   value="{{ direction.id }}" {% if direction.id in selected_directions %} checked {% endif %}>
-            <label class="custom-control-label"><small class="text-muted">Выбрать направление</small></label>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-    </div>
+  <div class="w-50 bg-white list-group-item" style="margin-left: 25%;">
     {% if not blocked %}
-      <button type="submit" class="w-10 mb-2 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
+      <form action="{% url 'choose_app_direction' app_id %}" method="POST">
+        {% csrf_token %}
+        {% include 'application/includes/app_directions_list.html' %}
+        <button type="submit" class="w-10 mb-2 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
+      </form>
+    {% else %}
+      {% include 'application/includes/app_directions_list.html' %}
     {% endif %}
-  {% if blocked %}
-  </form>
-  {% endif %}
-</div>
+  </div>
 {% endif %}
 
 {% endblock %}
