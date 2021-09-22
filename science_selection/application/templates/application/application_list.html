@@ -57,16 +57,16 @@
                         {{ app.birth_place }}
                     </td>
                     <td scope="row">
-                        {{ app.university }}
+                        {{ app.last_education.university }}
                     </td>
                     <td scope="row">
-                        {{ app.education_type }}
+                        {{ app.last_education.get_education_type_display }}
                     </td>
                     <td scope="row">
                         {{ app.birth_day }}
                     </td>
                     <td scope="row">
-                        {{ app.avg_score }}
+                        {{ app.last_education.avg_score }}
                     </td>
                     <td scope="row">
                         {{ app.final_score }}

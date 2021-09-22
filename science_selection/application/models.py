@@ -126,6 +126,13 @@ class Application(models.Model):
             'Загруженные файлы': True if File.objects.filter(member=self.member) else False,
         }
 
+    def get_last_education(self):
+        """
+        Получение последнего образования
+        :return: объект Education
+        """
+        return self.education.all().order_by('-end_year').first()
+
     def calculate_fullness(self) -> int:
         """
         Подсчет заполненности анкеты
@@ -144,7 +151,7 @@ class Application(models.Model):
             self.patents) * const.PATENTS_SCORE + int(self.vac_articles) * const.VAC_ARTICLES_SCORE + int(
             self.innovation_proposals) * const.INNOVATION_PROPOSALS_SCORE + int(
             self.rinc_articles) * const.RINC_ARTICLES_SCORE + int(self.evm_register) * const.EVM_REGISTER_SCORE, 2)
-        last_education = self.education.all().order_by('-end_year').first()
+        last_education = self.get_last_education()
         if last_education:
             if last_education.education_type == 'b':
                 score = round(last_education.avg_score * const.BACHELOR_COEF, 2)
@@ -215,7 +222,7 @@ class Education(models.Model):
     theme_of_diploma = models.CharField(max_length=128, verbose_name='Тема диплома')
 
     def __str__(self):
-        return f'{self.application.member.user.first_name} {self.application.member.user.first_name}: {self.get_education_type_display()}'
+        return f'{self.application.member.user.first_name} {self.application.member.user.last_name}: {self.get_education_type_display()}'
 
     def get_education_type_display(self):
         return next(name for ed_type, name in self.education_program if ed_type == self.education_type)

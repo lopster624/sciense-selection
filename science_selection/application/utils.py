@@ -5,8 +5,56 @@ from docxtpl import DocxTemplate
 from io import BytesIO
 
 from account.models import Member, Affiliation, Booking, BookingType
-from application.models import Competence, Direction, Application, Education
-from utils.constants import MASTER_ROLE_NAME, SLAVE_ROLE_NAME, BOOKED
+from application.models import Competence, Direction, Application, Education, ApplicationNote
+from utils.constants import MASTER_ROLE_NAME, SLAVE_ROLE_NAME, BOOKED, IN_WISHLIST
+
+
+def get_application_note(member, master_affiliations, app):
+    """ Возвращает заметку автора, если она есть. В противном случае возвращает заметку """
+    app_author_note = ApplicationNote.objects.filter(application=app, affiliations__in=master_affiliations,
+                                                     author=member).distinct().first()
+    app_other_notes = ApplicationNote.objects.filter(application=app,
+                                                     affiliations__in=master_affiliations, ).distinct().exclude(
+        author=member).first()
+    return app_author_note if app_author_note else app_other_notes
+
+
+def get_filtered_sorted_queryset(apps, request):
+    # тут производится вся сортировка и фильтрация
+    # фильтрация по направлениям
+    chosen_directions = request.GET.getlist('directions', None)
+    if chosen_directions:
+        apps = apps.filter(directions__in=chosen_directions).distinct()
+
+    # фильтрация по бронированию
+    chosen_affiliation = request.GET.getlist('affiliation', None)
+    if chosen_affiliation:
+        booked_members = Booking.objects.filter(affiliation__in=chosen_affiliation,
+                                                booking_type__name=BOOKED).values_list('slave', flat=True)
+        apps = apps.filter(member__id__in=booked_members).distinct()
+
+    # фильтрация по вишлисту
+    chosen_affiliation_wishlist = request.GET.getlist('in_wishlist', None)
+    if chosen_affiliation_wishlist:
+        booked_members = Booking.objects.filter(affiliation__in=chosen_affiliation_wishlist,
+                                                booking_type__name=IN_WISHLIST).values_list('slave', flat=True)
+        apps = apps.filter(member__id__in=booked_members).distinct()
+
+    # фильтрация по сезону
+    draft_season = request.GET.getlist('draft_season', None)
+    if draft_season:
+        apps = apps.filter(draft_season__in=draft_season).distinct()
+
+    # фильтрация по году призыва
+    draft_year = request.GET.getlist('draft_year', None)
+    if draft_year:
+        apps = apps.filter(draft_year__in=draft_year).distinct()
+
+    # сортировка
+    ordering = request.GET.get('ordering', None)
+    if ordering:
+        apps = apps.order_by(ordering)
+    return apps
 
 
 def check_role(user, role_name):
