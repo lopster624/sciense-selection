@@ -231,13 +231,12 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
             return redirect(request.path_info)
         user_directions = user_app.directions.all()
         competence_direction_ids = [_.id for _ in Competence.objects.filter(directions__in=user_directions).distinct()]
-        user_app.competencies.clear()
         for comp_id in competence_direction_ids:
             level_competence = int(request.POST.get(str(comp_id), 0))
             if level_competence and level_competence != 0:
                 competence = Competence.objects.filter(pk=comp_id).first()
-                ApplicationCompetencies.objects.create(application=user_app, competence=competence,
-                                                       level=level_competence)
+                ApplicationCompetencies.objects.update_or_create(application=user_app, competence=competence,
+                                                                 level=level_competence)
         user_app.save()
         user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
         selected_competencies = {_.competence.id: _.level for _ in user_competencies}
