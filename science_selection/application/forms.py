@@ -12,28 +12,6 @@ from .models import Application, Education, Direction, Competence
 
 
 class CreateCompetenceForm(ModelForm):
-    directions = ModelMultipleChoiceField(
-        queryset=Direction.objects.all(),
-        label='Направления',
-        required=False,
-        widget=SelectMultiple(attrs={'class': 'form-control bg-light'}),
-    )
-    parent_node = ModelChoiceField(
-        queryset=Competence.objects.all(),
-        label='Компетенция-родитель',
-        required=False,
-        widget=autocomplete.Select2(url='search_competencies', attrs={'class': 'bg-light'},),
-    )
-
-    def __init__(self, *args, **kwargs):
-        current_user = kwargs.pop('current_user', None)
-        super().__init__(*args, **kwargs)
-        if current_user:
-            member = Member.objects.get(user=current_user)
-            directions_id = Affiliation.objects.filter(member=member).values_list('direction__id', flat=True)
-            directions = Direction.objects.filter(id__in=directions_id)
-            self.fields['directions'].queryset = directions
-
     class Meta:
         model = Competence
         fields = ['name', 'parent_node', 'is_estimated', 'directions']
@@ -46,12 +24,36 @@ class CreateCompetenceForm(ModelForm):
             }),
         }
 
+    directions = ModelMultipleChoiceField(
+        queryset=Direction.objects.all(),
+        label='Направления',
+        required=False,
+        widget=SelectMultiple(attrs={'class': 'form-control bg-light'}),
+    )
+    parent_node = ModelChoiceField(
+        queryset=Competence.objects.all(),
+        label='Компетенция-родитель',
+        required=False,
+        widget=autocomplete.Select2(url='search_competencies', attrs={'class': 'bg-light'}, ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        current_user = kwargs.pop('current_user', None)
+        super().__init__(*args, **kwargs)
+        if current_user:
+            member = Member.objects.get(user=current_user)
+            directions_id = Affiliation.objects.filter(member=member).values_list('direction__id', flat=True)
+            directions = Direction.objects.filter(id__in=directions_id)
+            self.fields['directions'].queryset = directions
+
 
 class ApplicationMasterForm(forms.ModelForm):
-    birth_day = forms.DateField(label='Дата рождения', widget=DateInput(attrs={'class': 'form-control', 'placeholder': 'DD.MM.YYYY'}))
+    birth_day = forms.DateField(label='Дата рождения',
+                                widget=DateInput(attrs={'class': 'form-control', 'placeholder': 'DD.MM.YYYY'}))
     draft_year = forms.IntegerField(min_value=datetime.date.today().year,
                                     validators=[MinValueValidator(datetime.date.today().year)], label='Год призыва',
-                                    error_messages={'min_value': "Призыв на текущую дату закочен"}, widget=NumberInput(attrs={'class': 'form-control'}))
+                                    error_messages={'min_value': "Призыв на текущую дату закочен"},
+                                    widget=NumberInput(attrs={'class': 'form-control'}))
 
     class Meta:
         model = Application
@@ -82,7 +84,8 @@ class ApplicationMasterForm(forms.ModelForm):
 class ApplicationCreateForm(ApplicationMasterForm):
     class Meta(ApplicationMasterForm.Meta):
         exclude = ApplicationMasterForm.Meta.exclude + ('compliance_prior_direction', 'compliance_additional_direction',
-                                                        'postgraduate_additional_direction', 'postgraduate_prior_direction')
+                                                        'postgraduate_additional_direction',
+                                                        'postgraduate_prior_direction')
 
 
 class EducationCreateForm(forms.ModelForm):

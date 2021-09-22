@@ -6,10 +6,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, BadRequest
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils.encoding import escape_uri_path
 from django.views import View
-from django.views.generic import FormView
+from django.views.generic import CreateView
 from django.views.generic.list import ListView
 
 from account.models import Member, Affiliation, Booking, BookingType
@@ -17,10 +17,11 @@ from application.forms import CreateCompetenceForm, FilterForm
 from utils import constants as const
 
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
+from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities
-from .utils import pick_competence, delete_competence, get_context, OnlyMasterAccessMixin, OnlySlaveAccessMixin, \
-    check_permission_decorator, WordTemplate, check_booking_our, DataApplicationMixin
+from .utils import pick_competence, delete_competence, get_context, check_permission_decorator, WordTemplate, \
+    check_booking_our
 
 
 class ChooseDirectionInAppView(LoginRequiredMixin, View):
@@ -186,20 +187,21 @@ class DeleteCompetenceView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
-class CreateCompetenceView(DataApplicationMixin, LoginRequiredMixin, OnlyMasterAccessMixin, FormView):
+class CreateCompetenceView(MasterDataMixin, CreateView):
+    """ Показывает список всех компетенций. Создает новую компетенцию. """
     template_name = 'application/create_competence.html'
-
-    def get_form(self, form_class=None):
-        return CreateCompetenceForm(current_user=self.request.user)
-
-    def form_valid(self, form):
-        form.save(commit=True)
-        return super().form_valid(form)
+    form_class = CreateCompetenceForm
+    success_url = reverse_lazy('create_competence')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update({'competence_active': True})
         return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({'current_user': self.request.user})
+        return kwargs
 
 
 class ChooseCompetenceInAppView(LoginRequiredMixin, View):
@@ -273,7 +275,7 @@ class DeleteFileView(LoginRequiredMixin, View):
         return redirect(request.META.get('HTTP_REFERER'))
 
 
-class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
+class ApplicationListView(MasterDataMixin, ListView):
     """
     Класс отображения списка заявок.
 
@@ -297,7 +299,7 @@ class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
 
     def get_queryset(self):
         apps = Application.objects.all()
-        self.master_affiliations = Affiliation.objects.filter(member=self.request.user.member)
+        self.master_affiliations = self.get_master_affiliations()
         master_direction_id = self.master_affiliations.values_list('direction__id', flat=True)
         if self.request.GET:
             # тут производится вся сортировка и фильтрация
@@ -372,11 +374,7 @@ class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
             app_other_notes = ApplicationNote.objects.filter(application=app,
                                                              affiliations__in=self.master_affiliations, ).distinct().exclude(
                 author=self.request.user.member).first()
-            if app_author_note:
-                app.note = app_author_note
-            elif app_other_notes:
-                app.note = app_other_notes
-
+            app.note = app_author_note if app_author_note else app_other_notes
         return apps
 
     def get_context_data(self, **kwargs):
@@ -392,7 +390,6 @@ class ApplicationListView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
         if self.request.GET:
             context['reset_filters'] = True
         context['application_active'] = True
-        context['master_affiliations'] = self.master_affiliations
         return context
 
 
@@ -499,6 +496,7 @@ class CompetenceAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetVie
 
 
 class ChangeAppFinishedView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+    """ Обработка post запроса на блокирование редактирования анкеты пользователя"""
     def post(self, request, app_id):
         is_final = True if request.POST.get('is_final', None) == 'on' else False
         if check_booking_our(app_id=app_id, user=request.user):
