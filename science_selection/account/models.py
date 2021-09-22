@@ -6,7 +6,7 @@ from django.db import models
 from django.dispatch import receiver
 
 from engine.settings import DEFAULT_FROM_EMAIL
-from utils.constants import ACTIVATION_LINK
+from utils.constants import ACTIVATION_LINK, MASTER_ROLE_NAME, SLAVE_ROLE_NAME
 
 
 class Role(models.Model):
@@ -50,6 +50,12 @@ class Member(models.Model):
 
     def __str__(self):
         return f'{self.user.last_name} {self.user.first_name} {self.father_name}'
+
+    def is_slave(self):
+        return self.role.role_name == SLAVE_ROLE_NAME
+
+    def is_master(self):
+        return self.role.role_name == MASTER_ROLE_NAME
 
 
 @receiver(models.signals.post_save, sender=User)

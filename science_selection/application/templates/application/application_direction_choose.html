@@ -11,14 +11,14 @@
   <div class="btn w-50 mt-2" style="margin-left: 25%">
     {{ msg }}
     <button type="button" class="btn btn-outline-primary">
-      <a href="{% url name app_id %}">Выбрать</a>
+      <a href="{% url name pk %}">Выбрать</a>
     </button>
   </div>
 
 {% else %}
   <div class="w-50 bg-white list-group-item" style="margin-left: 25%;">
     {% if not blocked %}
-      <form action="{% url 'choose_app_direction' app_id %}" method="POST">
+      <form action="{% url 'choose_app_direction' pk %}" method="POST">
         {% csrf_token %}
         {% include 'application/includes/app_directions_list.html' %}
         <button type="submit" class="w-10 mb-2 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>

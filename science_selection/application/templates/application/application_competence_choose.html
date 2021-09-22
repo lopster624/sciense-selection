@@ -11,12 +11,12 @@
     {% if msg %}
         <div class="btn w-50" style="margin-left: 25%"> {{msg}}
             <button type="button" class="btn btn-outline-primary">
-                <a href="{% url name app_id %}">Выбрать</a>
+                <a href="{% url name pk %}">Выбрать</a>
             </button>
         </div>
     {% else %}
         {% if not blocked %}
-            <form action="{% url 'choose_app_competence' app_id %}" method="POST">
+            <form action="{% url 'choose_app_competence' pk %}" method="POST">
                 {% csrf_token %}
                 {% include 'application/includes/app_competencies_list.html' %}
                 <button type="submit" class="w-10 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>

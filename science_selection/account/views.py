@@ -78,9 +78,9 @@ class HomeView(LoginRequiredMixin, View):
         if not request.user.member.role:
             return render(request, 'access_error.html', context={
                 'error': 'Пройдите по ссылке из сообщения, отправленного вам на почту, для активации аккаунта'})
-        if request.user.member.role.role_name == SLAVE_ROLE_NAME:
+        if request.user.member.is_slave():
             return redirect('home_slave')
-        if request.user.member.role.role_name == MASTER_ROLE_NAME:
+        if request.user.member.is_master():
             return redirect('home_master')
 
 

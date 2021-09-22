@@ -3,12 +3,12 @@
         <a class="navbar-brand" href=" {% url 'home' %} ">Эра</a>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-lg-0">
-                {% if user.member.role != None %}
+                {% if user.member.role %}
                 <li class="nav-item active">
-                    {% if user.member.role.id == 1 %}
-                    <a class="nav-link" href=" {% url 'create_application' %} ">Создать заявку</a>
-                    {% else %}
-                    <a class="nav-link" href=" {% url 'application_list' %} ">Заявки</a>
+                    {% if user.member.is_slave %}
+                        <a class="nav-link" href=" {% url 'create_application' %} ">Создать заявку</a>
+                    {% elif user.member.is_master %}
+                        <a class="nav-link" href=" {% url 'application_list' %} ">Заявки</a>
                     {% endif %}
                 </li>
                 <li class="nav-item active">

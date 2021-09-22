@@ -53,11 +53,11 @@
             {% endfor %}
         </div>
     </div>
-    {% if user.member.role.id != 3 %}
+    {% if user.member.is_slave %}
     <div class="row">
         <div class="col text-center">
             <h3>Загрузить документы:</h3>
-            <form enctype="multipart/form-data" action="{% url 'app_documents' app_id %}" method="post">
+            <form enctype="multipart/form-data" action="{% url 'app_documents' pk %}" method="post">
                 {% csrf_token %}
                 <input class="form-control" type="file" name='downloaded_files' id="formFileMultiple" multiple>
                 <div class="mt-2 mb-2 text-center">

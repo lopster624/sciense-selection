@@ -4,7 +4,7 @@ from django.core.exceptions import PermissionDenied
 from account.models import Affiliation
 from application.models import Competence
 from application.utils import check_role
-from utils.constants import MASTER_ROLE_NAME, SLAVE_ROLE_NAME
+from utils.constants import MASTER_ROLE_NAME
 
 
 class OnlyMasterAccessMixin:
@@ -20,7 +20,7 @@ class OnlySlaveAccessMixin:
     """Проверяет,что пользователь обладает ролью оператора"""
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.member.role.role_name != SLAVE_ROLE_NAME:
+        if not request.user.member.is_slave():
             raise PermissionDenied('Недостаточно прав для входа на данную страницу.')
         return super().dispatch(request, *args, **kwargs)
 

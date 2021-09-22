@@ -6,7 +6,7 @@ from io import BytesIO
 
 from account.models import Member, Affiliation, Booking, BookingType
 from application.models import Competence, Direction, Application, Education
-from utils.constants import MASTER_ROLE_NAME, SLAVE_ROLE_NAME, BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
+from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
     PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT
 
 
@@ -99,13 +99,13 @@ def check_kids_for_pick(competence, direction):
 
 def check_permission_decorator(role_name=None):
     def decorator(func):
-        def wrapper(self, request, app_id, *args, **kwargs):
+        def wrapper(self, request, pk, *args, **kwargs):
             if request.user.member.role.role_name == role_name:
-                return func(self, request, app_id, *args, **kwargs)
-            member = Member.objects.filter(application__id=app_id).first()
+                return func(self, request, pk, *args, **kwargs)
+            member = Member.objects.filter(application__id=pk).first()
             if member != request.user.member:
                 raise PermissionDenied('Недостаточно прав для входа на данную страницу.')
-            return func(self, request, app_id, *args, **kwargs)
+            return func(self, request, pk, *args, **kwargs)
 
         return wrapper
 
@@ -125,8 +125,8 @@ class WordTemplate:
         user_docx.seek(0)
         return user_docx
 
-    def create_context_to_interview_list(self, app_id):
-        user_app = Application.objects.filter(pk=app_id).values()
+    def create_context_to_interview_list(self, pk):
+        user_app = Application.objects.filter(pk=pk).values()
         user_education = Education.objects.filter(application=user_app[0]['id']).order_by('-end_year').values()
         member = Member.objects.filter(pk=user_app[0]['member_id']).first()
         user = User.objects.filter(pk=member.user_id).first()
@@ -190,10 +190,10 @@ class WordTemplate:
         }
 
 
-def check_booking_our(app_id, user):
-    """Возвращает True, если пользователь с айди анкеты app_id был забронирован на направления пользователя user и
+def check_booking_our(pk, user):
+    """Возвращает True, если пользователь с айди анкеты pk был забронирован на направления пользователя user и
     возвращает False в обратном случае."""
-    app = get_object_or_404(Application, pk=app_id)
+    app = get_object_or_404(Application, pk=pk)
     master_affiliations = Affiliation.objects.filter(member=user.member)
     booking = Booking.objects.filter(slave=app.member, booking_type__name=BOOKED, affiliation__in=master_affiliations)
     if booking:

@@ -37,6 +37,6 @@ def get_application_note(application, user):
 
 @register.inclusion_tag('application/tags/is_final_switch_tag.html')
 def get_is_final_switch(application, user):
-    if user.member.role.role_name != MASTER_ROLE_NAME or not check_booking_our(app_id=application.id, user=user):
+    if user.member.role.role_name != MASTER_ROLE_NAME or not check_booking_our(pk=application.id, user=user):
         return {}
     return {'user_app': application}

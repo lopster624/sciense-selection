@@ -9,7 +9,7 @@ from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.utils.encoding import escape_uri_path
 from django.views import View
-from django.views.generic import CreateView
+from django.views.generic import CreateView, DetailView
 from django.views.generic.list import ListView
 
 from account.models import Member, Affiliation, Booking, BookingType
@@ -25,11 +25,12 @@ from .utils import pick_competence, delete_competence, get_context, check_permis
 
 
 class ChooseDirectionInAppView(LoginRequiredMixin, View):
+    """ Показывает список имеющихся направлений. Сохраняет список выбранных направлений в заявке. """
     @check_permission_decorator(const.MASTER_ROLE_NAME)
-    def get(self, request, app_id):
-        user_app = get_object_or_404(Application, pk=app_id)
-        context = {'direction_active': True, 'app_id': app_id}
-        if request.user.member.role.role_name == const.MASTER_ROLE_NAME or user_app.is_final:
+    def get(self, request, pk):
+        user_app = get_object_or_404(Application, pk=pk)
+        context = {'direction_active': True, 'pk': pk}
+        if request.user.member.is_master() or user_app.is_final:
             context.update({'blocked': True})
         directions = Direction.objects.all()
         selected_directions = [_.id for _ in user_app.directions.all()]
@@ -37,8 +38,8 @@ class ChooseDirectionInAppView(LoginRequiredMixin, View):
         return render(request, 'application/application_direction_choose.html', context=context)
 
     @check_permission_decorator()
-    def post(self, request, app_id):
-        user_app = get_object_or_404(Application, pk=app_id)
+    def post(self, request, pk):
+        user_app = get_object_or_404(Application, pk=pk)
         if user_app.is_final:
             return redirect(request.path_info)
         selected_directions = request.POST.getlist('direction')
@@ -49,15 +50,16 @@ class ChooseDirectionInAppView(LoginRequiredMixin, View):
         user_app.save()
         directions = Direction.objects.all()
         context = {'directions': directions, 'selected_directions': list(map(int, selected_directions)),
-                   'direction_active': True, 'app_id': app_id}
+                   'direction_active': True, 'pk': pk}
         return render(request, 'application/application_direction_choose.html', context=context)
 
 
 class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
+    """ Показывает создание новой заявки пользователя """
     def get(self, request):
         user_app = Application.objects.filter(member=request.user.member).first()
         if user_app:
-            return redirect('application', app_id=user_app.id)
+            return redirect('application', pk=user_app.id)
         app_form = ApplicationCreateForm()
         education_formset = EducationFormSet(queryset=Education.objects.none())
         context = {'app_form': app_form, 'app_active': True, 'education_formset': education_formset}
@@ -77,7 +79,7 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
                         user_education = ed_form.save(commit=False)
                         user_education.application = new_app
                         user_education.save()
-                return redirect('application', app_id=new_app.pk)
+                return redirect('application', pk=new_app.pk)
             else:
                 msg = 'Некорректные данные в заявке'
         else:
@@ -86,36 +88,39 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
         return render(request, 'application/application_create.html', context=context)
 
 
-class ApplicationView(LoginRequiredMixin, View):
-    @check_permission_decorator(role_name=const.MASTER_ROLE_NAME)
-    def get(self, request, app_id):
-        user_app = get_object_or_404(Application, pk=app_id)
+class ApplicationView(LoginRequiredMixin, DetailView):
+    """ Показывает заявку пользователя в режиме просмотра """
+    model = Application
+    template_name = 'application/application_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_app = context['application']
         user_education = user_app.education.order_by('end_year').all()
-        context = {'user_app': user_app, 'app_id': app_id, 'user_education': user_education, 'app_active': True}
-        return render(request, 'application/application_detail.html', context=context)
+        context.update({'user_app': user_app, 'pk': user_app.id, 'user_education': user_education, 'app_active': True})
+        return context
 
 
 class EditApplicationView(LoginRequiredMixin, View):
+    """ Показывает форму для редактирования заявки. Сохраняет отредактированную заявку. """
     @check_permission_decorator(const.MASTER_ROLE_NAME)
-    def get(self, request, app_id):
-        user_app = get_object_or_404(Application, pk=app_id)
-        user_role = request.user.member.role.role_name
-        if user_app.is_final and user_role == const.SLAVE_ROLE_NAME:
+    def get(self, request, pk):
+        user_app = get_object_or_404(Application, pk=pk)
+        if user_app.is_final and request.user.member.is_slave():
             raise PermissionDenied('Редактирование анкеты недоступно.')
         user_education = user_app.education.order_by('end_year').all()
-        app_form = ApplicationCreateForm(instance=user_app) if user_role == const.SLAVE_ROLE_NAME else ApplicationMasterForm(instance=user_app)
+        app_form = ApplicationCreateForm(instance=user_app) if request.user.member.is_slave() else ApplicationMasterForm(instance=user_app)
         education_formset = EducationFormSet(queryset=user_education)
-        context = {'app_form': app_form, 'app_id': app_id, 'education_formset': education_formset, 'app_active': True}
+        context = {'app_form': app_form, 'pk': pk, 'education_formset': education_formset, 'app_active': True}
         return render(request, 'application/application_edit.html', context=context)
 
     @check_permission_decorator(const.MASTER_ROLE_NAME)
-    def post(self, request, app_id):
-        user_app = get_object_or_404(Application, pk=app_id)
-        user_role = request.user.member.role.role_name
-        if user_app.is_final and user_role == const.SLAVE_ROLE_NAME:
+    def post(self, request, pk):
+        user_app = get_object_or_404(Application, pk=pk)
+        if user_app.is_final and request.user.member.is_slave():
             raise PermissionDenied('Редактирование анкеты недоступно.')
         user_education = user_app.education.all()
-        app_form = ApplicationCreateForm(request.POST, instance=user_app) if user_role == const.SLAVE_ROLE_NAME else ApplicationMasterForm(request.POST, instance=user_app)
+        app_form = ApplicationCreateForm(request.POST, instance=user_app) if request.user.member.is_slave() else ApplicationMasterForm(request.POST, instance=user_app)
         education_formset = EducationFormSet(request.POST, queryset=user_education)
         if app_form.is_valid() and education_formset.is_valid():
             new_app = app_form.save()
@@ -125,26 +130,27 @@ class EditApplicationView(LoginRequiredMixin, View):
                     user_education = form.save(commit=False)
                     user_education.application = new_app
                     user_education.save()
-            return redirect('application', app_id=new_app.pk)
+            return redirect('application', pk=new_app.pk)
         else:
             msg = 'Некорректные данные в заявке'
-        context = {'app_form': app_form, 'app_id': app_id, 'education_formset': education_formset, 'app_active': True,
+        context = {'app_form': app_form, 'pk': pk, 'education_formset': education_formset, 'app_active': True,
                    'msg': msg}
         return render(request, 'application/application_edit.html', context=context)
 
 
 class DocumentsInAppView(LoginRequiredMixin, View):
+    """ Показывает список загруженных файлов и имеюищхся шаблонов. Сохраняет загруженные файлы в заявке """
     @check_permission_decorator(const.MASTER_ROLE_NAME)
-    def get(self, request, app_id):
+    def get(self, request, pk):
         file_templates = File.objects.filter(is_template=True).all()
-        app = Application.objects.filter(pk=app_id).first()
+        app = Application.objects.filter(pk=pk).first()
         user_files = File.objects.filter(member=app.member).all()
         context = {'file_templates': file_templates, 'user_files': user_files, 'document_active': True,
-                   'app_id': app_id}
+                   'pk': pk}
         return render(request, 'application/application_documents.html', context=context)
 
     @check_permission_decorator()
-    def post(self, request, app_id):
+    def post(self, request, pk):
         new_files = request.FILES.getlist('downloaded_files')
         for file in new_files:
             file_name = os.path.splitext(os.path.basename(file.name))[0]
@@ -154,12 +160,13 @@ class DocumentsInAppView(LoginRequiredMixin, View):
 
 
 class CreateWordAppView(LoginRequiredMixin, View):
+    """ Генерирует анкету в формате docx на основе заявки """
     @check_permission_decorator(const.MASTER_ROLE_NAME)
-    def get(self, request, app_id):
-        user_app = get_object_or_404(Application, pk=app_id)
+    def get(self, request, pk):
+        user_app = get_object_or_404(Application, pk=pk)
         filename = f"Анкета_{user_app.member.user.last_name}.docx"
         word_template = WordTemplate(request, const.PATH_TO_INTERVIEW_LIST)
-        context = word_template.create_context_to_interview_list(app_id)
+        context = word_template.create_context_to_interview_list(pk)
         user_docx = word_template.create_word_in_buffer(context)
         response = HttpResponse(user_docx, content_type='application/docx')
         response['Content-Disposition'] = 'attachment; filename="' + escape_uri_path(filename) + '"'
@@ -205,11 +212,13 @@ class CreateCompetenceView(MasterDataMixin, CreateView):
 
 
 class ChooseCompetenceInAppView(LoginRequiredMixin, View):
+    """ Показывает список имеющихся компетенций по выбранным направлениям.
+    Сохраняет список выбранных компетенций и их уровень в заявке. """
     @check_permission_decorator(const.MASTER_ROLE_NAME)
-    def get(self, request, app_id):
-        user_app = get_object_or_404(Application, pk=app_id)
-        context = {'competence_active': True, 'app_id': app_id}
-        if request.user.member.role.role_name == const.MASTER_ROLE_NAME or user_app.is_final:
+    def get(self, request, pk):
+        user_app = get_object_or_404(Application, pk=pk)
+        context = {'competence_active': True, 'pk': pk}
+        if request.user.member.is_master() or user_app.is_final:
             context.update({'blocked': True})
         user_directions = user_app.directions.all()
         if user_directions:
@@ -225,8 +234,8 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
         return render(request, 'application/application_competence_choose.html', context=context)
 
     @check_permission_decorator()
-    def post(self, request, app_id):
-        user_app = get_object_or_404(Application, pk=app_id)
+    def post(self, request, pk):
+        user_app = get_object_or_404(Application, pk=pk)
         if user_app.is_final:
             return redirect(request.path_info)
         user_directions = user_app.directions.all()
@@ -243,7 +252,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
         competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).distinct()
 
         context = {'competencies': competencies, 'levels': ApplicationCompetencies.competence_levels,
-                   'selected_competencies': selected_competencies, 'app_id': app_id, 'competence_active': True,
+                   'selected_competencies': selected_competencies, 'pk': pk, 'competence_active': True,
                    'selected_directions': user_directions}
         return render(request, 'application/application_competence_choose.html', context=context)
 
@@ -403,9 +412,9 @@ class CompetenceListView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 
 class BookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
-    def post(self, request, app_id):
+    def post(self, request, pk):
         affiliation_id = request.POST.get('affiliation', None)
-        slave_member = Member.objects.get(application__id=app_id)
+        slave_member = Member.objects.get(application__id=pk)
         booking_type = BookingType.objects.get(name=const.BOOKED)
         affiliation = Affiliation.objects.get(id=affiliation_id)
         Booking(booking_type=booking_type, master=request.user.member, slave=slave_member,
@@ -414,8 +423,8 @@ class BookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 
 class UnBookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
-    def post(self, request, app_id, aff_id):
-        slave_member = Member.objects.get(application__id=app_id)
+    def post(self, request, pk, aff_id):
+        slave_member = Member.objects.get(application__id=pk)
         booking = Booking.objects.filter(master=request.user.member, slave=slave_member, booking_type__name=const.BOOKED,
                                          affiliation__id=aff_id)
         if booking:
@@ -431,9 +440,9 @@ class UnBookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 
 class AddInWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
-    def post(self, request, app_id):
+    def post(self, request, pk):
         affiliations_id = request.POST.getlist('affiliations', None)
-        slave_member = Member.objects.get(application__id=app_id)
+        slave_member = Member.objects.get(application__id=pk)
         booking_type = BookingType.objects.get(name=const.IN_WISHLIST)
         for affiliation_id in affiliations_id:
             affiliation = Affiliation.objects.get(id=affiliation_id)
@@ -443,9 +452,9 @@ class AddInWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 
 class DeleteFromWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
-    def post(self, request, app_id):
+    def post(self, request, pk):
         affiliations_id = request.POST.getlist('affiliations', None)
-        slave_member = Member.objects.get(application__id=app_id)
+        slave_member = Member.objects.get(application__id=pk)
         for affiliation_id in affiliations_id:
             current_booking = Booking.objects.filter(booking_type__name=const.IN_WISHLIST, master=request.user.member,
                                                      slave=slave_member, affiliation__id=affiliation_id)
@@ -456,6 +465,11 @@ class DeleteFromWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 @login_required
 def ajax_search_universities(request):
+    """
+    Выводит json со списком подходящих университетов по шаблону (автодополнение)
+    query params:
+        term: string - строка шаблон, по которой идет фильтрация университетов
+    """
     result = []
     if request.is_ajax():
         term = request.GET.get('term', '')
@@ -468,10 +482,10 @@ def ajax_search_universities(request):
 
 
 class EditApplicationNote(LoginRequiredMixin, OnlyMasterAccessMixin, View):
-    def post(self, request, app_id):
+    def post(self, request, pk):
         text = request.POST.get('note_text', '')
         master_affiliations = Affiliation.objects.filter(member=request.user.member)
-        app_note = ApplicationNote.objects.filter(application=app_id, affiliations__in=master_affiliations,
+        app_note = ApplicationNote.objects.filter(application=pk, affiliations__in=master_affiliations,
                                                   author=request.user.member).distinct().first()
         if app_note:
             if text == '':
@@ -481,32 +495,45 @@ class EditApplicationNote(LoginRequiredMixin, OnlyMasterAccessMixin, View):
                 app_note.affiliations.add(*list(master_affiliations))
                 app_note.save()
         else:
-            application = get_object_or_404(Application, pk=app_id)
+            application = get_object_or_404(Application, pk=pk)
             new_note = ApplicationNote(text=text, application=application, author=request.user.member)
             new_note.save()
             new_note.affiliations.add(*list(master_affiliations))
             new_note.save()
-        return redirect('application', app_id=app_id)
+        return redirect('application', pk=pk)
 
 
 class CompetenceAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetView):
+    """
+    Показывает список компетенций, которые подходят по шаблону (автодополнение)
+    query params:
+        q: string - строка шаблон, по которой фильтруются компетенции
+    """
     def get_queryset(self):
         return Competence.objects.filter(name__istartswith=self.q) if self.q else Competence.objects.all()
 
 
 class ChangeAppFinishedView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     """ Обработка post запроса на блокирование редактирования анкеты пользователя"""
-    def post(self, request, app_id):
+    def post(self, request, pk):
         is_final = True if request.POST.get('is_final', None) == 'on' else False
-        if check_booking_our(app_id=app_id, user=request.user):
-            application = get_object_or_404(Application, pk=app_id)
+        if check_booking_our(pk=pk, user=request.user):
+            application = get_object_or_404(Application, pk=pk)
             application.is_final = is_final
             application.save()
-            return redirect('application', app_id=app_id)
+            return redirect('application', pk=pk)
         raise PermissionDenied('Данный пользователь не отобран на ваше направление.')
 
 
 class CreateServiceDocumentView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+    """
+    Генерирует служебные файлы формата docx на основе отобранных анкет
+    query params:
+        doc: string - обозначает какой из файлов необходимо сгенерировать
+            candidates - для итогового списка кандидатов
+            rating - для рейтингового списка призыва
+            evaluation-statement - для итогового списка кандидатов
+    """
     def get(self, request):
         service_document = request.GET.get('doc', '')
         path_to_file, filename = const.TYPE_SERVICE_DOCUMENT.get(service_document, (None, None))
