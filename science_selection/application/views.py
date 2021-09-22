@@ -22,6 +22,9 @@ from .models import Direction, Application, Education, Competence, ApplicationCo
     Universities
 from .utils import pick_competence, delete_competence, get_context, check_permission_decorator, WordTemplate, \
     check_booking_our
+from .utils import pick_competence, delete_competence, get_context, \
+    check_permission_decorator, WordTemplate, check_booking_our, check_role, get_filtered_sorted_queryset, \
+    get_application_note
 
 
 class ChooseDirectionInAppView(LoginRequiredMixin, View):
@@ -287,21 +290,18 @@ class ApplicationListView(MasterDataMixin, ListView):
     """
     Класс отображения списка заявок.
 
-    Среди заявок предусмотрена сортировка по следующим параметрам: ФИО, Ср. балл, итог. балл, заполненность
+    Среди заявок предусмотрена сортировка по следующим параметрам: ФИО, город, итог. балл, заполненность
     Среди заявок предусмотрен следующий список фильтров:
     Направления заявки: список направлений заявки
     Отобран в: список принадлежностей мастера
-    В вишлисте в: список принадлежностей мастера
+    В избранном в: список принадлежностей мастера
+    Сезон призыва (весна/осень)
+    Год призыва
 
     Заявки отображаются по следующим правилам:
-    Если человек подавал на одно из направлений отбирающего, то анкета этого человека показывается
-
-    Заметки:
-    Возможно нужно добавить поле для бронирования и добавление в избранное, где в избранном будет показываться звездочка и кол-во человек, которое добавили в избранное
-    Возможные способы пометок: шрифт: жирный/нет, цвет рамки, цвет бекграунда
-    Жирным шрифтом помечаются забронированные, также у них отображается, куда(рота, взвод) они были забронированы.
-    Цвет рамки зеленый - если заявка была подана на направление, на которое отбирает отбирающий.
-
+    Если человек подавал на одно из направлений отбирающего, то анкета этого человека показывается белым цветом, если
+    не подавал - серым.
+    Забронированные на направление отбирающего показываются зеленым цветом.
     """
     model = Application
 
@@ -310,47 +310,10 @@ class ApplicationListView(MasterDataMixin, ListView):
         self.master_affiliations = self.get_master_affiliations()
         master_direction_id = self.master_affiliations.values_list('direction__id', flat=True)
         if self.request.GET:
-            # тут производится вся сортировка и фильтрация
-            # фильтрация по направлениям
-            chosen_directions = self.request.GET.getlist('directions', None)
-            if chosen_directions:
-                apps = apps.filter(directions__in=chosen_directions).distinct()
-
-            # фильтрация по бронированию
-            chosen_affiliation = self.request.GET.getlist('affiliation', None)
-            if chosen_affiliation:
-                booked_members = Booking.objects.filter(affiliation__in=chosen_affiliation,
-                                                        booking_type__name=const.BOOKED).values_list('slave', flat=True)
-                apps = apps.filter(member__id__in=booked_members).distinct()
-
-            # фильтрация по вишлисту
-            chosen_affiliation_wishlist = self.request.GET.getlist('in_wishlist', None)
-            if chosen_affiliation_wishlist:
-                booked_members = Booking.objects.filter(affiliation__in=chosen_affiliation_wishlist,
-                                                        booking_type__name=const.IN_WISHLIST).values_list('slave', flat=True)
-                apps = apps.filter(member__id__in=booked_members).distinct()
-
-            # фильтрация по сезону
-            draft_season = self.request.GET.getlist('draft_season', None)
-            if draft_season:
-                apps = apps.filter(draft_season__in=draft_season).distinct()
-
-            # фильтрация по году призыва
-            draft_year = self.request.GET.getlist('draft_year', None)
-            if draft_year:
-                apps = apps.filter(draft_year__in=draft_year).distinct()
-
-            # сортировка
-            ordering = self.request.GET.get('ordering', None)
-            if ordering:
-                apps = apps.order_by(ordering)
-
+            apps = get_filtered_sorted_queryset(apps, self.request)
         for app in apps:
-            educations = Education.objects.filter(application__exact=app).order_by('-end_year')
-            if educations:
-                app.university = educations[0].university
-                app.avg_score = educations[0].avg_score
-                app.education_type = educations[0].get_education_type_display()
+            app.last_education = app.get_last_education()
+
             booking = Booking.objects.filter(slave=app.member, booking_type__name=const.BOOKED)
             if booking:
                 app.is_booked = True  # данный человек в принципе забронирован
@@ -359,44 +322,34 @@ class ApplicationListView(MasterDataMixin, ListView):
                     app.is_booked_our = True
                     if booking.filter(affiliation__in=self.master_affiliations, master=self.request.user.member):
                         app.can_unbook = True
+
             in_wishlist = Booking.objects.filter(slave=app.member, booking_type__name=const.IN_WISHLIST)
             if in_wishlist:
                 app.wishlist_len = len(in_wishlist)
-                wishlist = Booking.objects.filter(slave=app.member, booking_type__name=const.IN_WISHLIST,
-                                                  affiliation__in=self.master_affiliations).values_list('affiliation',
-                                                                                                        flat=True)
-                if wishlist:
-                    app.wishlist_affiliations = Affiliation.objects.filter(id__in=wishlist)
+                wishlist_affiliations = Booking.objects.filter(slave=app.member, booking_type__name=const.IN_WISHLIST,
+                                                               affiliation__in=self.master_affiliations).values_list(
+                    'affiliation',
+                    flat=True)
+                if wishlist_affiliations:
+                    app.wishlist_affiliations = Affiliation.objects.filter(id__in=wishlist_affiliations)
                     app.is_in_wishlist = True  # данный человек находится в вишлисте мастера
 
             slave_directions = app.directions.all()
             available_directions = slave_directions.filter(id__in=master_direction_id)
-            if available_directions:
-                app.our_direction = True
-                app.available_affiliations = self.master_affiliations.filter(direction__in=slave_directions)
-
-            else:
-                app.our_direction = False
-            app_author_note = ApplicationNote.objects.filter(application=app, affiliations__in=self.master_affiliations,
-                                                             author=self.request.user.member).distinct().first()
-            app_other_notes = ApplicationNote.objects.filter(application=app,
-                                                             affiliations__in=self.master_affiliations, ).distinct().exclude(
-                author=self.request.user.member).first()
-            app.note = app_author_note if app_author_note else app_other_notes
+            app.our_direction = True if available_directions else False
+            app.available_affiliations = self.master_affiliations.filter(direction__in=slave_directions)
+            app.note = get_application_note(self.request.user.member, self.master_affiliations, app)
         return apps
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         directions_set = [(aff.direction.id, aff.direction) for aff in self.master_affiliations]
         in_wishlist_set = [(affiliation.id, affiliation) for affiliation in self.master_affiliations]
-        draft_year_set = Application.objects.order_by(
-            'draft_year').distinct().values_list('draft_year', 'draft_year')
+        draft_year_set = Application.objects.order_by('draft_year').distinct().values_list('draft_year', 'draft_year')
         filter_form = FilterForm(self.request.GET, directions_set=directions_set, in_wishlist_set=in_wishlist_set,
-                                 draft_year_set=draft_year_set,
-                                 chosen_affiliation_set=in_wishlist_set, )
+                                 draft_year_set=draft_year_set, chosen_affiliation_set=in_wishlist_set)
         context['form'] = filter_form
-        if self.request.GET:
-            context['reset_filters'] = True
+        context['reset_filters'] = True if self.request.GET else False
         context['application_active'] = True
         return context
 
