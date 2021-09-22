@@ -509,7 +509,7 @@ class ChangeAppFinishedView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         raise PermissionDenied('Данный пользователь не отобран на ваше направление.')
 
 
-class CreateServiceDocumentView(LoginRequiredMixin, View):
+class CreateServiceDocumentView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def get(self, request):
         service_document = request.GET.get('doc', '')
         path_to_file, filename = const.TYPE_SERVICE_DOCUMENT.get(service_document, (None, None))
