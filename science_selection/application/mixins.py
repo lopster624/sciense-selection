@@ -2,7 +2,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 
 from account.models import Affiliation
-from application.models import Competence
+from application.models import Competence, Direction
 from application.utils import check_role
 from utils.constants import MASTER_ROLE_NAME
 
@@ -31,6 +31,12 @@ class DataApplicationMixin:
 
     def get_master_affiliations(self):
         return Affiliation.objects.filter(member=self.request.user.member)
+
+    def get_all_directions(self):
+        return Direction.objects.all()
+
+    def get_master_directions_id(self):
+        return self.get_master_affiliations().values_list('direction__id', flat=True)
 
 
 class MasterDataMixin(LoginRequiredMixin, OnlyMasterAccessMixin, DataApplicationMixin):

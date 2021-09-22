@@ -1,12 +1,14 @@
+from io import BytesIO
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from docxtpl import DocxTemplate
-from io import BytesIO
-
 from account.models import Member, Affiliation, Booking, BookingType
-from application.models import Competence, Direction, Application, Education, ApplicationNote
-from utils.constants import MASTER_ROLE_NAME, SLAVE_ROLE_NAME, BOOKED, IN_WISHLIST
+from application.models import ApplicationNote
+from utils.constants import IN_WISHLIST
+from application.models import Competence, Direction, Application, Education
+from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
+    PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT
 
 
 def get_application_note(member, master_affiliations, app):
@@ -55,9 +57,6 @@ def get_filtered_sorted_queryset(apps, request):
     if ordering:
         apps = apps.order_by(ordering)
     return apps
-from application.models import Competence, Direction, Application, Education
-from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
-    PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT
 
 
 def check_role(user, role_name):
@@ -75,8 +74,7 @@ def delete_competence(competence_id, direction):
         delete_competence(sub_competence.id, direction)
 
 
-def pick_competence(competence_id, direction):
-    competence = Competence.objects.get(id=competence_id)
+def pick_competence(competence, direction):
     if not competence.directions.all().filter(id=direction.id).exists():
         competence.directions.add(direction)
 
@@ -162,6 +160,16 @@ def check_permission_decorator(role_name=None):
     return decorator
 
 
+def check_final_decorator(func):
+    def wrapper(self, request, pk, *args, **kwargs):
+        user_app = get_object_or_404(Application, pk=pk)
+        if user_app.is_final:
+            return redirect(request.path_info)
+        return func(self, request, pk, *args, **kwargs)
+
+    return wrapper
+
+
 class WordTemplate:
     def __init__(self, request, path_to_template):
         self.path = path_to_template
@@ -202,12 +210,12 @@ class WordTemplate:
                 user_app = Application.objects.filter(member=b.slave).first()
                 user_last_education = user_app.education.order_by('-end_year').first()
                 general_info, additional_info = {
-                    'number': i + 1,
-                    'first_name': b.slave.user.first_name,
-                    'last_name': b.slave.user.last_name,
-                    'father_name': b.slave.father_name,
-                    'final_score': user_app.final_score,
-                }, {}
+                                                    'number': i + 1,
+                                                    'first_name': b.slave.user.first_name,
+                                                    'last_name': b.slave.user.last_name,
+                                                    'father_name': b.slave.father_name,
+                                                    'final_score': user_app.final_score,
+                                                }, {}
                 if document_type == PATH_TO_CANDIDATES_LIST:
                     additional_info = self._get_candidates_info(user_app, user_last_education)
                 elif document_type == PATH_TO_RATING_LIST:
