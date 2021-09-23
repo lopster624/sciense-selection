@@ -16,7 +16,7 @@
                 <h3>Список добавленных компетенций в направление:</h3>
                 <select class="form-select mt-3" aria-label="Select direction" name="direction" id="switch_submit">
                     {% for dir in directions %}
-                    <option {% ifequal selected_direction_id dir.id %} selected {% endifequal %} value="{{dir.id}}">
+                    <option {% ifequal selected_direction.id dir.id %} selected {% endifequal %} value="{{dir.id}}">
                         {{dir.name }}
                     </option>
                     {% endfor %}
@@ -31,7 +31,7 @@
 
         <div class="col">
             <h3>Выбрать компетенции: </h3>
-            <form enctype="multipart/form-data" action=" {% url 'add_competences' selected_direction_id %} "
+            <form enctype="multipart/form-data" action=" {% url 'add_competences' selected_direction.id %} "
                   method="post">
                 {% csrf_token %}
                 {% for comp_lvl1 in picking_competences %}

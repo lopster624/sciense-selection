@@ -21,7 +21,8 @@ class Role(models.Model):
 
 
 class Affiliation(models.Model):
-    direction = models.ForeignKey('application.Direction', verbose_name="Направление", on_delete=models.CASCADE)
+    direction = models.ForeignKey('application.Direction', verbose_name="Направление", on_delete=models.CASCADE,
+                                  related_name='affiliation')
     company = models.IntegerField(verbose_name="Номер роты")
     platoon = models.IntegerField(verbose_name="Номер взвода")
 

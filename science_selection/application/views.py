@@ -15,16 +15,12 @@ from django.views.generic.list import ListView
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
 from utils import constants as const
-
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities
-from .utils import pick_competence, delete_competence, get_context, check_permission_decorator, WordTemplate, \
-    check_booking_our, check_final_decorator
-from .utils import pick_competence, delete_competence, get_context, \
-    check_permission_decorator, WordTemplate, check_booking_our, check_role, get_filtered_sorted_queryset, \
-    get_application_note
+from .utils import pick_competence, delete_competence, check_permission_decorator, WordTemplate, check_booking_our, \
+    get_filtered_sorted_queryset, check_final_decorator, check_kids, check_kids_for_pick, get_application_note
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
@@ -361,14 +357,47 @@ class ApplicationListView(MasterDataMixin, ListView):
         return context
 
 
-class CompetenceListView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+class CompetenceListView(MasterDataMixin, View):
     def get(self, request):
-        context = get_context(self)
+        if self.get_chosen_direction() is None:
+            return render(request, 'access_error.html',
+                          context={
+                              'error': f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.'})
+        competences_list, picking_competences = self.get_competences_lists(self.get_root_competences(),
+                                                                           self.get_chosen_direction())
+        context = {'competences_list': competences_list, 'picking_competences': picking_competences,
+                   'selected_direction': self.get_chosen_direction(), 'directions': self.get_master_directions(),
+                   'competence_active': True}
         return render(request, 'application/competence_list.html', context=context)
 
-    def post(self, request):
-        context = get_context(self)
-        return render(request, 'application/competence_list.html', context=context)
+    def get_chosen_direction(self):
+        """Возвращает выбранное направление, если оно было получено через GET, первое направление,
+         закрепленное за пользователем или None, если первых двух нет"""
+        selected_direction_id = self.request.GET.get('direction')
+        if selected_direction_id:
+            return Direction.objects.get(id=int(selected_direction_id))
+        return self.get_master_directions().first() if self.get_master_directions() else None
+
+    def get_competences_lists(self, all_competences, selected_direction):
+        """
+        Возвращает кортеж листов доступных корневых компетенций для выбора и уже выбранных
+        :param all_competences: Корни всех компетенций
+        :param selected_direction: Выбранное направлени
+        :return: кортеж <корни всех выбранных компетенций> <корни всех доступных компетенций>
+        """
+        if selected_direction is None:
+            return [], all_competences
+        exclude_id_from_list = []
+        exclude_id_from_pick = []
+        for competence in all_competences:
+            if not check_kids(competence, selected_direction):
+                # если все компетенции не соответствуют выбранному направлению, то удаляем корневую из списка выбранных
+                exclude_id_from_list.append(competence.id)
+            if check_kids_for_pick(competence, selected_direction):
+                # если все компетенции соответствуют выбранному направлению, то удаляем корневую из списка для выбора
+                exclude_id_from_pick.append(competence.id)
+        return all_competences.exclude(id__in=exclude_id_from_list), all_competences.exclude(
+            id__in=exclude_id_from_pick)
 
 
 class BookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):

@@ -79,40 +79,6 @@ def pick_competence(competence, direction):
         competence.directions.add(direction)
 
 
-def get_context(obj):
-    selected_direction_id = obj.request.GET.get('direction')
-    member = Member.objects.get(user=obj.request.user)
-    affiliations = Affiliation.objects.filter(member=member)
-    directions = [aff.direction for aff in affiliations]
-    all_competences = Competence.objects.all().filter(parent_node__isnull=True)
-    competences = all_competences
-    if selected_direction_id:
-        selected_direction_id = int(selected_direction_id)
-        selected_direction = Direction.objects.get(id=selected_direction_id)
-    elif directions:
-        selected_direction_id = directions[0].id
-        selected_direction = directions[0]
-    else:
-        selected_direction_id = None
-        selected_direction = None
-        competences = []
-    exclude_id_from_list = []
-    exclude_id_from_pick = []
-    for competence in competences:
-        if not check_kids(competence, selected_direction):
-            # если все компетенции не соответствуют выбранному направлению, то удаляем корневую из списка выбранных
-            exclude_id_from_list.append(competence.id)
-        if check_kids_for_pick(competence, selected_direction):
-            # если все компетенции соответствуют выбранному направлению, то удаляем корневую из списка для выбора
-            exclude_id_from_pick.append(competence.id)
-    competences_list = competences.exclude(id__in=exclude_id_from_list)
-    picking_competences = competences.exclude(id__in=exclude_id_from_pick)
-    context = {'competences_list': competences_list, 'picking_competences': picking_competences,
-               'selected_direction_id': selected_direction_id,
-               'selected_direction': selected_direction, 'directions': directions, 'competence_active': True}
-    return context
-
-
 def check_kids(competence, direction):
     """
     Рекурсивно проверяет компетенцию и все ее дочерние компетенции.

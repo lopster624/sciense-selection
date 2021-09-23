@@ -35,6 +35,9 @@ class DataApplicationMixin:
     def get_all_directions(self):
         return Direction.objects.all()
 
+    def get_master_directions(self):
+        return Direction.objects.filter(affiliation__in=self.get_master_affiliations())
+
     def get_master_directions_id(self):
         return self.get_master_affiliations().values_list('direction__id', flat=True)
 
