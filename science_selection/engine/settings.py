@@ -23,7 +23,9 @@ SECRET_KEY = 'django-insecure-taz$&%yz_ay+9l_xod=lljge^6n&v@q%!(j%%&f$um5fojsos&
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
+INTERNAL_IPS = [
+    '127.0.0.1',
+]
 ALLOWED_HOSTS = []
 
 # Application definition
@@ -39,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'application.apps.ApplicationConfig',
     'account.apps.AccountConfig',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
@@ -49,6 +52,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'engine.urls'
@@ -123,7 +127,6 @@ STATIC_URL = '/static/'
 MEDIA_DIR = os.path.join(BASE_DIR, 'media')
 MEDIA_ROOT = MEDIA_DIR
 MEDIA_URL = '/media/'
-
 
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
