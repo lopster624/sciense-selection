@@ -146,10 +146,9 @@ class DocumentsInAppView(LoginRequiredMixin, View):
     @check_permission_decorator(const.MASTER_ROLE_NAME)
     def get(self, request, pk):
         file_templates = File.objects.filter(is_template=True).all()
-        app = Application.objects.filter(pk=pk).first()
+        app = get_object_or_404(Application, pk=pk)
         user_files = File.objects.filter(member=app.member).all()
-        context = {'file_templates': file_templates, 'user_files': user_files, 'document_active': True,
-                   'pk': pk}
+        context = {'file_templates': file_templates, 'user_files': user_files, 'document_active': True, 'pk': pk}
         return render(request, 'application/application_documents.html', context=context)
 
     @check_permission_decorator()
@@ -249,8 +248,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
         for comp_id in competence_direction_ids:
             level_competence = request.POST.get(str(comp_id), None)
             if level_competence:
-                competence = Competence.objects.filter(pk=comp_id).first()
-                ApplicationCompetencies.objects.update_or_create(application=user_app, competence=competence,
+                ApplicationCompetencies.objects.update_or_create(application=user_app, competence__pk=comp_id,
                                                                  defaults={'level': level_competence})
         user_app.save()
         user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
