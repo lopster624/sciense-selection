@@ -2,13 +2,15 @@ from io import BytesIO
 
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from docxtpl import DocxTemplate
 
 from account.models import Member, Affiliation, Booking, BookingType
-from application.models import Competence, Direction, Application, Education, ApplicationNote
+from application.models import ApplicationNote
+from utils.constants import IN_WISHLIST
+from application.models import Competence, Application, Education
 from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
-    PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT, IN_WISHLIST
+    PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT
 from utils.calculations import get_current_draft_year, convert_float
 
 
@@ -75,44 +77,9 @@ def delete_competence(competence_id, direction):
         delete_competence(sub_competence.id, direction)
 
 
-def pick_competence(competence_id, direction):
-    competence = Competence.objects.get(id=competence_id)
+def pick_competence(competence, direction):
     if not competence.directions.all().filter(id=direction.id).exists():
         competence.directions.add(direction)
-
-
-def get_context(obj):
-    selected_direction_id = obj.request.GET.get('direction')
-    member = Member.objects.get(user=obj.request.user)
-    affiliations = Affiliation.objects.filter(member=member)
-    directions = [aff.direction for aff in affiliations]
-    all_competences = Competence.objects.all().filter(parent_node__isnull=True)
-    competences = all_competences
-    if selected_direction_id:
-        selected_direction_id = int(selected_direction_id)
-        selected_direction = Direction.objects.get(id=selected_direction_id)
-    elif directions:
-        selected_direction_id = directions[0].id
-        selected_direction = directions[0]
-    else:
-        selected_direction_id = None
-        selected_direction = None
-        competences = []
-    exclude_id_from_list = []
-    exclude_id_from_pick = []
-    for competence in competences:
-        if not check_kids(competence, selected_direction):
-            # если все компетенции не соответствуют выбранному направлению, то удаляем корневую из списка выбранных
-            exclude_id_from_list.append(competence.id)
-        if check_kids_for_pick(competence, selected_direction):
-            # если все компетенции соответствуют выбранному направлению, то удаляем корневую из списка для выбора
-            exclude_id_from_pick.append(competence.id)
-    competences_list = competences.exclude(id__in=exclude_id_from_list)
-    picking_competences = competences.exclude(id__in=exclude_id_from_pick)
-    context = {'competences_list': competences_list, 'picking_competences': picking_competences,
-               'selected_direction_id': selected_direction_id,
-               'selected_direction': selected_direction, 'directions': directions, 'competence_active': True}
-    return context
 
 
 def check_kids(competence, direction):
@@ -160,6 +127,16 @@ def check_permission_decorator(role_name=None):
         return wrapper
 
     return decorator
+
+
+def check_final_decorator(func):
+    def wrapper(self, request, pk, *args, **kwargs):
+        user_app = get_object_or_404(Application, pk=pk)
+        if user_app.is_final:
+            return redirect(request.path_info)
+        return func(self, request, pk, *args, **kwargs)
+
+    return wrapper
 
 
 class WordTemplate:

@@ -15,42 +15,38 @@ from django.views.generic.list import ListView
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
 from utils import constants as const
-
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
-from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin
+from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities
-from .utils import pick_competence, delete_competence, get_context, \
-    check_permission_decorator, WordTemplate, check_booking_our, get_filtered_sorted_queryset, get_application_note
+from .utils import pick_competence, delete_competence, check_permission_decorator, WordTemplate, check_booking_our, \
+    get_filtered_sorted_queryset, check_final_decorator, check_kids, check_kids_for_pick, get_application_note
 
 
-class ChooseDirectionInAppView(LoginRequiredMixin, View):
+class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
     """ Показывает список имеющихся направлений. Сохраняет список выбранных направлений в заявке. """
 
     @check_permission_decorator(const.MASTER_ROLE_NAME)
     def get(self, request, pk):
         user_app = get_object_or_404(Application, pk=pk)
-        context = {'direction_active': True, 'pk': pk}
+        selected_directions = [_.id for _ in user_app.directions.all()]
+        context = {'direction_active': True, 'pk': pk, 'directions': self.get_all_directions(),
+                   'selected_directions': selected_directions}
         if request.user.member.is_master() or user_app.is_final:
             context.update({'blocked': True})
-        directions = Direction.objects.all()
-        selected_directions = [_.id for _ in user_app.directions.all()]
-        context.update({'directions': directions, 'selected_directions': selected_directions})
         return render(request, 'application/application_direction_choose.html', context=context)
 
+    @check_final_decorator
     @check_permission_decorator()
     def post(self, request, pk):
         user_app = get_object_or_404(Application, pk=pk)
-        if user_app.is_final:
-            return redirect(request.path_info)
         selected_directions = request.POST.getlist('direction')
         user_app.directions.clear()
         if selected_directions:
             directions = Direction.objects.filter(pk__in=selected_directions)
             user_app.directions.add(*list(directions))
         user_app.save()
-        directions = Direction.objects.all()
-        context = {'directions': directions, 'selected_directions': list(map(int, selected_directions)),
+        context = {'directions': self.get_all_directions(), 'selected_directions': list(map(int, selected_directions)),
                    'direction_active': True, 'pk': pk}
         return render(request, 'application/application_direction_choose.html', context=context)
 
@@ -181,21 +177,23 @@ class CreateWordAppView(LoginRequiredMixin, View):
         return response
 
 
-class AddCompetencesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+class AddCompetencesView(MasterDataMixin, View):
+    """Добавляет все выбранные компетенции в направление, id которого = direction_id"""
+
     def post(self, request, direction_id):
         direction = Direction.objects.get(id=direction_id)
         chosen_competences = request.POST.getlist('chosen_competences')
-        chosen_competences_id = [int(competence_id) for competence_id in chosen_competences]
-        for competence_id in chosen_competences_id:
-            pick_competence(competence_id, direction)
+        competences = Competence.objects.filter(id__in=chosen_competences)
+        for competence in competences:
+            pick_competence(competence, direction)
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
-class DeleteCompetenceView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+class DeleteCompetenceView(DataApplicationMixin, View):
+    """Рекурсивно удаляет компетенцию с competence_id и все ее дочерние из направления с direction_id"""
+
     def get(self, request, competence_id, direction_id):
-        master_direction_id = Affiliation.objects.filter(member=request.user.member).values_list('direction__id',
-                                                                                                 flat=True)
-        if direction_id not in master_direction_id:
+        if direction_id not in self.get_master_directions_id():
             return PermissionDenied('Невозможно удалить компетенцию из чужого направления.')
         direction = Direction.objects.get(id=direction_id)
         delete_competence(competence_id, direction)
@@ -242,11 +240,10 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
             context.update({'msg': 'Заполните направления', 'name': 'choose_app_direction'})
         return render(request, 'application/application_competence_choose.html', context=context)
 
+    @check_final_decorator
     @check_permission_decorator()
     def post(self, request, pk):
         user_app = get_object_or_404(Application, pk=pk)
-        if user_app.is_final:
-            return redirect(request.path_info)
         user_directions = user_app.directions.all()
         competence_direction_ids = [_.id for _ in Competence.objects.filter(directions__in=user_directions).distinct()]
         for comp_id in competence_direction_ids:
@@ -267,9 +264,10 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
 
 
 class MasterFileTemplatesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+    """Показывает список уже загруженных файлов на сервер и позволяет загрузить новые"""
+
     def get(self, request):
         files = File.objects.filter(is_template=True).all()
-        # показывает список уже загруженных файлов на сервер и позволяет загрузить новые
         return render(request, 'application/documents.html', context={'file_list': files})
 
     def post(self, request):
@@ -283,6 +281,8 @@ class MasterFileTemplatesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 
 class DeleteFileView(LoginRequiredMixin, View):
+    """Удаляет файл по file_id"""
+
     def get(self, request, file_id):
         file = File.objects.get(id=file_id)
         if file.member != request.user.member:
@@ -314,8 +314,6 @@ class ApplicationListView(MasterDataMixin, ListView):
 
     def get_queryset(self):
         apps = Application.objects.all()
-        self.master_affiliations = self.get_master_affiliations()
-        master_direction_id = self.master_affiliations.values_list('direction__id', flat=True)
         if self.request.GET:
             apps = get_filtered_sorted_queryset(apps, self.request)
         for app in apps:
@@ -325,32 +323,32 @@ class ApplicationListView(MasterDataMixin, ListView):
             if booking:
                 app.is_booked = True  # данный человек в принципе забронирован
                 app.affiliation = booking.first().affiliation
-                if booking.filter(affiliation__in=self.master_affiliations):
+                if booking.filter(affiliation__in=self.get_master_affiliations()):
                     app.is_booked_our = True
-                    if booking.filter(affiliation__in=self.master_affiliations, master=self.request.user.member):
+                    if booking.filter(affiliation__in=self.get_master_affiliations(), master=self.request.user.member):
                         app.can_unbook = True
 
             in_wishlist = Booking.objects.filter(slave=app.member, booking_type__name=const.IN_WISHLIST)
             if in_wishlist:
                 app.wishlist_len = len(in_wishlist)
                 wishlist_affiliations = Booking.objects.filter(slave=app.member, booking_type__name=const.IN_WISHLIST,
-                                                               affiliation__in=self.master_affiliations).values_list(
+                                                               affiliation__in=self.get_master_affiliations()).values_list(
                     'affiliation', flat=True)
                 if wishlist_affiliations:
                     app.wishlist_affiliations = Affiliation.objects.filter(id__in=wishlist_affiliations)
                     app.is_in_wishlist = True  # данный человек находится в вишлисте мастера
 
             slave_directions = app.directions.all()
-            available_directions = slave_directions.filter(id__in=master_direction_id)
+            available_directions = slave_directions.filter(id__in=self.get_master_directions_id())
             app.our_direction = True if available_directions else False
-            app.available_affiliations = self.master_affiliations.filter(direction__in=slave_directions)
-            app.note = get_application_note(self.request.user.member, self.master_affiliations, app)
+            app.available_affiliations = self.get_master_affiliations().filter(direction__in=slave_directions)
+            app.note = get_application_note(self.request.user.member, self.get_master_affiliations(), app)
         return apps
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        directions_set = [(aff.direction.id, aff.direction) for aff in self.master_affiliations]
-        in_wishlist_set = [(affiliation.id, affiliation) for affiliation in self.master_affiliations]
+        directions_set = [(aff.direction.id, aff.direction) for aff in self.get_master_affiliations()]
+        in_wishlist_set = [(affiliation.id, affiliation) for affiliation in self.get_master_affiliations()]
         draft_year_set = Application.objects.order_by('draft_year').distinct().values_list('draft_year', 'draft_year')
         filter_form = FilterForm(self.request.GET, directions_set=directions_set, in_wishlist_set=in_wishlist_set,
                                  draft_year_set=draft_year_set, chosen_affiliation_set=in_wishlist_set)
@@ -360,17 +358,52 @@ class ApplicationListView(MasterDataMixin, ListView):
         return context
 
 
-class CompetenceListView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+class CompetenceListView(MasterDataMixin, View):
     def get(self, request):
-        context = get_context(self)
+        if self.get_chosen_direction() is None:
+            return render(request, 'access_error.html',
+                          context={
+                              'error': f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.'})
+        competences_list, picking_competences = self.get_competences_lists(self.get_root_competences(),
+                                                                           self.get_chosen_direction())
+        context = {'competences_list': competences_list, 'picking_competences': picking_competences,
+                   'selected_direction': self.get_chosen_direction(), 'directions': self.get_master_directions(),
+                   'competence_active': True}
         return render(request, 'application/competence_list.html', context=context)
 
-    def post(self, request):
-        context = get_context(self)
-        return render(request, 'application/competence_list.html', context=context)
+    def get_chosen_direction(self):
+        """Возвращает выбранное направление, если оно было получено через GET, первое направление,
+         закрепленное за пользователем или None, если первых двух нет"""
+        selected_direction_id = self.request.GET.get('direction')
+        if selected_direction_id:
+            return Direction.objects.get(id=int(selected_direction_id))
+        return self.get_master_directions().first() if self.get_master_directions() else None
+
+    def get_competences_lists(self, all_competences, selected_direction):
+        """
+        Возвращает кортеж листов доступных корневых компетенций для выбора и уже выбранных
+        :param all_competences: Корни всех компетенций
+        :param selected_direction: Выбранное направлени
+        :return: кортеж <корни всех выбранных компетенций> <корни всех доступных компетенций>
+        """
+        if selected_direction is None:
+            return [], all_competences
+        exclude_id_from_list = []
+        exclude_id_from_pick = []
+        for competence in all_competences:
+            if not check_kids(competence, selected_direction):
+                # если все компетенции не соответствуют выбранному направлению, то удаляем корневую из списка выбранных
+                exclude_id_from_list.append(competence.id)
+            if check_kids_for_pick(competence, selected_direction):
+                # если все компетенции соответствуют выбранному направлению, то удаляем корневую из списка для выбора
+                exclude_id_from_pick.append(competence.id)
+        return all_competences.exclude(id__in=exclude_id_from_list), all_competences.exclude(
+            id__in=exclude_id_from_pick)
 
 
 class BookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+    """Бронирует анкету с id=pk текущим пользователем на направления, полученные из post"""
+
     def post(self, request, pk):
         affiliation_id = request.POST.get('affiliation', None)
         slave_member = Member.objects.get(application__id=pk)
@@ -382,6 +415,8 @@ class BookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 
 class UnBookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+    """Удаляет из бронирования анкету с id=pk текущим пользователем с направления id=aff_id"""
+
     def post(self, request, pk, aff_id):
         slave_member = Member.objects.get(application__id=pk)
         booking = Booking.objects.filter(master=request.user.member, slave=slave_member,
@@ -400,6 +435,8 @@ class UnBookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 
 class AddInWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+    """Добавляет в список желания на направления, полученные из post заявку с id=pk"""
+
     def post(self, request, pk):
         affiliations_id = request.POST.getlist('affiliations', None)
         slave_member = Member.objects.get(application__id=pk)
@@ -412,6 +449,8 @@ class AddInWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 
 class DeleteFromWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+    """Удаляет из списка желаемых заявку с id=pk с направлений, полученных с post"""
+
     def post(self, request, pk):
         affiliations_id = request.POST.getlist('affiliations', None)
         slave_member = Member.objects.get(application__id=pk)
@@ -441,10 +480,15 @@ def ajax_search_universities(request):
     return HttpResponse(result)
 
 
-class EditApplicationNote(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+class EditApplicationNote(MasterDataMixin, View):
+    """
+    Редактирует существующую заметку и добавляет к ней список взводов автора.
+    Удаляет заметку, если она пустая и создает новую, если заметка отсутствует
+    """
+
     def post(self, request, pk):
         text = request.POST.get('note_text', '')
-        master_affiliations = Affiliation.objects.filter(member=request.user.member)
+        master_affiliations = self.get_master_affiliations()
         app_note = ApplicationNote.objects.filter(application=pk, affiliations__in=master_affiliations,
                                                   author=request.user.member).distinct().first()
         if app_note:
@@ -469,12 +513,14 @@ class CompetenceAutocomplete(LoginRequiredMixin, autocomplete.Select2QuerySetVie
     query params:
         q: string - строка шаблон, по которой фильтруются компетенции
     """
+
     def get_queryset(self):
         return Competence.objects.filter(name__istartswith=self.q) if self.q else Competence.objects.all()
 
 
 class ChangeAppFinishedView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     """ Обработка post запроса на блокирование редактирования анкеты пользователя"""
+
     def post(self, request, pk):
         is_final = True if request.POST.get('is_final', None) == 'on' else False
         if check_booking_our(pk=pk, user=request.user):
@@ -494,6 +540,7 @@ class CreateServiceDocumentView(LoginRequiredMixin, OnlyMasterAccessMixin, View)
             rating - для рейтингового списка призыва
             evaluation-statement - для итогового списка кандидатов
     """
+
     def get(self, request):
         service_document = request.GET.get('doc', '')
         all_directions = True if request.GET.get('directions', None) else False
