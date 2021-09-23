@@ -153,19 +153,16 @@ class WordTemplate:
         return user_docx
 
     def create_context_to_interview_list(self, pk):
-        user_app = Application.objects.filter(pk=pk).values()
-        user_education = Education.objects.filter(application=user_app[0]['id']).order_by('-end_year').values()
-        member = Member.objects.filter(pk=user_app[0]['member_id']).first()
-        user = User.objects.filter(pk=member.user_id).first()
-        context = {**user_app[0], **user_education[0]}
-        context.update({'father_name': member.father_name, 'phone': member.phone})
-        context.update({'first_name': user.first_name, 'last_name': user.last_name})
+        user_app = Application.objects.filter(pk=pk)
+        user_education = user_app[0].education.order_by('-end_year').values()
+        context = {**user_app.values()[0], **user_education[0]}
+        context.update({'father_name': user_app[0].member.father_name, 'phone': user_app[0].member.phone})
+        context.update({'first_name': user_app[0].member.user.first_name, 'last_name': user_app[0].member.user.last_name})
         return context
 
     def create_context_to_word_files(self, document_type, all_directions=None):
         current_year, current_season = get_current_draft_year()
         fixed_directions = self.request.user.member.affiliations.all() if not all_directions else Affiliation.objects.all()
-        selected_type = BookingType.objects.filter(name=BOOKED).first()
         context = {'directions': []}
         for direction in fixed_directions:
             platoon_data = {
@@ -173,7 +170,7 @@ class WordTemplate:
                 'company_number': direction.company,
                 'members': []
             }
-            booked = Booking.objects.filter(affiliation=direction, booking_type=selected_type)
+            booked = Booking.objects.filter(affiliation=direction, booking_type__name=BOOKED)
             for i, b in enumerate(booked):
                 user_app = Application.objects.filter(member=b.slave, draft_year=current_year,
                                                       draft_season=current_season[0]).first()
@@ -193,7 +190,8 @@ class WordTemplate:
                     elif document_type == PATH_TO_EVALUATION_STATEMENT:
                         additional_info = self._get_evaluation_st_info(user_app)
                     platoon_data['members'].append({**additional_info, **general_info})
-            context['directions'].append(platoon_data)
+            if platoon_data['members']:
+                context['directions'].append(platoon_data)
         return context
 
     def _get_evaluation_st_info(self, user_app):

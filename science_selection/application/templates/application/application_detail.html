@@ -115,7 +115,7 @@
                     <div class="card text-center mb-1">
                         <div class="card-header"><h6>{{ educate.get_education_type_display }}</h6></div>
                         <div class="card-body text-dark">
-                            <p class="card-title">Университет: {{ educate.university }}</p>
+                            <p class="card-title {% if not educate.check_name_uni %} bg-danger text-dark bg-opacity-25 rounded{% endif %}">Университет: {{ educate.university }}</p>
                             <p class="card-text">Специальнсть: {{ educate.specialization }} </p>
                             <p class="card-text">Средний балл: {{ educate.avg_score }}</p>
                             <p class="card-text">Наименование документа: {{ educate.name_of_education_doc }}</p>

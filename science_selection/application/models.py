@@ -211,6 +211,9 @@ class Education(models.Model):
     def __str__(self):
         return f'{self.application.member.user.first_name} {self.application.member.user.last_name}: {self.get_education_type_display()}'
 
+    def check_name_uni(self):
+        return True if Universities.objects.filter(name=self.university) else False
+
     def get_education_type_display(self):
         return next(name for ed_type, name in self.education_program if ed_type == self.education_type)
 
