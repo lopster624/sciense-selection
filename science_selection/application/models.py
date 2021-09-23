@@ -304,10 +304,10 @@ class Competence(models.Model):
 
 class ApplicationCompetencies(models.Model):
     competence_levels = [
-        (0, ''),
-        (1, 'Базовый'),
-        (2, 'Можешь писать программы'),
-        (3, 'Бог')
+        (0, 'не владеете компетенцией'),
+        (1, 'уровнень базовых знаний, лабораторных работ вузовского курса'),
+        (2, 'уровнень, позволяющий принимать участие в реальных проектах, конкурсах и т.п.'),
+        (3, 'уровнень, позволяющий давать обоснованные рекомендации по совершенствованию компетенции разработчикам данной компетенции')
     ]
     application = models.ForeignKey(Application, on_delete=models.CASCADE)
     competence = models.ForeignKey(Competence, on_delete=models.CASCADE)

@@ -247,11 +247,11 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
         user_directions = user_app.directions.all()
         competence_direction_ids = [_.id for _ in Competence.objects.filter(directions__in=user_directions).distinct()]
         for comp_id in competence_direction_ids:
-            level_competence = int(request.POST.get(str(comp_id), 0))
-            if level_competence and level_competence != 0:
+            level_competence = request.POST.get(str(comp_id), None)
+            if level_competence:
                 competence = Competence.objects.filter(pk=comp_id).first()
                 ApplicationCompetencies.objects.update_or_create(application=user_app, competence=competence,
-                                                                 level=level_competence)
+                                                                 defaults={'level': level_competence})
         user_app.save()
         user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
         selected_competencies = {_.competence.id: _.level for _ in user_competencies}
@@ -539,6 +539,7 @@ class CreateServiceDocumentView(LoginRequiredMixin, OnlyMasterAccessMixin, View)
             candidates - для итогового списка кандидатов
             rating - для рейтингового списка призыва
             evaluation-statement - для итогового списка кандидатов
+        directions: True/False - делать выборку по всем направлениям/по направлениям закрепленными за пользователем
     """
 
     def get(self, request):
