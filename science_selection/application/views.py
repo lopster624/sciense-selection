@@ -244,7 +244,8 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
     def post(self, request, pk):
         user_app = get_object_or_404(Application, pk=pk)
         user_directions = user_app.directions.all()
-        competence_direction_ids = [_.id for _ in Competence.objects.filter(directions__in=user_directions).distinct()]
+        competencies_of_direction = Competence.objects.filter(directions__in=user_directions).distinct()
+        competence_direction_ids = [_.id for _ in competencies_of_direction]
         for comp_id in competence_direction_ids:
             level_competence = request.POST.get(str(comp_id), None)
             if level_competence:
@@ -253,7 +254,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
         user_app.save()
         user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
         selected_competencies = {_.competence.id: _.level for _ in user_competencies}
-        competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).distinct()
+        competencies = competencies_of_direction.filter(parent_node__isnull=True)
 
         context = {'competencies': competencies, 'levels': ApplicationCompetencies.competence_levels,
                    'selected_competencies': selected_competencies, 'pk': pk, 'competence_active': True,
