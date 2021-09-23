@@ -67,5 +67,5 @@ PATH_TO_EVALUATION_STATEMENT = os.path.join(os.path.abspath(os.curdir), 'static\
 TYPE_SERVICE_DOCUMENT = {
     'candidates': (PATH_TO_CANDIDATES_LIST, "Итоговый список кандидатов.docx"),
     'rating': (PATH_TO_RATING_LIST, "Рейтинговый список призыва.docx"),
-    'evaluation-statement': (PATH_TO_EVALUATION_STATEMENT, "Итоговый список кандидатов.docx"),
+    'evaluation-statement': (PATH_TO_EVALUATION_STATEMENT, "Оценочная ведомость.docx"),
 }

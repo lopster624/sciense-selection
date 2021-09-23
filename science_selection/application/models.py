@@ -258,7 +258,8 @@ class File(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        self.member.application.save()
+        if self.member.is_slave():
+            self.member.application.save()
 
 
 class AdditionField(models.Model):

@@ -1,12 +1,15 @@
+from io import BytesIO
+
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from docxtpl import DocxTemplate
-from io import BytesIO
 
 from account.models import Member, Affiliation, Booking, BookingType
 from application.models import Competence, Direction, Application, Education, ApplicationNote
-from utils.constants import MASTER_ROLE_NAME, SLAVE_ROLE_NAME, BOOKED, IN_WISHLIST
+from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
+    PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT, IN_WISHLIST
+from utils.calculations import get_current_draft_year, convert_float
 
 
 def get_application_note(member, master_affiliations, app):
@@ -55,9 +58,6 @@ def get_filtered_sorted_queryset(apps, request):
     if ordering:
         apps = apps.order_by(ordering)
     return apps
-from application.models import Competence, Direction, Application, Education
-from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
-    PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT
 
 
 def check_role(user, role_name):
@@ -185,10 +185,9 @@ class WordTemplate:
         context.update({'first_name': user.first_name, 'last_name': user.last_name})
         return context
 
-    # TODO спросить про то, кого заносить в список (всех отобранных?) + все роты или только те, которые закреплены за пользователем
-    # подумать про штуку со следующим отбором (забронированные кандидаты же остануться, а их не надо выводить) => после отрефакторить
-    def create_context_to_word_files(self, document_type):
-        fixed_directions = self.request.user.member.affiliations.all()
+    def create_context_to_word_files(self, document_type, all_directions=None):
+        current_year, current_season = get_current_draft_year()
+        fixed_directions = self.request.user.member.affiliations.all() if not all_directions else Affiliation.objects.all()
         selected_type = BookingType.objects.filter(name=BOOKED).first()
         context = {'directions': []}
         for direction in fixed_directions:
@@ -199,29 +198,31 @@ class WordTemplate:
             }
             booked = Booking.objects.filter(affiliation=direction, booking_type=selected_type)
             for i, b in enumerate(booked):
-                user_app = Application.objects.filter(member=b.slave).first()
-                user_last_education = user_app.education.order_by('-end_year').first()
-                general_info, additional_info = {
-                    'number': i + 1,
-                    'first_name': b.slave.user.first_name,
-                    'last_name': b.slave.user.last_name,
-                    'father_name': b.slave.father_name,
-                    'final_score': user_app.final_score,
-                }, {}
-                if document_type == PATH_TO_CANDIDATES_LIST:
-                    additional_info = self._get_candidates_info(user_app, user_last_education)
-                elif document_type == PATH_TO_RATING_LIST:
-                    additional_info = self._get_rating_info(user_app, user_last_education)
-                elif document_type == PATH_TO_EVALUATION_STATEMENT:
-                    additional_info = self._get_evaluation_st_info(user_app)
-                platoon_data['members'].append({**additional_info, **general_info})
+                user_app = Application.objects.filter(member=b.slave, draft_year=current_year,
+                                                      draft_season=current_season[0]).first()
+                if user_app:
+                    user_last_education = user_app.education.order_by('-end_year').first()
+                    general_info, additional_info = {
+                        'number': i + 1,
+                        'first_name': b.slave.user.first_name,
+                        'last_name': b.slave.user.last_name,
+                        'father_name': b.slave.father_name,
+                        'final_score': convert_float(user_app.final_score),
+                    }, {}
+                    if document_type == PATH_TO_CANDIDATES_LIST:
+                        additional_info = self._get_candidates_info(user_app, user_last_education)
+                    elif document_type == PATH_TO_RATING_LIST:
+                        additional_info = self._get_rating_info(user_app, user_last_education)
+                    elif document_type == PATH_TO_EVALUATION_STATEMENT:
+                        additional_info = self._get_evaluation_st_info(user_app)
+                    platoon_data['members'].append({**additional_info, **general_info})
             context['directions'].append(platoon_data)
         return context
 
     def _get_evaluation_st_info(self, user_app):
         return {
-            **user_app.scores.__dict__,
-            **MEANING_COEFFICIENTS,
+            **{k: convert_float(v) for k, v in MEANING_COEFFICIENTS.items()},
+            **{k: convert_float(v) for k, v in user_app.scores.__dict__.items() if isinstance(v, float)},
         }
 
     def _get_rating_info(self, user_app, user_last_education):
