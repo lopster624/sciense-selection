@@ -63,7 +63,7 @@ def get_filtered_sorted_queryset(apps, request):
 
 
 def check_role(user, role_name):
-    member = Member.objects.get(user=user)
+    member = Member.objects.select_related('role').get(user=user)
     if member.role.role_name == role_name:
         return True
     return False
