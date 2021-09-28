@@ -1,5 +1,3 @@
-import datetime
-
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, F, Q
 from django.shortcuts import render, redirect
@@ -7,10 +5,10 @@ from django.views import View
 
 from application.mixins import OnlySlaveAccessMixin, MasterDataMixin
 from application.models import Application
-from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED, MASTER_ROLE_NAME, DEFAULT_FILED_BLOCKS
-
+from utils.calculations import get_current_draft_year
+from utils.constants import SLAVE_ROLE_NAME, BOOKED, DEFAULT_FILED_BLOCKS
 from .forms import RegisterForm
-from .models import Member, ActivationLink, Role, Affiliation, Booking, BookingType
+from .models import Member, ActivationLink, Role, Booking
 
 
 class RegistrationView(View):
@@ -52,14 +50,13 @@ class ActivationView(LoginRequiredMixin, View):
 
 class HomeMasterView(MasterDataMixin, View):
     def get(self, request):
-        current_date = datetime.date.today()
-        middle_date = datetime.date(current_date.year, MIDDLE_RECRUITING_DATE['month'], MIDDLE_RECRUITING_DATE['day'])
-        recruiting_season = (2, 'Осень') if current_date > middle_date else (1, 'Весна')
-        all_apps = Application.objects.filter(draft_season=recruiting_season[0], draft_year=current_date.year)
+        current_year, current_season = get_current_draft_year()
+        current_season_num = current_season[0]
+        all_apps = Application.objects.filter(draft_season=current_season_num, draft_year=current_year)
         master_affiliations = self.get_master_affiliations().annotate(
             count_apps=Count(
-                F('direction__application'), filter=Q(direction__application__draft_season=recruiting_season[0],
-                                                      direction__application__draft_year=current_date.year),
+                F('direction__application'), filter=Q(direction__application__draft_season=current_season_num,
+                                                      direction__application__draft_year=current_year),
                 distinct=True),
             booked_count=Count(
                 F('booking'),
@@ -69,8 +66,8 @@ class HomeMasterView(MasterDataMixin, View):
         ).annotate(booking_percent=F('booked_count') * 100 / 20).select_related('direction').order_by('-direction')
 
         return render(request, 'account/home_master.html',
-                      context={'recruiting_season': recruiting_season[1], 'count_apps': all_apps.count(),
-                               'master_affiliations': master_affiliations, 'recruiting_year': current_date.year})
+                      context={'recruiting_season': current_season[1], 'count_apps': all_apps.count(),
+                               'master_affiliations': master_affiliations, 'recruiting_year': current_year})
 
 
 class HomeView(LoginRequiredMixin, View):
