@@ -23,7 +23,7 @@ class Application(models.Model):
                                   related_name='application')
     competencies = models.ManyToManyField('Competence', verbose_name='Выбранные компетенции',
                                           through='ApplicationCompetencies', blank=True)
-    directions = models.ManyToManyField('Direction', verbose_name='Выбранные направления', blank=True)
+    directions = models.ManyToManyField('Direction', verbose_name='Выбранные направления', blank=True, related_name='application')
     birth_day = models.DateField(verbose_name='Дата рождения')
     birth_place = models.CharField(max_length=128, verbose_name='Место рождения')
     nationality = models.CharField(max_length=128, verbose_name='Гражданство')

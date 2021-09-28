@@ -85,7 +85,8 @@ class Booking(models.Model):
     booking_type = models.ForeignKey(BookingType, verbose_name="Тип бронирования", on_delete=models.SET_NULL, null=True)
     master = models.ForeignKey(Member, verbose_name="Ведущий отбор", on_delete=models.CASCADE)
     slave = models.ForeignKey(Member, verbose_name="Кандидат", on_delete=models.CASCADE, related_name='candidate')
-    affiliation = models.ForeignKey(Affiliation, verbose_name="Принадлежность", null=True, on_delete=models.SET_NULL)
+    affiliation = models.ForeignKey(Affiliation, verbose_name="Принадлежность", null=True, related_name='booking',
+                                    on_delete=models.SET_NULL)
 
     class Meta:
         verbose_name = "Бронирование"

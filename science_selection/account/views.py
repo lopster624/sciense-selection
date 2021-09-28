@@ -1,13 +1,13 @@
 import datetime
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Count, F, Q
 from django.shortcuts import render, redirect
 from django.views import View
 
-from application.mixins import OnlyMasterAccessMixin, OnlySlaveAccessMixin
+from application.mixins import OnlySlaveAccessMixin, MasterDataMixin
 from application.models import Application
-from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED, MASTER_ROLE_NAME, DEFAULT_FILED_BLOCKS
-
+from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED, DEFAULT_FILED_BLOCKS
 from .forms import RegisterForm
 from .models import Member, ActivationLink, Role, Affiliation, Booking, BookingType
 
@@ -49,26 +49,27 @@ class ActivationView(LoginRequiredMixin, View):
         return redirect('home')
 
 
-class HomeMasterView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+class HomeMasterView(MasterDataMixin, View):
     def get(self, request):
         current_date = datetime.date.today()
         middle_date = datetime.date(current_date.year, MIDDLE_RECRUITING_DATE['month'], MIDDLE_RECRUITING_DATE['day'])
         recruiting_season = (2, 'Осень') if current_date > middle_date else (1, 'Весна')
-        master_member = Member.objects.get(user=self.request.user)
-        master_affiliations = Affiliation.objects.filter(member=master_member)
         all_apps = Application.objects.filter(draft_season=recruiting_season[0], draft_year=current_date.year)
-        affiliations_report = []
-        for affiliation in master_affiliations:
-            direction_apps_count = all_apps.filter(directions=affiliation.direction).count()
-            booked_count = Booking.objects.filter(slave__id__in=all_apps.values_list('member'),
-                                                  booking_type__name=BOOKED,
-                                                  affiliation=affiliation).count()
-            booking_percent = int(booked_count / 20 * 100)
-            affiliations_report.append([affiliation, direction_apps_count, booked_count, booking_percent])
+        master_affiliations = self.get_master_affiliations().annotate(
+            count_apps=Count(
+                F('direction__application'), filter=Q(direction__application__draft_season=recruiting_season[0],
+                                                      direction__application__draft_year=current_date.year),
+                distinct=True),
+            booked_count=Count(
+                F('booking'),
+                filter=Q(booking__slave__id__in=all_apps.values_list('member'), booking__booking_type__name=BOOKED),
+                distinct=True
+            )
+        ).annotate(booking_percent=F('booked_count') * 100 / 20).select_related('direction').order_by('-direction')
 
         return render(request, 'account/home_master.html',
                       context={'recruiting_season': recruiting_season[1], 'count_apps': all_apps.count(),
-                               'reports': affiliations_report, 'recruiting_year': current_date.year})
+                               'master_affiliations': master_affiliations, 'recruiting_year': current_date.year})
 
 
 class HomeView(LoginRequiredMixin, View):
