@@ -146,10 +146,9 @@ class DocumentsInAppView(LoginRequiredMixin, View):
     @check_permission_decorator(const.MASTER_ROLE_NAME)
     def get(self, request, pk):
         file_templates = File.objects.filter(is_template=True).all()
-        app = Application.objects.filter(pk=pk).first()
+        app = get_object_or_404(Application, pk=pk)
         user_files = File.objects.filter(member=app.member).all()
-        context = {'file_templates': file_templates, 'user_files': user_files, 'document_active': True,
-                   'pk': pk}
+        context = {'file_templates': file_templates, 'user_files': user_files, 'document_active': True, 'pk': pk}
         return render(request, 'application/application_documents.html', context=context)
 
     @check_permission_decorator()
@@ -245,17 +244,17 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
     def post(self, request, pk):
         user_app = get_object_or_404(Application, pk=pk)
         user_directions = user_app.directions.all()
-        competence_direction_ids = [_.id for _ in Competence.objects.filter(directions__in=user_directions).distinct()]
+        competencies_of_direction = Competence.objects.filter(directions__in=user_directions).distinct()
+        competence_direction_ids = [_.id for _ in competencies_of_direction]
         for comp_id in competence_direction_ids:
-            level_competence = int(request.POST.get(str(comp_id), 0))
-            if level_competence and level_competence != 0:
-                competence = Competence.objects.filter(pk=comp_id).first()
-                ApplicationCompetencies.objects.update_or_create(application=user_app, competence=competence,
-                                                                 level=level_competence)
+            level_competence = request.POST.get(str(comp_id), None)
+            if level_competence:
+                ApplicationCompetencies.objects.update_or_create(application=user_app, competence__pk=comp_id,
+                                                                 defaults={'level': level_competence})
         user_app.save()
         user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
         selected_competencies = {_.competence.id: _.level for _ in user_competencies}
-        competencies = Competence.objects.filter(directions__in=user_directions, parent_node__isnull=True).distinct()
+        competencies = competencies_of_direction.filter(parent_node__isnull=True)
 
         context = {'competencies': competencies, 'levels': ApplicationCompetencies.competence_levels,
                    'selected_competencies': selected_competencies, 'pk': pk, 'competence_active': True,
@@ -288,7 +287,8 @@ class DeleteFileView(LoginRequiredMixin, View):
         if file.member != request.user.member:
             return PermissionDenied('Только загрузивший пользователь может удалить файл.')
         file.delete()
-        request.user.member.application.save()
+        if request.user.member.is_slave():
+            request.user.member.application.save()
         return redirect(request.META.get('HTTP_REFERER'))
 
 
@@ -538,14 +538,16 @@ class CreateServiceDocumentView(LoginRequiredMixin, OnlyMasterAccessMixin, View)
             candidates - для итогового списка кандидатов
             rating - для рейтингового списка призыва
             evaluation-statement - для итогового списка кандидатов
+        directions: True/False - делать выборку по всем направлениям/по направлениям закрепленными за пользователем
     """
 
     def get(self, request):
         service_document = request.GET.get('doc', '')
+        all_directions = True if request.GET.get('directions', None) else False
         path_to_file, filename = const.TYPE_SERVICE_DOCUMENT.get(service_document, (None, None))
         if path_to_file:
             word_template = WordTemplate(request, path_to_file)
-            context = word_template.create_context_to_word_files(path_to_file)
+            context = word_template.create_context_to_word_files(path_to_file, all_directions)
             user_docx = word_template.create_word_in_buffer(context)
             response = HttpResponse(user_docx, content_type='application/docx')
             response['Content-Disposition'] = 'attachment; filename="' + escape_uri_path(filename) + '"'

@@ -29,6 +29,7 @@ class Affiliation(models.Model):
     class Meta:
         verbose_name = "Принадлежность"
         verbose_name_plural = "Принадлежности"
+        ordering = ('company', 'platoon')
 
     def __str__(self):
         return f'{self.company} рота, {self.platoon} взвод'

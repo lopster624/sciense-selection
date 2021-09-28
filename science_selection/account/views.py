@@ -7,7 +7,8 @@ from django.views import View
 
 from application.mixins import OnlySlaveAccessMixin, MasterDataMixin
 from application.models import Application
-from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED, DEFAULT_FILED_BLOCKS
+from utils.constants import SLAVE_ROLE_NAME, MIDDLE_RECRUITING_DATE, BOOKED, MASTER_ROLE_NAME, DEFAULT_FILED_BLOCKS
+
 from .forms import RegisterForm
 from .models import Member, ActivationLink, Role, Affiliation, Booking, BookingType
 
@@ -91,9 +92,7 @@ class HomeSlaveView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
         filed_blocks, fullness, chooser = DEFAULT_FILED_BLOCKS, 0, {}
         if user_app:
             filed_blocks, fullness = user_app.get_filed_blocks(), user_app.fullness
-
-            selected_type = BookingType.objects.filter(name=BOOKED).first()
-            booking = Booking.objects.filter(slave=request.user.member, booking_type=selected_type).first()
+            booking = Booking.objects.filter(slave=request.user.member, booking_type__name=BOOKED).first()
             if booking:
                 chooser = {
                     'full_name': booking.master,

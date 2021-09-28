@@ -211,6 +211,9 @@ class Education(models.Model):
     def __str__(self):
         return f'{self.application.member.user.first_name} {self.application.member.user.last_name}: {self.get_education_type_display()}'
 
+    def check_name_uni(self):
+        return True if Universities.objects.filter(name=self.university) else False
+
     def get_education_type_display(self):
         return next(name for ed_type, name in self.education_program if ed_type == self.education_type)
 
@@ -258,7 +261,8 @@ class File(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        self.member.application.save()
+        if self.member.is_slave():
+            self.member.application.save()
 
 
 class AdditionField(models.Model):
@@ -303,10 +307,10 @@ class Competence(models.Model):
 
 class ApplicationCompetencies(models.Model):
     competence_levels = [
-        (0, ''),
-        (1, 'Базовый'),
-        (2, 'Можешь писать программы'),
-        (3, 'Бог')
+        (0, 'не владеете компетенцией'),
+        (1, 'уровнень базовых знаний, лабораторных работ вузовского курса'),
+        (2, 'уровнень, позволяющий принимать участие в реальных проектах, конкурсах и т.п.'),
+        (3, 'уровнень, позволяющий давать обоснованные рекомендации по совершенствованию компетенции разработчикам данной компетенции')
     ]
     application = models.ForeignKey(Application, on_delete=models.CASCADE)
     competence = models.ForeignKey(Competence, on_delete=models.CASCADE)
