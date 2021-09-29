@@ -341,7 +341,7 @@ class Universities(models.Model):
 
 
 class ApplicationNote(models.Model):
-    application = models.ForeignKey(Application, verbose_name='Анкета', on_delete=models.CASCADE)
+    application = models.ForeignKey(Application, verbose_name='Анкета', on_delete=models.CASCADE, related_name='notes')
     affiliations = models.ManyToManyField(Affiliation, verbose_name="Принадлежность", blank=True)
     author = models.ForeignKey(Member, on_delete=models.CASCADE, verbose_name='Автор заметки')
     text = models.TextField(blank=True, verbose_name='Текст заметки')

@@ -5,6 +5,8 @@ from dal import autocomplete
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, BadRequest
+from django.db import models
+from django.db.models import Exists, F, Q, Count, OuterRef, Subquery
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.utils.encoding import escape_uri_path
@@ -15,6 +17,7 @@ from django.views.generic.list import ListView
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
 from utils import constants as const
+from utils.constants import BOOKED
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
@@ -312,30 +315,59 @@ class ApplicationListView(MasterDataMixin, ListView):
     model = Application
 
     def get_queryset(self):
-        apps = Application.objects.all()
+        apps = Application.objects.all().select_related('member').prefetch_related('directions', 'education', 'notes')
+        # .only('member', 'directions', 'birth_day', 'birth_place', 'draft_year', 'draft_season', 'final_score',
+        # 'fullness', 'is_booked_new')
+        affiliation = Booking.objects.filter(slave=OuterRef('member'), booking_type__name=const.BOOKED)
         if self.request.GET:
             apps = get_filtered_sorted_queryset(apps, self.request)
+        apps = apps.annotate(
+            is_booked=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=BOOKED),
+                distinct=True
+            ),
+            company=Subquery(affiliation.values('affiliation__company')),
+            platoon=Subquery(affiliation.values('affiliation__platoon')),
+            booked_id=Subquery(affiliation.values('affiliation__id')),
+            is_booked_our=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.BOOKED,
+                         member__candidate__affiliation__in=self.get_master_affiliations()),
+                distinct=True
+            ),
+            can_unbook=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.BOOKED,
+                         member__candidate__affiliation__in=self.get_master_affiliations(),
+                         member__candidate__master=self.request.user.member),
+                distinct=True
+            ),
+            wishlist_len=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.IN_WISHLIST),
+                distinct=True
+            ),
+            is_in_wishlist=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.IN_WISHLIST,
+                         member__candidate__affiliation__in=self.get_master_affiliations()),
+                distinct=True
+            ),
+            university=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
+                'university')[:1]),
+            avg_score=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
+                'avg_score')[:1]),
+            education_type=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
+                'education_type')[:1]),
+
+        )
         for app in apps:
-            app.last_education = app.get_last_education()
-
-            booking = Booking.objects.filter(slave=app.member, booking_type__name=const.BOOKED)
-            if booking:
-                app.is_booked = True  # данный человек в принципе забронирован
-                app.affiliation = booking.first().affiliation
-                if booking.filter(affiliation__in=self.get_master_affiliations()):
-                    app.is_booked_our = True
-                    if booking.filter(affiliation__in=self.get_master_affiliations(), master=self.request.user.member):
-                        app.can_unbook = True
-
-            in_wishlist = Booking.objects.filter(slave=app.member, booking_type__name=const.IN_WISHLIST)
-            if in_wishlist:
-                app.wishlist_len = len(in_wishlist)
-                wishlist_affiliations = Booking.objects.filter(slave=app.member, booking_type__name=const.IN_WISHLIST,
-                                                               affiliation__in=self.get_master_affiliations()).values_list(
-                    'affiliation', flat=True)
-                if wishlist_affiliations:
-                    app.wishlist_affiliations = Affiliation.objects.filter(id__in=wishlist_affiliations)
-                    app.is_in_wishlist = True  # данный человек находится в вишлисте мастера
+            wishlist_affiliations = Booking.objects.filter(slave=app.member, booking_type__name=const.IN_WISHLIST,
+                                                           affiliation__in=self.get_master_affiliations()).values_list(
+                'affiliation', flat=True)
+            if wishlist_affiliations:
+                app.wishlist_affiliations = Affiliation.objects.filter(id__in=wishlist_affiliations)
 
             slave_directions = app.directions.all()
             available_directions = slave_directions.filter(id__in=self.get_master_directions_id())

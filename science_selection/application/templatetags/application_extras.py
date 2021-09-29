@@ -1,7 +1,7 @@
 from django import template
 
 from account.models import Affiliation
-from application.models import ApplicationNote
+from application.models import ApplicationNote, Education
 from application.utils import check_booking_our
 from utils.constants import MASTER_ROLE_NAME
 
@@ -40,3 +40,8 @@ def get_is_final_switch(application, user):
     if user.member.role.role_name != MASTER_ROLE_NAME or not check_booking_our(pk=application.id, user=user):
         return {}
     return {'user_app': application}
+
+
+@register.simple_tag
+def get_education_type_name(letter):
+    return next(name for ed_type, name in Education.education_program if ed_type == letter)
