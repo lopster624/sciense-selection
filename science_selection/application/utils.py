@@ -1,27 +1,28 @@
 from io import BytesIO
 
-from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect
 from docxtpl import DocxTemplate
 
-from account.models import Member, Affiliation, Booking, BookingType
+from account.models import Member, Affiliation, Booking
 from application.models import ApplicationNote
-from utils.constants import IN_WISHLIST
-from application.models import Competence, Application, Education
+from application.models import Competence, Application
+from utils.calculations import get_current_draft_year, convert_float
 from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
     PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT
-from utils.calculations import get_current_draft_year, convert_float
+from utils.constants import IN_WISHLIST
 
 
 def get_application_note(member, master_affiliations, app):
-    """ Возвращает заметку автора, если она есть. В противном случае возвращает заметку """
+    """ Возвращает заметку автора, если она есть. В противном случае возвращает другую заметку """
     app_author_note = ApplicationNote.objects.filter(application=app, affiliations__in=master_affiliations,
                                                      author=member).distinct().first()
+    if app_author_note:
+        return app_author_note
     app_other_notes = ApplicationNote.objects.filter(application=app,
                                                      affiliations__in=master_affiliations, ).distinct().exclude(
         author=member).first()
-    return app_author_note if app_author_note else app_other_notes
+    return app_other_notes
 
 
 def get_filtered_sorted_queryset(apps, request):
@@ -54,6 +55,7 @@ def get_filtered_sorted_queryset(apps, request):
     draft_year = request.GET.getlist('draft_year', None)
     if draft_year:
         apps = apps.filter(draft_year__in=draft_year).distinct()
+
 
     # сортировка
     ordering = request.GET.get('ordering', None)
@@ -130,6 +132,9 @@ def check_permission_decorator(role_name=None):
 
 
 def check_final_decorator(func):
+    """Декоратор, который проверяет, что анкету пользователя можно редактировать.
+     В противном случае редиректит на предыдущую страницу"""
+
     def wrapper(self, request, pk, *args, **kwargs):
         user_app = get_object_or_404(Application, pk=pk)
         if user_app.is_final:
@@ -157,7 +162,8 @@ class WordTemplate:
         user_education = user_app[0].education.order_by('-end_year').values()
         context = {**user_app.values()[0], **user_education[0]}
         context.update({'father_name': user_app[0].member.father_name, 'phone': user_app[0].member.phone})
-        context.update({'first_name': user_app[0].member.user.first_name, 'last_name': user_app[0].member.user.last_name})
+        context.update(
+            {'first_name': user_app[0].member.user.first_name, 'last_name': user_app[0].member.user.last_name})
         return context
 
     def create_context_to_word_files(self, document_type, all_directions=None):
@@ -177,12 +183,12 @@ class WordTemplate:
                 if user_app:
                     user_last_education = user_app.education.order_by('-end_year').first()
                     general_info, additional_info = {
-                        'number': i + 1,
-                        'first_name': b.slave.user.first_name,
-                        'last_name': b.slave.user.last_name,
-                        'father_name': b.slave.father_name,
-                        'final_score': convert_float(user_app.final_score),
-                    }, {}
+                                                        'number': i + 1,
+                                                        'first_name': b.slave.user.first_name,
+                                                        'last_name': b.slave.user.last_name,
+                                                        'father_name': b.slave.father_name,
+                                                        'final_score': convert_float(user_app.final_score),
+                                                    }, {}
                     if document_type == PATH_TO_CANDIDATES_LIST:
                         additional_info = self._get_candidates_info(user_app, user_last_education)
                     elif document_type == PATH_TO_RATING_LIST:

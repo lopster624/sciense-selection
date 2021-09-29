@@ -13,7 +13,7 @@
                 <div class="modal-body">
                     Для каких взводов вы хотите добавить кандидата {{app.member}} в избранное?
                     <select class="form-select mt-3" multiple aria-label="Select direction" name="affiliations">
-                    {% for aff in view.get_master_affiliations %}
+                    {% for aff in master_affiliations %}
                     <option value="{{aff.id}}">
                         {{ aff }}
                     </option>

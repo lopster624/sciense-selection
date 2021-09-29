@@ -17,6 +17,7 @@ from django.views.generic.list import ListView
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
 from utils import constants as const
+from utils.calculations import get_current_draft_year
 from utils.constants import BOOKED
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
@@ -315,12 +316,17 @@ class ApplicationListView(MasterDataMixin, ListView):
     model = Application
 
     def get_queryset(self):
-        apps = Application.objects.all().select_related('member').prefetch_related('directions', 'education', 'notes')
+        apps = Application.objects.all().select_related('member', 'member__user').prefetch_related('directions',
+                                                                                                   'education',
+                                                                                                   'notes', )
         # .only('member', 'directions', 'birth_day', 'birth_place', 'draft_year', 'draft_season', 'final_score',
         # 'fullness', 'is_booked_new')
         affiliation = Booking.objects.filter(slave=OuterRef('member'), booking_type__name=const.BOOKED)
         if self.request.GET:
             apps = get_filtered_sorted_queryset(apps, self.request)
+        else:
+            current_year, current_season = get_current_draft_year()
+            apps = apps.filter(draft_year=current_year, draft_season=current_season[0]).distinct()
         apps = apps.annotate(
             is_booked=Count(
                 F('member__candidate'),
@@ -360,32 +366,48 @@ class ApplicationListView(MasterDataMixin, ListView):
                 'avg_score')[:1]),
             education_type=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
                 'education_type')[:1]),
-
+            our_direction=Count(
+                F('directions'),
+                filter=Q(directions__id__in=self.get_master_directions_id()),
+                distinct=True
+            ),
+            author_note=Subquery(
+                ApplicationNote.objects.filter(application=OuterRef('pk'), author=self.request.user.member,
+                                               affiliations__in=self.get_master_affiliations(),
+                                               ).values('text')[:1]),
+            note=Subquery(
+                ApplicationNote.objects.filter(application=OuterRef('pk'),
+                                               affiliations__in=self.get_master_affiliations(),
+                                               ).values('text')[:1]),
         )
         for app in apps:
-            wishlist_affiliations = Booking.objects.filter(slave=app.member, booking_type__name=const.IN_WISHLIST,
-                                                           affiliation__in=self.get_master_affiliations()).values_list(
-                'affiliation', flat=True)
-            if wishlist_affiliations:
-                app.wishlist_affiliations = Affiliation.objects.filter(id__in=wishlist_affiliations)
+            app.wishlist_affiliations = app.member.candidate.filter(affiliation__in=self.get_master_affiliations(),
+                                                                    booking_type__name=const.IN_WISHLIST, ) \
+                .select_related('affiliation') \
+                .values_list('affiliation__id', 'affiliation__company', 'affiliation__platoon')
 
-            slave_directions = app.directions.all()
-            available_directions = slave_directions.filter(id__in=self.get_master_directions_id())
-            app.our_direction = True if available_directions else False
-            app.available_affiliations = self.get_master_affiliations().filter(direction__in=slave_directions)
-            app.note = get_application_note(self.request.user.member, self.get_master_affiliations(), app)
+            app.available_affiliations = self.get_master_affiliations().filter(
+                direction__in=app.directions.all())  # тут нужно айди и имя
         return apps
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        directions_set = [(aff.direction.id, aff.direction) for aff in self.get_master_affiliations()]
-        in_wishlist_set = [(affiliation.id, affiliation) for affiliation in self.get_master_affiliations()]
+        master_affiliations = self.get_master_affiliations().select_related('direction').defer('direction__description', 'direction__image')
+        directions_set = [(aff.direction.id, aff.direction.name) for aff in master_affiliations]
+        in_wishlist_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
         draft_year_set = Application.objects.order_by('draft_year').distinct().values_list('draft_year', 'draft_year')
-        filter_form = FilterForm(self.request.GET, directions_set=directions_set, in_wishlist_set=in_wishlist_set,
+        current_year, current_season = get_current_draft_year()
+        data = {'draft_year': current_year,
+                'draft_season': current_season,
+                }
+        filter_form = FilterForm(initial=data, data=self.request.GET,
+                                 directions_set=directions_set,
+                                 in_wishlist_set=in_wishlist_set,
                                  draft_year_set=draft_year_set, chosen_affiliation_set=in_wishlist_set)
         context['form'] = filter_form
         context['reset_filters'] = True if self.request.GET else False
         context['application_active'] = True
+        context['master_affiliations'] = master_affiliations
         return context
 
 

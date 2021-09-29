@@ -14,8 +14,8 @@
                     Для каких взводов вы хотите удалить кандидата {{app.member}} из избранного?
                     <select class="form-select mt-3" multiple aria-label="Select direction" name="affiliations">
                     {% for aff in app.wishlist_affiliations %}
-                    <option value="{{aff.id}}">
-                        {{ aff }}
+                    <option value="{{aff.0}}">
+                        {{ aff.1 }} рота, {{ aff.2 }} взвод
                     </option>
                     {% endfor %}
                 </select>

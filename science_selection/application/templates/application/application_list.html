@@ -121,7 +121,13 @@
                         {% endif %}
                     </td>
                     <td scope="row">
-                        {{app.note.text|truncatewords:2}}
+                        {% if app.author_note %}
+                        {{app.author_note|truncatewords:2}}
+                        {% else %}
+                        {% if app.note %}
+                        {{app.note|truncatewords:2}}
+                        {% endif %}
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
