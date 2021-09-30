@@ -27,7 +27,7 @@ class OnlySlaveAccessMixin:
 
 class DataApplicationMixin:
     def get_root_competences(self):
-        return Competence.objects.filter(parent_node__isnull=True)
+        return Competence.objects.filter(parent_node__isnull=True).prefetch_related('child', 'child__child')
 
     def get_master_affiliations(self):
         return Affiliation.objects.filter(member=self.request.user.member)

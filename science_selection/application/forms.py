@@ -41,9 +41,8 @@ class CreateCompetenceForm(ModelForm):
         current_user = kwargs.pop('current_user', None)
         super().__init__(*args, **kwargs)
         if current_user:
-            member = Member.objects.get(user=current_user)
-            directions_id = Affiliation.objects.filter(member=member).values_list('direction__id', flat=True)
-            directions = Direction.objects.filter(id__in=directions_id)
+            directions_id = Affiliation.objects.filter(member=Member.objects.only('id').get(user=current_user)).values_list('direction__id', flat=True)
+            directions = Direction.objects.filter(id__in=directions_id).defer('description', 'image')
             self.fields['directions'].queryset = directions
 
 

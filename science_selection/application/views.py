@@ -270,7 +270,7 @@ class MasterFileTemplatesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     """Показывает список уже загруженных файлов на сервер и позволяет загрузить новые"""
 
     def get(self, request):
-        files = File.objects.filter(is_template=True).all()
+        files = File.objects.filter(is_template=True).all().only('file_path', 'file_name', 'is_template')
         return render(request, 'application/documents.html', context={'file_list': files})
 
     def post(self, request):
@@ -418,24 +418,27 @@ class ApplicationListView(MasterDataMixin, ListView):
 
 class CompetenceListView(MasterDataMixin, View):
     def get(self, request):
-        if self.get_chosen_direction() is None:
+        master_directions = self.get_master_directions()
+        chosen_direction = self.get_chosen_direction(master_directions)
+        if chosen_direction is None:
             return render(request, 'access_error.html',
                           context={
                               'error': f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.'})
-        competences_list, picking_competences = self.get_competences_lists(self.get_root_competences(),
-                                                                           self.get_chosen_direction())
+        competences_list, picking_competences = self.get_competences_lists(
+            self.get_root_competences().prefetch_related('directions', 'child__directions', 'child__child__directions'),
+            chosen_direction)
         context = {'competences_list': competences_list, 'picking_competences': picking_competences,
-                   'selected_direction': self.get_chosen_direction(), 'directions': self.get_master_directions(),
+                   'selected_direction': chosen_direction, 'directions': master_directions,
                    'competence_active': True}
         return render(request, 'application/competence_list.html', context=context)
 
-    def get_chosen_direction(self):
+    def get_chosen_direction(self, master_directions):
         """Возвращает выбранное направление, если оно было получено через GET, первое направление,
          закрепленное за пользователем или None, если первых двух нет"""
         selected_direction_id = self.request.GET.get('direction')
         if selected_direction_id:
             return Direction.objects.get(id=int(selected_direction_id))
-        return self.get_master_directions().first() if self.get_master_directions() else None
+        return master_directions.first() if master_directions else None
 
     def get_competences_lists(self, all_competences, selected_direction):
         """
