@@ -1,3 +1,4 @@
+{% load application_extras %}
 <div class="modal fade" id="staticBackdrop{{ app.id }}" data-bs-backdrop="static" tabindex="-1"
      role="dialog"
      aria-labelledby="staticBackdropLabel{{ app.id }}" aria-hidden="true">
@@ -13,10 +14,14 @@
                 <div class="modal-body">
                     В какой взвод вы хотите отобрать кандидата {{app.member}}?
                     <select class="form-select mt-3" aria-label="Select direction" name="affiliation">
-                        {% for aff in app.available_affiliations %}
-                        <option value="{{aff.id}}">
-                            {{ aff }}
+                        {% for dir in app.aval_dir %}
+                        {% with dir.id as dir_id %}
+                        {% for affiliation in master_directions_affiliations|get_item:dir_id %}
+                        <option value="{{affiliation.id}}">
+                            {{ affiliation }}
                         </option>
+                        {% endfor %}
+                        {% endwith %}
                         {% endfor %}
                     </select>
                 </div>
