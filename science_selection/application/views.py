@@ -23,7 +23,6 @@ from .models import Direction, Application, Education, Competence, ApplicationCo
     Universities
 from .utils import pick_competence, delete_competence, check_permission_decorator, WordTemplate, check_booking_our, \
     get_filtered_sorted_queryset, check_final_decorator
-    get_filtered_sorted_queryset, check_final_decorator, check_kids, check_kids_for_pick
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
