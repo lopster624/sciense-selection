@@ -188,6 +188,7 @@ class AddCompetencesView(MasterDataMixin, View):
         competences = Competence.objects.filter(id__in=chosen_competences)
         for competence in competences:
             pick_competence(competence, direction)
+            # todo: сделать select_related на directions
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
@@ -199,6 +200,7 @@ class DeleteCompetenceView(DataApplicationMixin, View):
             return PermissionDenied('Невозможно удалить компетенцию из чужого направления.')
         direction = Direction.objects.get(id=direction_id)
         delete_competence(competence_id, direction)
+        # todo: сделать select_related на directions
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
@@ -416,6 +418,7 @@ class ApplicationListView(MasterDataMixin, ListView):
 
 
 class CompetenceListView(MasterDataMixin, View):
+    """Показывает список выбранных компетенций и невыбранных компетенций для данного направления"""
     def get(self, request):
         master_directions = self.get_master_directions()
         chosen_direction = self.get_chosen_direction(master_directions)
@@ -423,18 +426,14 @@ class CompetenceListView(MasterDataMixin, View):
             return render(request, 'access_error.html',
                           context={
                               'error': f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.'})
-        competences_list, picking_competences = self.get_competences_lists(
-            self.get_root_competences(), chosen_direction)
-        context = {'competences_list': competences_list.prefetch_related('directions', 'child',
-                                                                         'child__child',
-                                                                         'child__directions',
-                                                                         'child__child__directions'),
-                   'picking_competences': picking_competences.prefetch_related('directions', 'child',
-                                                                               'child__child',
-                                                                               'child__directions',
-                                                                               'child__child__directions'),
-                   'selected_direction': chosen_direction, 'directions': master_directions,
-                   'competence_active': True}
+        competences_list, picking_competences = self.get_competences_lists(self.get_root_competences(),
+                                                                           chosen_direction)
+        picked_competences = Competence.objects.alias(
+            picked=Count(F'directions', filter=Q(directions=chosen_direction))
+        ).filter(picked__gt=0)
+        context = {'competences_list': competences_list, 'picked_competences': picked_competences,
+                   'picking_competences': picking_competences,
+                   'selected_direction': chosen_direction, 'directions': master_directions, 'competence_active': True}
         return render(request, 'application/competence_list.html', context=context)
 
     def get_chosen_direction(self, master_directions):
@@ -445,23 +444,24 @@ class CompetenceListView(MasterDataMixin, View):
             return Direction.objects.get(id=int(selected_direction_id))
         return master_directions.first() if master_directions else None
 
-    def get_competences_lists(self, all_competences, selected_direction):
+    def get_competences_lists(self, roots, selected_direction):
         """
         Возвращает кортеж листов доступных корневых компетенций для выбора и уже выбранных
-        :param all_competences: Корни всех компетенций
+        :param roots: Корни всех компетенций
         :param selected_direction: Выбранное направлени
         :return: кортеж <корни всех выбранных компетенций> <корни всех доступных компетенций>
         """
         if selected_direction is None:
-            return [], all_competences
-        exsist_coms = all_competences.alias(
+            return [], roots
+        exsist_coms = roots.filter(parent_node__isnull=True).alias(
             lvl1=Count(F('directions'), filter=Q(directions=selected_direction), distinct=True),
             lvl2=Count(F('child'), filter=Q(child__directions=selected_direction), distinct=True),
             lvl3=Count(F('child__child'), filter=Q(child__child__directions=selected_direction), distinct=True),
             lvl2all=Count(F('child'), distinct=True),
             lvl3all=Count(F('child__child'), distinct=True),
         ).annotate(exist_competences=F('lvl1') + F('lvl2') + F('lvl3'),
-                   not_exist_competences=F('lvl2all') - F('lvl2') + F('lvl3all') - F('lvl3') + 1 - F('lvl1'))
+                   not_exist_competences=F('lvl2all') - F('lvl2') + F('lvl3all') - F('lvl3') + 1 - F('lvl1'),
+                   ).prefetch_related('child', 'child__child')
         chosen_competences_list = exsist_coms.filter(exist_competences__gt=0)
         for_pick_competences_list = exsist_coms.filter(not_exist_competences__gt=0)
         return chosen_competences_list, for_pick_competences_list
