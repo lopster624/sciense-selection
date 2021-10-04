@@ -45,3 +45,8 @@ def get_is_final_switch(application, user):
 @register.simple_tag
 def get_education_type_name(letter):
     return next(name for ed_type, name in Education.education_program if ed_type == letter)
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)

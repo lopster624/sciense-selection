@@ -78,7 +78,6 @@
                         {{ app.fullness }}
                     </td>
                     <td scope="row">
-                        {#app.affiliation_new#}
                         {% if app.can_unbook or app.our_direction and not app.is_booked %}
                         <button type="button" class="btn btn-white ps-0" data-bs-toggle="modal"
                                 data-bs-target="#staticBackdrop{{ app.id }}" aria-label="book">

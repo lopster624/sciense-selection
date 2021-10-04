@@ -6,6 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, BadRequest
 from django.db.models import F, Q, Count, OuterRef, Subquery
+from django.db import models
+from django.db.models import Exists, F, Q, Count, OuterRef, Subquery, Prefetch
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.utils.encoding import escape_uri_path
@@ -276,7 +278,7 @@ class MasterFileTemplatesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     """Показывает список уже загруженных файлов на сервер и позволяет загрузить новые"""
 
     def get(self, request):
-        files = File.objects.filter(is_template=True).all()
+        files = File.objects.filter(is_template=True).all().only('file_path', 'file_name', 'is_template')
         return render(request, 'application/documents.html', context={'file_list': files})
 
     def post(self, request):
@@ -323,12 +325,18 @@ class ApplicationListView(MasterDataMixin, ListView):
     model = Application
 
     def get_queryset(self):
-        apps = Application.objects.all().select_related('member', 'member__user').prefetch_related('directions',
-                                                                                                   'education',
-                                                                                                   'notes', )
-        # .only('member', 'directions', 'birth_day', 'birth_place', 'draft_year', 'draft_season', 'final_score',
-        # 'fullness', 'is_booked_new')
-        affiliation = Booking.objects.filter(slave=OuterRef('member'), booking_type__name=const.BOOKED)
+        wishlist_affiliations = Booking.objects.filter(affiliation__in=self.get_master_affiliations(),
+                                                       booking_type__name=const.IN_WISHLIST).select_related(
+            'affiliation').only('affiliation', 'slave')
+
+        booked_member_affiliation = Booking.objects.filter(slave=OuterRef('member'), booking_type__name=const.BOOKED)
+        apps = Application.objects.all().select_related('member', 'member__user').prefetch_related(
+            Prefetch('member__candidate', queryset=wishlist_affiliations),
+            Prefetch('directions', queryset=self.get_master_directions().only('id'), to_attr='aval_dir'),
+        ).only('id', 'member', 'directions', 'birth_day', 'birth_place', 'draft_year', 'draft_season', 'final_score',
+               'fullness', 'member__user__id', 'member__user__first_name', 'member__user__last_name',
+               'member__father_name')
+
         if self.request.GET:
             apps = get_filtered_sorted_queryset(apps, self.request)
         else:
@@ -340,9 +348,9 @@ class ApplicationListView(MasterDataMixin, ListView):
                 filter=Q(member__candidate__booking_type__name=BOOKED),
                 distinct=True
             ),
-            company=Subquery(affiliation.values('affiliation__company')),
-            platoon=Subquery(affiliation.values('affiliation__platoon')),
-            booked_id=Subquery(affiliation.values('affiliation__id')),
+            company=Subquery(booked_member_affiliation.values('affiliation__company')),
+            platoon=Subquery(booked_member_affiliation.values('affiliation__platoon')),
+            booked_id=Subquery(booked_member_affiliation.values('affiliation__id')),
             is_booked_our=Count(
                 F('member__candidate'),
                 filter=Q(member__candidate__booking_type__name=const.BOOKED,
@@ -387,19 +395,12 @@ class ApplicationListView(MasterDataMixin, ListView):
                                                affiliations__in=self.get_master_affiliations(),
                                                ).values('text')[:1]),
         )
-        for app in apps:
-            app.wishlist_affiliations = app.member.candidate.filter(affiliation__in=self.get_master_affiliations(),
-                                                                    booking_type__name=const.IN_WISHLIST, ) \
-                .select_related('affiliation') \
-                .values_list('affiliation__id', 'affiliation__company', 'affiliation__platoon')
-
-            app.available_affiliations = self.get_master_affiliations().filter(
-                direction__in=app.directions.all())  # тут нужно айди и имя
         return apps
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        master_affiliations = self.get_master_affiliations().select_related('direction').defer('direction__description', 'direction__image')
+        master_affiliations = self.get_master_affiliations().select_related('direction').defer('direction__description',
+                                                                                               'direction__image')
         directions_set = [(aff.direction.id, aff.direction.name) for aff in master_affiliations]
         in_wishlist_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
         draft_year_set = Application.objects.order_by('draft_year').distinct().values_list('draft_year', 'draft_year')
@@ -415,29 +416,38 @@ class ApplicationListView(MasterDataMixin, ListView):
         context['reset_filters'] = True if self.request.GET else False
         context['application_active'] = True
         context['master_affiliations'] = master_affiliations
+        master_directions_affiliations = {}
+        for affiliation in master_affiliations:
+            old = master_directions_affiliations.pop(affiliation.direction.id, None)
+            item = [*old, affiliation] if old else [affiliation]
+            master_directions_affiliations.update({affiliation.direction.id: item})
+        context['master_directions_affiliations'] = master_directions_affiliations
         return context
 
 
 class CompetenceListView(MasterDataMixin, View):
     def get(self, request):
-        if self.get_chosen_direction() is None:
+        master_directions = self.get_master_directions()
+        chosen_direction = self.get_chosen_direction(master_directions)
+        if chosen_direction is None:
             return render(request, 'access_error.html',
                           context={
                               'error': f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.'})
-        competences_list, picking_competences = self.get_competences_lists(self.get_root_competences(),
-                                                                           self.get_chosen_direction())
+        competences_list, picking_competences = self.get_competences_lists(
+            self.get_root_competences().prefetch_related('directions', 'child__directions', 'child__child__directions'),
+            chosen_direction)
         context = {'competences_list': competences_list, 'picking_competences': picking_competences,
-                   'selected_direction': self.get_chosen_direction(), 'directions': self.get_master_directions(),
+                   'selected_direction': chosen_direction, 'directions': master_directions,
                    'competence_active': True}
         return render(request, 'application/competence_list.html', context=context)
 
-    def get_chosen_direction(self):
+    def get_chosen_direction(self, master_directions):
         """Возвращает выбранное направление, если оно было получено через GET, первое направление,
          закрепленное за пользователем или None, если первых двух нет"""
         selected_direction_id = self.request.GET.get('direction')
         if selected_direction_id:
             return Direction.objects.get(id=int(selected_direction_id))
-        return self.get_master_directions().first() if self.get_master_directions() else None
+        return master_directions.first() if master_directions else None
 
     def get_competences_lists(self, all_competences, selected_direction):
         """
