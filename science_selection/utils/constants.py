@@ -69,3 +69,5 @@ TYPE_SERVICE_DOCUMENT = {
     'rating': (PATH_TO_RATING_LIST, "Рейтинговый список призыва.docx"),
     'evaluation-statement': (PATH_TO_EVALUATION_STATEMENT, "Оценочная ведомость.docx"),
 }
+
+MAX_APP_DIRECTIONS = 4
