@@ -23,7 +23,8 @@ class Application(models.Model):
                                   related_name='application')
     competencies = models.ManyToManyField('Competence', verbose_name='Выбранные компетенции',
                                           through='ApplicationCompetencies', blank=True)
-    directions = models.ManyToManyField('Direction', verbose_name='Выбранные направления', blank=True, related_name='application')
+    directions = models.ManyToManyField('Direction', verbose_name='Выбранные направления', blank=True,
+                                        related_name='application')
     birth_day = models.DateField(verbose_name='Дата рождения')
     birth_place = models.CharField(max_length=128, verbose_name='Место рождения')
     nationality = models.CharField(max_length=128, verbose_name='Гражданство')
@@ -107,10 +108,10 @@ class Application(models.Model):
     def get_filed_blocks(self):
         return {
             'Основные данные': True,
-            'Образование': True if self.education.all() else False,
-            'Направления': True if self.directions.all() else False,
-            'Компетенции': True if self.competencies.all() else False,
-            'Загруженные файлы': True if File.objects.filter(member=self.member) else False,
+            'Образование': self.education.all().exists(),
+            'Направления': self.directions.all().exists(),
+            'Компетенции': self.competencies.all().exists(),
+            'Загруженные файлы': File.objects.filter(member=self.member).exists(),
         }
 
     def get_last_education(self):
@@ -154,7 +155,7 @@ class Application(models.Model):
             self.military_grants) * const.MILITARY_GRANTS_SCORE + int(
             self.region_olympics) * const.REGION_OLYMPICS_SCORE + int(self.city_olympics) * const.CITY_OLYMPICS_SCORE,
                                2)
-        if self.education.filter(education_type=Education.education_program[2][0], is_ended=True):
+        if self.education.filter(education_type=Education.education_program[2][0], is_ended=True).exists():
             self.scores.a5 = round(const.POSTGRADUATE_ENDED_SCORE + int(
                 self.postgraduate_prior_direction) * const.POSTGRADUATE_PRIOR_DIRECTION_SCORE + int(
                 self.compliance_additional_direction) * const.POSTGRADUATE_ADDITIONAL_DIRECTION_SCORE, 2)
@@ -172,10 +173,9 @@ class Application(models.Model):
     def get_draft_time(self):
         return f'{self.season[self.draft_season - 1][1]} {self.draft_year}'
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
+    def update_scores(self, *args, **kwargs):
         self.fullness = self.calculate_fullness()
-        if not ApplicationScores.objects.filter(application=self):
+        if not ApplicationScores.objects.filter(application=self).exists():
             ApplicationScores(application=self).save()
         self.final_score = self.calculate_final_score()
         super().save(*args, **kwargs)
@@ -217,13 +217,10 @@ class Education(models.Model):
     def get_education_type_display(self):
         return next(name for ed_type, name in self.education_program if ed_type == self.education_type)
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        self.application.save()
-
     class Meta:
         verbose_name = "Образование"
         verbose_name_plural = "Образование"
+        ordering = ['-end_year']
 
 
 class Direction(models.Model):
@@ -262,7 +259,7 @@ class File(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         if self.member.is_slave():
-            self.member.application.save()
+            self.member.application.update_scores(update_fields=['fullness', 'final_score'])
 
 
 class AdditionField(models.Model):
@@ -310,7 +307,8 @@ class ApplicationCompetencies(models.Model):
         (0, 'не владеете компетенцией'),
         (1, 'уровнень базовых знаний, лабораторных работ вузовского курса'),
         (2, 'уровнень, позволяющий принимать участие в реальных проектах, конкурсах и т.п.'),
-        (3, 'уровнень, позволяющий давать обоснованные рекомендации по совершенствованию компетенции разработчикам данной компетенции')
+        (3,
+         'уровнень, позволяющий давать обоснованные рекомендации по совершенствованию компетенции разработчикам данной компетенции')
     ]
     application = models.ForeignKey(Application, on_delete=models.CASCADE)
     competence = models.ForeignKey(Competence, on_delete=models.CASCADE)
@@ -322,10 +320,6 @@ class ApplicationCompetencies(models.Model):
 
     def __str__(self):
         return f'{self.application.member.user.first_name}: {self.competence.name}'
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        self.application.save()
 
 
 class Universities(models.Model):

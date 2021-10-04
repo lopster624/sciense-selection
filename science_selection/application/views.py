@@ -5,8 +5,7 @@ from dal import autocomplete
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, BadRequest
-from django.db import models
-from django.db.models import Exists, F, Q, Count, OuterRef, Subquery
+from django.db.models import F, Q, Count, OuterRef, Subquery
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.utils.encoding import escape_uri_path
@@ -24,7 +23,7 @@ from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities
 from .utils import pick_competence, delete_competence, check_permission_decorator, WordTemplate, check_booking_our, \
-    get_filtered_sorted_queryset, check_final_decorator, check_kids, check_kids_for_pick, get_application_note
+    get_filtered_sorted_queryset, check_final_decorator, check_kids, check_kids_for_pick
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
@@ -32,7 +31,7 @@ class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
 
     @check_permission_decorator(const.MASTER_ROLE_NAME)
     def get(self, request, pk):
-        user_app = get_object_or_404(Application, pk=pk)
+        user_app = get_object_or_404(Application.objects.only('is_final'), pk=pk)
         selected_directions = [_.id for _ in user_app.directions.all()]
         context = {'direction_active': True, 'pk': pk, 'directions': self.get_all_directions(),
                    'selected_directions': selected_directions}
@@ -45,13 +44,19 @@ class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
     def post(self, request, pk):
         user_app = get_object_or_404(Application, pk=pk)
         selected_directions = request.POST.getlist('direction')
-        user_app.directions.clear()
-        if selected_directions:
-            directions = Direction.objects.filter(pk__in=selected_directions)
-            user_app.directions.add(*list(directions))
-        user_app.save()
-        context = {'directions': self.get_all_directions(), 'selected_directions': list(map(int, selected_directions)),
-                   'direction_active': True, 'pk': pk}
+        context = {}
+        if len(selected_directions) <= 4:
+            if selected_directions:
+                directions = Direction.objects.filter(pk__in=selected_directions)
+                user_app.directions.set(list(directions))
+            else:
+                user_app.directions.clear()
+            user_app.update_scores(update_fields=['fullness', 'final_score'])
+        else:
+            selected_directions = [_.id for _ in user_app.directions.all()]
+            context['error_msg'] = 'Выбранное количество направлений должно быть не больше 4'
+        context.update({'directions': self.get_all_directions(), 'selected_directions': list(map(int, selected_directions)),
+                        'direction_active': True, 'pk': pk})
         return render(request, 'application/application_direction_choose.html', context=context)
 
 
@@ -81,6 +86,7 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
                         user_education = ed_form.save(commit=False)
                         user_education.application = new_app
                         user_education.save()
+                new_app.update_scores(update_fields=['fullness', 'final_score'])
                 return redirect('application', pk=new_app.pk)
             else:
                 msg = 'Некорректные данные в заявке'
@@ -124,9 +130,8 @@ class EditApplicationView(LoginRequiredMixin, View):
         if user_app.is_final and request.user.member.is_slave():
             raise PermissionDenied('Редактирование анкеты недоступно.')
         user_education = user_app.education.all()
-        app_form = ApplicationCreateForm(request.POST,
-                                         instance=user_app) if request.user.member.is_slave() else ApplicationMasterForm(
-            request.POST, instance=user_app)
+        app_form = ApplicationCreateForm(request.POST, instance=user_app) if request.user.member.is_slave() \
+            else ApplicationMasterForm(request.POST, instance=user_app)
         education_formset = EducationFormSet(request.POST, queryset=user_education)
         if app_form.is_valid() and education_formset.is_valid():
             new_app = app_form.save()
@@ -136,6 +141,7 @@ class EditApplicationView(LoginRequiredMixin, View):
                     user_education = form.save(commit=False)
                     user_education.application = new_app
                     user_education.save()
+            new_app.update_scores(update_fields=['fullness', 'final_score'])
             return redirect('application', pk=new_app.pk)
         else:
             msg = 'Некорректные данные в заявке'
@@ -170,7 +176,7 @@ class CreateWordAppView(LoginRequiredMixin, View):
 
     @check_permission_decorator(const.MASTER_ROLE_NAME)
     def get(self, request, pk):
-        user_app = get_object_or_404(Application, pk=pk)
+        user_app = get_object_or_404(Application.objects.only('member'), pk=pk)
         filename = f"Анкета_{user_app.member.user.last_name}.docx"
         word_template = WordTemplate(request, const.PATH_TO_INTERVIEW_LIST)
         context = word_template.create_context_to_interview_list(pk)
@@ -255,7 +261,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
             if level_competence:
                 ApplicationCompetencies.objects.update_or_create(application=user_app, competence__pk=comp_id,
                                                                  defaults={'level': level_competence})
-        user_app.save()
+        user_app.update_scores(update_fields=['fullness', 'final_score'])
         user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
         selected_competencies = {_.competence.id: _.level for _ in user_competencies}
         competencies = competencies_of_direction.filter(parent_node__isnull=True)
@@ -278,6 +284,7 @@ class MasterFileTemplatesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         for file in new_files:
             new_file = File(member=request.user.member, file_path=file, is_template=True)
             new_file.save()
+            # TODO: а надо? os.path.splitext(os.path.basename(file.name))[0]
             new_file.file_name = new_file.file_path.name.split('/')[-1]  # отделяется название от пути загрузки
             new_file.save()
         return redirect(request.path_info)
@@ -292,7 +299,7 @@ class DeleteFileView(LoginRequiredMixin, View):
             return PermissionDenied('Только загрузивший пользователь может удалить файл.')
         file.delete()
         if request.user.member.is_slave():
-            request.user.member.application.save()
+            request.user.member.application.update_scores(update_fields=['fullness', 'final_score'])
         return redirect(request.META.get('HTTP_REFERER'))
 
 
