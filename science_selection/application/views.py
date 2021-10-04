@@ -5,8 +5,7 @@ from dal import autocomplete
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, BadRequest
-from django.db import models
-from django.db.models import Exists, F, Q, Count, OuterRef, Subquery, Prefetch
+from django.db.models import F, Q, Count, OuterRef, Subquery, Prefetch
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.utils.encoding import escape_uri_path
@@ -24,7 +23,7 @@ from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities
 from .utils import pick_competence, delete_competence, check_permission_decorator, WordTemplate, check_booking_our, \
-    get_filtered_sorted_queryset, check_final_decorator, check_kids, check_kids_for_pick, get_application_note
+    get_filtered_sorted_queryset, check_final_decorator
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
@@ -425,9 +424,15 @@ class CompetenceListView(MasterDataMixin, View):
                           context={
                               'error': f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.'})
         competences_list, picking_competences = self.get_competences_lists(
-            self.get_root_competences().prefetch_related('directions', 'child__directions', 'child__child__directions'),
-            chosen_direction)
-        context = {'competences_list': competences_list, 'picking_competences': picking_competences,
+            self.get_root_competences(), chosen_direction)
+        context = {'competences_list': competences_list.prefetch_related('directions', 'child',
+                                                                         'child__child',
+                                                                         'child__directions',
+                                                                         'child__child__directions'),
+                   'picking_competences': picking_competences.prefetch_related('directions', 'child',
+                                                                               'child__child',
+                                                                               'child__directions',
+                                                                               'child__child__directions'),
                    'selected_direction': chosen_direction, 'directions': master_directions,
                    'competence_active': True}
         return render(request, 'application/competence_list.html', context=context)
@@ -449,17 +454,17 @@ class CompetenceListView(MasterDataMixin, View):
         """
         if selected_direction is None:
             return [], all_competences
-        exclude_id_from_list = []
-        exclude_id_from_pick = []
-        for competence in all_competences:
-            if not check_kids(competence, selected_direction):
-                # если все компетенции не соответствуют выбранному направлению, то удаляем корневую из списка выбранных
-                exclude_id_from_list.append(competence.id)
-            if check_kids_for_pick(competence, selected_direction):
-                # если все компетенции соответствуют выбранному направлению, то удаляем корневую из списка для выбора
-                exclude_id_from_pick.append(competence.id)
-        return all_competences.exclude(id__in=exclude_id_from_list), all_competences.exclude(
-            id__in=exclude_id_from_pick)
+        exsist_coms = all_competences.alias(
+            lvl1=Count(F('directions'), filter=Q(directions=selected_direction), distinct=True),
+            lvl2=Count(F('child'), filter=Q(child__directions=selected_direction), distinct=True),
+            lvl3=Count(F('child__child'), filter=Q(child__child__directions=selected_direction), distinct=True),
+            lvl2all=Count(F('child'), distinct=True),
+            lvl3all=Count(F('child__child'), distinct=True),
+        ).annotate(exist_competences=F('lvl1') + F('lvl2') + F('lvl3'),
+                   not_exist_competences=F('lvl2all') - F('lvl2') + F('lvl3all') - F('lvl3') + 1 - F('lvl1'))
+        chosen_competences_list = exsist_coms.filter(exist_competences__gt=0)
+        for_pick_competences_list = exsist_coms.filter(not_exist_competences__gt=0)
+        return chosen_competences_list, for_pick_competences_list
 
 
 class BookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
