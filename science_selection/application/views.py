@@ -5,9 +5,7 @@ from dal import autocomplete
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, BadRequest
-from django.db.models import F, Q, Count, OuterRef, Subquery
-from django.db import models
-from django.db.models import Exists, F, Q, Count, OuterRef, Subquery, Prefetch
+from django.db.models import F, Q, Count, OuterRef, Subquery, Prefetch
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.utils.encoding import escape_uri_path
@@ -19,7 +17,6 @@ from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
 from utils import constants as const
 from utils.calculations import get_current_draft_year
-from utils.constants import BOOKED
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
@@ -47,7 +44,7 @@ class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
         user_app = get_object_or_404(Application, pk=pk)
         selected_directions = request.POST.getlist('direction')
         context = {}
-        if len(selected_directions) <= 4:
+        if len(selected_directions) <= const.MAX_APP_DIRECTIONS:
             if selected_directions:
                 directions = Direction.objects.filter(pk__in=selected_directions)
                 user_app.directions.set(list(directions))
@@ -257,12 +254,11 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
         user_app = get_object_or_404(Application, pk=pk)
         user_directions = user_app.directions.all()
         competencies_of_direction = Competence.objects.filter(directions__in=user_directions).distinct()
-        competence_direction_ids = [_.id for _ in competencies_of_direction]
-        for comp_id in competence_direction_ids:
-            level_competence = request.POST.get(str(comp_id), None)
+        for comp in competencies_of_direction:
+            level_competence = request.POST.get(str(comp.id), None)
             if level_competence:
-                ApplicationCompetencies.objects.update_or_create(application=user_app, competence__pk=comp_id,
-                                                                 defaults={'level': level_competence})
+                ApplicationCompetencies.objects.update_or_create(application=user_app, competence=comp,
+                                                                 defaults={'level': int(level_competence)})
         user_app.update_scores(update_fields=['fullness', 'final_score'])
         user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
         selected_competencies = {_.competence.id: _.level for _ in user_competencies}
@@ -345,7 +341,7 @@ class ApplicationListView(MasterDataMixin, ListView):
         apps = apps.annotate(
             is_booked=Count(
                 F('member__candidate'),
-                filter=Q(member__candidate__booking_type__name=BOOKED),
+                filter=Q(member__candidate__booking_type__name=const.BOOKED),
                 distinct=True
             ),
             company=Subquery(booked_member_affiliation.values('affiliation__company')),
