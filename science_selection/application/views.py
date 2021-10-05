@@ -21,10 +21,7 @@ from utils.calculations import get_current_draft_year
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
-    Universities
-from .utils import delete_competence, check_permission_decorator, WordTemplate, check_booking_our, \
-    get_filtered_sorted_queryset, check_final_decorator
-    Universities, AdditionField, AdditionFieldApp
+    Universities, AdditionFieldApp, AdditionField
 from .utils import delete_competence, check_permission_decorator, WordTemplate, check_booking_our, \
     get_filtered_sorted_queryset, check_final_decorator, add_additional_fields
 
