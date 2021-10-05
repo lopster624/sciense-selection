@@ -5,6 +5,7 @@ from dal import autocomplete
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, BadRequest
+from django.db import transaction
 from django.db.models import F, Q, Count, OuterRef, Subquery, Prefetch
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse, reverse_lazy
@@ -20,8 +21,8 @@ from utils.calculations import get_current_draft_year
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
-    Universities, AdditionField, AdditionFieldApp
-from .utils import pick_competence, delete_competence, check_permission_decorator, WordTemplate, check_booking_our, \
+    Universities, AdditionFieldApp, AdditionField
+from .utils import delete_competence, check_permission_decorator, WordTemplate, check_booking_our, \
     get_filtered_sorted_queryset, check_final_decorator, add_additional_fields
 
 
@@ -196,12 +197,10 @@ class AddCompetencesView(MasterDataMixin, View):
     """Добавляет все выбранные компетенции в направление, id которого = direction_id"""
 
     def post(self, request, direction_id):
-        direction = Direction.objects.get(id=direction_id)
         chosen_competences = request.POST.getlist('chosen_competences')
-        competences = Competence.objects.filter(id__in=chosen_competences)
-        for competence in competences:
-            pick_competence(competence, direction)
-            # todo: сделать select_related на directions
+        with transaction.atomic():
+            for competence in Competence.objects.filter(id__in=chosen_competences).only('id'):
+                competence.directions.add(direction_id)
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
@@ -211,8 +210,7 @@ class DeleteCompetenceView(DataApplicationMixin, View):
     def get(self, request, competence_id, direction_id):
         if direction_id not in self.get_master_directions_id():
             return PermissionDenied('Невозможно удалить компетенцию из чужого направления.')
-        direction = Direction.objects.get(id=direction_id)
-        delete_competence(competence_id, direction)
+        delete_competence(competence_id, direction_id)
         # todo: сделать select_related на directions
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
