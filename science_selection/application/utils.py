@@ -57,7 +57,6 @@ def get_filtered_sorted_queryset(apps, request):
     if draft_year:
         apps = apps.filter(draft_year__in=draft_year).distinct()
 
-
     # сортировка
     ordering = request.GET.get('ordering', None)
     if ordering:
@@ -83,38 +82,6 @@ def delete_competence(competence_id, direction):
 def pick_competence(competence, direction):
     if not competence.directions.all().filter(id=direction.id).exists():
         competence.directions.add(direction)
-
-
-def check_kids(competence, direction):
-    """
-    Рекурсивно проверяет компетенцию и все ее дочерние компетенции.
-    Если хотя бы одна из них принадлежит выбранному направлению, то возвращает true
-    :param competence: компетенция родитель
-    :param direction: направление
-    :return: True or False, соответственно, принадлежит ли одна из дочерних компетенций данному направлению или нет.
-    """
-    if competence.directions.all().filter(id=direction.id).exists():
-        return True
-    for child in competence.child.all():
-        if check_kids(child, direction):
-            return True
-    return False
-
-
-def check_kids_for_pick(competence, direction):
-    """
-    Рекурсивно проверяет компетенцию и все ее дочерние компетенции.
-    Если хотя бы одна из них не принадлежит выбранному направлению, то возвращает false
-    :param competence: компетенция родитель
-    :param direction: направление
-    :return: True or False, соответственно, принадлежит ли одна из дочерних компетенций данному направлению или нет.
-    """
-    for child in competence.child.all():
-        if not check_kids(child, direction):
-            return False
-    if not competence.directions.all().filter(id=direction.id).exists():
-        return False
-    return True
 
 
 def check_permission_decorator(role_name=None):
