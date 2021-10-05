@@ -22,8 +22,8 @@ from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterFor
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities, AdditionFieldApp, AdditionField
-from .utils import delete_competence, check_permission_decorator, WordTemplate, check_booking_our, \
-    get_filtered_sorted_queryset, check_final_decorator, add_additional_fields
+from .utils import check_permission_decorator, WordTemplate, check_booking_our, check_final_decorator, \
+    add_additional_fields
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
@@ -55,8 +55,9 @@ class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
         else:
             selected_directions = [_.id for _ in user_app.directions.all()]
             context['error_msg'] = 'Выбранное количество направлений должно быть не больше 4'
-        context.update({'directions': self.get_all_directions(), 'selected_directions': list(map(int, selected_directions)),
-                        'direction_active': True, 'pk': pk})
+        context.update(
+            {'directions': self.get_all_directions(), 'selected_directions': list(map(int, selected_directions)),
+             'direction_active': True, 'pk': pk})
         return render(request, 'application/application_direction_choose.html', context=context)
 
 
@@ -125,7 +126,8 @@ class EditApplicationView(LoginRequiredMixin, View):
             instance=user_app) if request.user.member.is_slave() else ApplicationMasterForm(instance=user_app)
         education_formset = EducationFormSet(queryset=user_education)
         additional_fields = AdditionField.objects.all()
-        user_additional_fields = {f.addition_field_id: f.value for f in AdditionFieldApp.objects.filter(application=user_app)}
+        user_additional_fields = {f.addition_field_id: f.value for f in
+                                  AdditionFieldApp.objects.filter(application=user_app)}
         context = {'app_form': app_form, 'pk': pk, 'education_formset': education_formset, 'app_active': True,
                    'additional_fields': additional_fields, 'user_additional_fields': user_additional_fields}
         return render(request, 'application/application_edit.html', context=context)
@@ -210,9 +212,29 @@ class DeleteCompetenceView(DataApplicationMixin, View):
     def get(self, request, competence_id, direction_id):
         if direction_id not in self.get_master_directions_id():
             return PermissionDenied('Невозможно удалить компетенцию из чужого направления.')
-        delete_competence(competence_id, direction_id)
+        self.delete_competence(competence_id, direction_id)
         # todo: сделать select_related на directions
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
+
+    def delete_competence(self, competence_id, direction_id):
+        """Todo: перевести на mptt и сделать get_descendants(include_self=False)"""
+        competence = Competence.objects.prefetch_related(
+            Prefetch('directions', queryset=Direction.objects.filter(id=direction_id)),
+            Prefetch('child__directions', queryset=Direction.objects.filter(id=direction_id)),
+            Prefetch('child__child__directions', queryset=Direction.objects.filter(id=direction_id)),
+        ).get(id=competence_id)
+        all_competences = []
+        if competence.directions.all().exists():
+            all_competences.append(competence)
+        for comp in competence.child.all():
+            if comp.directions.all().exists():
+                all_competences.append(comp)
+            for comp2 in comp.child.all():
+                if comp2.directions.all().exists():
+                    all_competences.append(comp2)
+        with transaction.atomic():
+            for comp in all_competences:
+                comp.directions.remove(direction_id)
 
 
 class CreateCompetenceView(MasterDataMixin, CreateView):
@@ -339,9 +361,8 @@ class ApplicationListView(MasterDataMixin, ListView):
         ).only('id', 'member', 'directions', 'birth_day', 'birth_place', 'draft_year', 'draft_season', 'final_score',
                'fullness', 'member__user__id', 'member__user__first_name', 'member__user__last_name',
                'member__father_name')
-
         if self.request.GET:
-            apps = get_filtered_sorted_queryset(apps, self.request)
+            apps = self.get_filtered_sorted_queryset(apps)
         else:
             current_year, current_season = get_current_draft_year()
             apps = apps.filter(draft_year=current_year, draft_season=current_season[0]).distinct()
@@ -427,9 +448,48 @@ class ApplicationListView(MasterDataMixin, ListView):
         context['master_directions_affiliations'] = master_directions_affiliations
         return context
 
+    def get_filtered_sorted_queryset(self, apps):
+        # тут производится вся сортировка и фильтрация
+        # фильтрация по направлениям
+        chosen_directions = self.request.GET.getlist('directions', None)
+        if chosen_directions:
+            apps = apps.filter(directions__in=chosen_directions).distinct()
+
+        # фильтрация по бронированию
+        chosen_affiliation = self.request.GET.getlist('affiliation', None)
+        if chosen_affiliation:
+            booked_members = Booking.objects.filter(affiliation__in=chosen_affiliation,
+                                                    booking_type__name=const.BOOKED).values_list('slave', flat=True)
+            apps = apps.filter(member__id__in=booked_members).distinct()
+
+        # фильтрация по вишлисту
+        chosen_affiliation_wishlist = self.request.GET.getlist('in_wishlist', None)
+        if chosen_affiliation_wishlist:
+            booked_members = Booking.objects.filter(affiliation__in=chosen_affiliation_wishlist,
+                                                    booking_type__name=const.IN_WISHLIST).values_list('slave',
+                                                                                                      flat=True)
+            apps = apps.filter(member__id__in=booked_members).distinct()
+
+        # фильтрация по сезону
+        draft_season = self.request.GET.getlist('draft_season', None)
+        if draft_season:
+            apps = apps.filter(draft_season__in=draft_season).distinct()
+
+        # фильтрация по году призыва
+        draft_year = self.request.GET.getlist('draft_year', None)
+        if draft_year:
+            apps = apps.filter(draft_year__in=draft_year).distinct()
+
+        # сортировка
+        ordering = self.request.GET.get('ordering', None)
+        if ordering:
+            apps = apps.order_by(ordering)
+        return apps
+
 
 class CompetenceListView(MasterDataMixin, View):
     """Показывает список выбранных компетенций и невыбранных компетенций для данного направления"""
+
     def get(self, request):
         master_directions = self.get_master_directions()
         chosen_direction = self.get_chosen_direction(master_directions)
