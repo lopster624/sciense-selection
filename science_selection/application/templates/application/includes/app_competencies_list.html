@@ -3,7 +3,6 @@
 {% for comp_lvl1 in competencies %}
 <li class="list-group-item list-group-item-light mb-2">
     <div class="accordion-item">
-        {% if selected_directions|intersections:comp_lvl1.directions.all %}
             <div class="accordion-header">
                 <div class="input-group">
                     <button class="accordion-button collapsed col-8 p-2 me-2" type="button" data-bs-toggle="collapse" data-bs-target="#accordion_{{comp_lvl1.id}}" aria-expanded="false" aria-controls="accordion_{{comp_lvl1.id}}" style="width: 75%">
@@ -23,12 +22,11 @@
                 </div>
             </div>
 
-        {% endif %}
         <div id="accordion_{{comp_lvl1.id}}" class="accordion-collapse collapse">
             <div class="accordion-body">
             {% for comp_lvl2 in comp_lvl1.child.all %}
                 <div class="ms-5">
-                    {% if selected_directions|intersections:comp_lvl2.directions.all %}
+                    {% if comp_lvl2.id in selected_competencies.keys %}
                     <div class="form-group col-12">
                         <div class="row mb-1">
                             <div class="ms-1 fs-5 col-9">{{comp_lvl2.name}}</div>
@@ -48,7 +46,7 @@
                     {% endif %}
 
                     {% for comp_lvl3 in comp_lvl2.child.all %}
-                    {% if selected_directions|intersections:comp_lvl3.directions.all %}
+                    {% if comp_lvl2.id in selected_competencies.keys %}
                     <div class="ms-5">
                         <div class="form-group col-12">
                             <div class="row mb-1">

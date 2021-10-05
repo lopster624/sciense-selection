@@ -266,10 +266,9 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
             context.update({'blocked': True})
         user_directions = user_app.directions.all()
         if user_directions:
-            user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
-            competencies = Competence.objects.filter(directions__in=user_directions,
-                                                     parent_node__isnull=True).distinct()
+            user_competencies = ApplicationCompetencies.objects.select_related('competence').filter(application=user_app)
             selected_competencies = {_.competence.id: _.level for _ in user_competencies}
+            competencies = Competence.objects.filter(parent_node__isnull=True, directions__in=user_directions).prefetch_related('child', 'child__child', 'directions').distinct()
             competence_levels = ApplicationCompetencies.competence_levels
             context.update({'levels': competence_levels, 'selected_competencies': selected_competencies,
                             'competencies': competencies, 'selected_directions': user_directions})
@@ -283,15 +282,17 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
         user_app = get_object_or_404(Application, pk=pk)
         user_directions = user_app.directions.all()
         competencies_of_direction = Competence.objects.filter(directions__in=user_directions).distinct()
-        for comp in competencies_of_direction:
-            level_competence = request.POST.get(str(comp.id), None)
-            if level_competence:
-                ApplicationCompetencies.objects.update_or_create(application=user_app, competence=comp,
-                                                                 defaults={'level': int(level_competence)})
+        level_competence = [ApplicationCompetencies(application=user_app,
+                                                    competence=competence,
+                                                    level=request.POST.get(str(competence.id), 0))
+                            for competence in competencies_of_direction]
+        ApplicationCompetencies.objects.filter(application=user_app, competence__in=competencies_of_direction).delete()
+        ApplicationCompetencies.objects.bulk_create(level_competence)
+
         user_app.update_scores(update_fields=['fullness', 'final_score'])
-        user_competencies = ApplicationCompetencies.objects.filter(application=user_app)
+        user_competencies = ApplicationCompetencies.objects.select_related('competence').filter(application=user_app)
         selected_competencies = {_.competence.id: _.level for _ in user_competencies}
-        competencies = competencies_of_direction.filter(parent_node__isnull=True)
+        competencies = Competence.objects.filter(parent_node__isnull=True, directions__in=user_directions).prefetch_related('child', 'child__child', 'directions').distinct()
 
         context = {'competencies': competencies, 'levels': ApplicationCompetencies.competence_levels,
                    'selected_competencies': selected_competencies, 'pk': pk, 'competence_active': True,
