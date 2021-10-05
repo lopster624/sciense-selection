@@ -43,16 +43,6 @@ class DirectionAdmin(admin.ModelAdmin):
     list_filter = ('name',)
 
 
-@admin.register(models.AdditionField)
-class AdditionFieldAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(models.AdditionFieldApp)
-class AdditionFieldAppAdmin(admin.ModelAdmin):
-    pass
-
-
 @admin.register(models.ApplicationCompetencies)
 class ApplicationCompetenciesAdmin(admin.ModelAdmin):
     list_display = ('application', 'competence', 'level',)
@@ -81,3 +71,13 @@ class UniversitiesAdmin(admin.ModelAdmin):
 class ApplicationScoresAdmin(admin.ModelAdmin):
     list_display = ('application', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7')
     list_filter = ('application', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7')
+
+
+@admin.register(models.AdditionField)
+class AdditionFieldAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+
+
+@admin.register(models.AdditionFieldApp)
+class AdditionFieldAppAdmin(admin.ModelAdmin):
+    list_display = ('addition_field', 'application', 'value')

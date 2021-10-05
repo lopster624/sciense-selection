@@ -10,7 +10,7 @@ register = template.Library()
 
 @register.filter(name='getkey')
 def get_key(value, arg):
-    return value[arg]
+    return value.get(arg, None)
 
 
 @register.filter(name='intersections')

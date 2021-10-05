@@ -1,3 +1,5 @@
+import re
+
 from io import BytesIO
 
 from django.core.exceptions import PermissionDenied
@@ -9,10 +11,11 @@ from docxtpl import DocxTemplate
 from account.models import Member, Affiliation, Booking
 from application.models import ApplicationNote, Direction
 from application.models import Competence, Application
+from .models import Competence, Application, ApplicationNote, AdditionField, AdditionFieldApp
 from utils.calculations import get_current_draft_year, convert_float
 from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
     PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT
-from utils.constants import IN_WISHLIST
+from utils.constants import IN_WISHLIST, NAME_ADDITIONAL_FIELD_TEMPLATE
 
 
 def get_application_note(member, master_affiliations, app):
@@ -210,3 +213,13 @@ def check_booking_our(pk, user):
     if booking:
         return True
     return False
+
+
+def add_additional_fields(request, user_app):
+    additional_fields = [int(re.search('\d+', field).group(0)) for field in request.POST
+                         if NAME_ADDITIONAL_FIELD_TEMPLATE in field]
+    if additional_fields:
+        addition_fields = AdditionField.objects.filter(pk__in=additional_fields)
+        for field in addition_fields:
+            AdditionFieldApp.objects.update_or_create(addition_field=field, application=user_app,
+                                                      defaults={'value': request.POST.get(f"{NAME_ADDITIONAL_FIELD_TEMPLATE}{field.id}")})

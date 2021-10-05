@@ -263,7 +263,6 @@ class File(models.Model):
 
 
 class AdditionField(models.Model):
-    directions = models.ManyToManyField(Direction)
     name = models.CharField(max_length=128, verbose_name='Название дополнительного поля')
 
     def __str__(self):
@@ -276,14 +275,16 @@ class AdditionField(models.Model):
 
 
 class AdditionFieldApp(models.Model):
-    directions = models.ManyToManyField(Direction)
-    addition_field = models.ForeignKey(AdditionField, on_delete=models.CASCADE, verbose_name='Название доп поля')
+    addition_field = models.ForeignKey(AdditionField, on_delete=models.CASCADE, verbose_name='Название доп поля',)
     application = models.ForeignKey(Application, on_delete=models.CASCADE, verbose_name='Заявка')
     value = models.TextField(verbose_name='Название дополнительного поля')
 
     class Meta:
         verbose_name = "Значение кастомного поля"
         verbose_name_plural = "Значения кастомных полей"
+
+    def __str__(self):
+        return self.addition_field.name
 
 
 class Competence(models.Model):

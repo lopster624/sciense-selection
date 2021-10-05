@@ -1,3 +1,4 @@
+{% load application_extras %}
 {% csrf_token %}
 {% if msg %}
     <div class="alert alert-danger">{{ msg }}</div>
@@ -24,6 +25,20 @@
         </div>
     {% endif %}
 {% endfor %}
+
+{% if additional_fields %}
+    <h5 class="text-center mb-3">Кастомные поля</h5>
+    {% for field in additional_fields %}
+    <div class="form-group row mb-2">
+        <div class="col-4">
+            <label class="col-form-label">{{ field.name }}</label>
+        </div>
+        <div class="col-8">
+            <textarea class="form-control" name="additional_field_{{field.id}}">{% if user_additional_fields|getkey:field.id %}{{ user_additional_fields|getkey:field.id }}{% endif %}</textarea>
+        </div>
+    </div>
+    {% endfor %}
+{% endif %}
 
 <h5 class="text-center mb-3">Образование</h5>
 {{ education_formset.management_form }}

@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 
 from . import models
 
@@ -46,3 +47,15 @@ class BookingTypeAdmin(admin.ModelAdmin):
 class ActivationLinkAdmin(admin.ModelAdmin):
     list_display = ('user', 'token')
     list_filter = ('user',)
+
+
+admin.site.unregister(models.User)
+
+
+class MemberInlineAdmin(admin.TabularInline):
+    model = models.Member
+
+
+@admin.register(models.User)
+class CustomUserAdmin(UserAdmin):
+    inlines = [MemberInlineAdmin]
