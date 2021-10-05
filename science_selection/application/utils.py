@@ -1,11 +1,13 @@
 from io import BytesIO
 
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect
 from docxtpl import DocxTemplate
 
 from account.models import Member, Affiliation, Booking
-from application.models import ApplicationNote
+from application.models import ApplicationNote, Direction
 from application.models import Competence, Application
 from utils.calculations import get_current_draft_year, convert_float
 from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
@@ -70,17 +72,25 @@ def check_role(user, role_name):
     return False
 
 
-def delete_competence(competence_id, direction):
-    competence = Competence.objects.get(id=competence_id)
-    if competence.directions.all().filter(id=direction.id).exists():
-        competence.directions.remove(direction)
-    for sub_competence in competence.child.all():
-        delete_competence(sub_competence.id, direction)
-
-
-def pick_competence(competence, direction):
-    if not competence.directions.all().filter(id=direction.id).exists():
-        competence.directions.add(direction)
+def delete_competence(competence_id, direction_id):
+    """Todo: перевести на mptt и сделать get_descendants(include_self=False)"""
+    competence = Competence.objects.prefetch_related(
+        Prefetch('directions', queryset=Direction.objects.filter(id=direction_id)),
+        Prefetch('child__directions', queryset=Direction.objects.filter(id=direction_id)),
+        Prefetch('child__child__directions', queryset=Direction.objects.filter(id=direction_id)),
+    ).get(id=competence_id)
+    all_competences = []
+    if competence.directions.all().exists():
+        all_competences.append(competence)
+    for comp in competence.child.all():
+        if comp.directions.all().exists():
+            all_competences.append(comp)
+        for comp2 in comp.child.all():
+            if comp2.directions.all().exists():
+                all_competences.append(comp2)
+    with transaction.atomic():
+        for comp in all_competences:
+            comp.directions.remove(direction_id)
 
 
 def check_permission_decorator(role_name=None):
@@ -146,7 +156,8 @@ class WordTemplate:
             }
             booked = Booking.objects.select_related('slave').filter(affiliation=direction, booking_type__name=BOOKED)
             booked_slaves = [b.slave for b in booked]
-            booked_user_apps = Application.objects.select_related('scores', 'member__user').prefetch_related('education'). \
+            booked_user_apps = Application.objects.select_related('scores', 'member__user').prefetch_related(
+                'education'). \
                 filter(member__in=booked_slaves, draft_year=current_year, draft_season=current_season[0]).all()
 
             for i, user_app in enumerate(booked_user_apps):
