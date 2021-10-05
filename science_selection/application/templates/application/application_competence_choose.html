@@ -28,10 +28,11 @@
         {% if not blocked %}
             <form action="{% url 'choose_app_competence' pk %}" method="POST">
                 {% csrf_token %}
-                {% include 'application/includes/app_competencies_list.html' %}
+                <div class="accordion accordion-flush" id="accordionFlushExample">
+                    {% include 'application/includes/app_competencies_list.html' %}
+                </div>
                 <button type="submit" class="w-10 btn btn-primary justify-content-center" style="margin-left: 45%;">Сохранить</button>
             </form>
-
         {% else %}
             {% include 'application/includes/app_competencies_list.html' %}
         {% endif %}

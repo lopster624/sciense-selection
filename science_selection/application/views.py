@@ -20,9 +20,9 @@ from utils.calculations import get_current_draft_year
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
-    Universities
+    Universities, AdditionField, AdditionFieldApp
 from .utils import pick_competence, delete_competence, check_permission_decorator, WordTemplate, check_booking_our, \
-    get_filtered_sorted_queryset, check_final_decorator, check_kids, check_kids_for_pick
+    get_filtered_sorted_queryset, check_final_decorator, check_kids, check_kids_for_pick, add_additional_fields
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
@@ -68,7 +68,9 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
             return redirect('application', pk=user_app.id)
         app_form = ApplicationCreateForm()
         education_formset = EducationFormSet(queryset=Education.objects.none())
-        context = {'app_form': app_form, 'app_active': True, 'education_formset': education_formset}
+        additional_fields = AdditionField.objects.all()
+        context = {'app_form': app_form, 'app_active': True, 'education_formset': education_formset,
+                   'additional_fields': additional_fields, 'user_additional_fields': {}}
         return render(request, 'application/application_create.html', context=context)
 
     def post(self, request):
@@ -86,6 +88,7 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
                         user_education.application = new_app
                         user_education.save()
                 new_app.update_scores(update_fields=['fullness', 'final_score'])
+                add_additional_fields(request, new_app)
                 return redirect('application', pk=new_app.pk)
             else:
                 msg = 'Некорректные данные в заявке'
@@ -120,7 +123,10 @@ class EditApplicationView(LoginRequiredMixin, View):
         app_form = ApplicationCreateForm(
             instance=user_app) if request.user.member.is_slave() else ApplicationMasterForm(instance=user_app)
         education_formset = EducationFormSet(queryset=user_education)
-        context = {'app_form': app_form, 'pk': pk, 'education_formset': education_formset, 'app_active': True}
+        additional_fields = AdditionField.objects.all()
+        user_additional_fields = {f.addition_field_id: f.value for f in AdditionFieldApp.objects.filter(application=user_app)}
+        context = {'app_form': app_form, 'pk': pk, 'education_formset': education_formset, 'app_active': True,
+                   'additional_fields': additional_fields, 'user_additional_fields': user_additional_fields}
         return render(request, 'application/application_edit.html', context=context)
 
     @check_permission_decorator(const.MASTER_ROLE_NAME)
@@ -141,6 +147,7 @@ class EditApplicationView(LoginRequiredMixin, View):
                     user_education.application = new_app
                     user_education.save()
             new_app.update_scores(update_fields=['fullness', 'final_score'])
+            add_additional_fields(request, user_app)
             return redirect('application', pk=new_app.pk)
         else:
             msg = 'Некорректные данные в заявке'
