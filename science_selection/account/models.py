@@ -37,8 +37,8 @@ class Affiliation(models.Model):
 
 class Member(models.Model):
     class Validator:
-        phone_regex = RegexValidator(regex=r'^\+?\d{11}|\d{6}$',
-                                     message="Введите корректный номер телефона формата: +99999999999.")
+        phone_regex = RegexValidator(regex=r'^\+?1?\d{9,15}$',
+                                     message="Введите корректный номер телефона формата: +79998887766")
 
     user = models.OneToOneField(User, verbose_name="Пользователь", on_delete=models.CASCADE)
     role = models.ForeignKey(Role, verbose_name="Роль", null=True, blank=True, on_delete=models.SET_NULL)

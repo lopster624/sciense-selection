@@ -18,7 +18,6 @@ class RegistrationView(View):
 
     def post(self, request):
         form = RegisterForm(request.POST)
-        msg, success = None, False
         if form.is_valid():
             new_user = form.save(commit=False)
             new_user.set_password(form.cleaned_data['password'])
@@ -26,10 +25,10 @@ class RegistrationView(View):
             Member.objects.create(user=new_user, father_name=form.cleaned_data.get('father_name'),
                                   phone=form.cleaned_data.get('phone'), role=None)
             msg = 'Пользователь успешно зарегистрирован, подтвердите регистрацию на почте'
-            success = True
+            return render(request, "register.html", {"form": form, "msg": msg, "success": True}, status=201)
         else:
             msg = 'Некорректные данные в форме'
-        return render(request, "register.html", {"form": form, "msg": msg, "success": success})
+        return render(request, "register.html", {"form": form, "msg": msg, "success": False}, status=400)
 
 
 class ActivationView(LoginRequiredMixin, View):
@@ -37,10 +36,10 @@ class ActivationView(LoginRequiredMixin, View):
         try:
             link_object = ActivationLink.objects.get(token=token)
         except ActivationLink.DoesNotExist:
-            return render(request, 'access_error.html', context={'error': 'Ссылка активации некорректна!.'})
+            return render(request, 'access_error.html', context={'error': 'Ссылка активации некорректна!.'}, status=400)
         if link_object.user != request.user:
             return render(request, 'access_error.html',
-                          context={'error': 'Ссылка предназначена для другого пользователя!'})
+                          context={'error': 'Ссылка предназначена для другого пользователя!'}, status=403)
         member = Member.objects.get(user=link_object.user)
         member.role = Role.objects.get(role_name=SLAVE_ROLE_NAME)
         member.save()
@@ -76,7 +75,8 @@ class HomeView(LoginRequiredMixin, View):
             return redirect('/admin/')
         if not request.user.member.role:
             return render(request, 'access_error.html', context={
-                'error': 'Пройдите по ссылке из сообщения, отправленного вам на почту, для активации аккаунта'})
+                'error': 'Пройдите по ссылке из сообщения, отправленного вам на почту, для активации аккаунта'},
+                          status=403)
         if request.user.member.is_slave():
             return redirect('home_slave')
         if request.user.member.is_master():
@@ -89,7 +89,8 @@ class HomeSlaveView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
         filed_blocks, fullness, chooser = DEFAULT_FILED_BLOCKS, 0, {}
         if user_app:
             filed_blocks, fullness = user_app.get_filed_blocks(), user_app.fullness
-            booking = Booking.objects.select_related('master').filter(slave=request.user.member, booking_type__name=BOOKED).first()
+            booking = Booking.objects.select_related('master').filter(slave=request.user.member,
+                                                                      booking_type__name=BOOKED).first()
             if booking:
                 chooser = {
                     'full_name': booking.master,

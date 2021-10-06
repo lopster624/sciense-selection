@@ -5,7 +5,7 @@ from django.forms.widgets import Input
 
 class RegisterForm(forms.ModelForm):
     father_name = forms.CharField(label='Отчество', widget=Input(attrs={'class': 'form-control'}))
-    phone = forms.RegexField(label='Телефон', regex=r'^\+?\d{11}|\d{6}$', widget=Input(attrs={'class': 'form-control'}))
+    phone = forms.RegexField(label='Телефон', regex=r'^\+?1?\d{9,15}$', widget=Input(attrs={'class': 'form-control'}))
 
     class Meta:
         model = User
@@ -42,6 +42,3 @@ class RegisterForm(forms.ModelForm):
         if User.objects.filter(email__iexact=user_email):
             raise forms.ValidationError("Пользователь с такой почтой уже существует")
         return user_email
-
-
-
