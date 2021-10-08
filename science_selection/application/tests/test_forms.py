@@ -1,10 +1,12 @@
 import datetime
-from django.test import TestCase
+
 from django.contrib.auth.models import User
+from django.test import TestCase
 
 from account.models import Affiliation
+from application.forms import CreateCompetenceForm, EducationCreateForm, ApplicationMasterForm
 from application.forms import FilterForm
-from application.models import Direction
+from application.models import Direction, Competence, Education, Application
 from utils.calculations import get_current_draft_year
 
 
@@ -55,12 +57,6 @@ class FilterFormTest(TestCase):
                           in_wishlist_set=self.in_wishlist_set,
                           draft_year_set=self.draft_year_set, chosen_affiliation_set=self.in_wishlist_set)
         self.assertEqual(form['draft_year'].initial, 2021)
-
-
-from django.test import TestCase
-
-from application.models import Direction, Competence, Education, Application
-from application.forms import CreateCompetenceForm, EducationCreateForm, ApplicationMasterForm
 
 
 class CreateCompetenceFormTest(TestCase):
