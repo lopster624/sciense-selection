@@ -258,7 +258,7 @@ class File(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        if self.member.is_slave():
+        if self.member.is_slave() and hasattr(self.member, 'application'):
             self.member.application.update_scores(update_fields=['fullness', 'final_score'])
 
 
