@@ -266,9 +266,13 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
             context.update({'blocked': True})
         user_directions = user_app.directions.all()
         if user_directions:
-            user_competencies = ApplicationCompetencies.objects.select_related('competence').filter(application=user_app)
+            user_competencies = ApplicationCompetencies.objects.select_related('competence').filter(
+                application=user_app)
             selected_competencies = {_.competence.id: _.level for _ in user_competencies}
-            competencies = Competence.objects.filter(parent_node__isnull=True, directions__in=user_directions).prefetch_related('child', 'child__child', 'directions').distinct()
+            competencies = Competence.objects.filter(parent_node__isnull=True,
+                                                     directions__in=user_directions).prefetch_related('child',
+                                                                                                      'child__child',
+                                                                                                      'directions').distinct()
             competence_levels = ApplicationCompetencies.competence_levels
             context.update({'levels': competence_levels, 'selected_competencies': selected_competencies,
                             'competencies': competencies, 'selected_directions': user_directions})
@@ -292,7 +296,10 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
         user_app.update_scores(update_fields=['fullness', 'final_score'])
         user_competencies = ApplicationCompetencies.objects.select_related('competence').filter(application=user_app)
         selected_competencies = {_.competence.id: _.level for _ in user_competencies}
-        competencies = Competence.objects.filter(parent_node__isnull=True, directions__in=user_directions).prefetch_related('child', 'child__child', 'directions').distinct()
+        competencies = Competence.objects.filter(parent_node__isnull=True,
+                                                 directions__in=user_directions).prefetch_related('child',
+                                                                                                  'child__child',
+                                                                                                  'directions').distinct()
 
         context = {'competencies': competencies, 'levels': ApplicationCompetencies.competence_levels,
                    'selected_competencies': selected_competencies, 'pk': pk, 'competence_active': True,
@@ -430,10 +437,11 @@ class ApplicationListView(MasterDataMixin, ListView):
         in_wishlist_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
         draft_year_set = Application.objects.order_by('draft_year').distinct().values_list('draft_year', 'draft_year')
         current_year, current_season = get_current_draft_year()
-        data = {'draft_year': current_year,
-                'draft_season': current_season,
-                }
-        filter_form = FilterForm(initial=data, data=self.request.GET,
+        initial = {'draft_year': current_year,
+                   'draft_season': current_season,
+                   }
+        data = self.request.GET if self.request.GET else None
+        filter_form = FilterForm(initial=initial, data=data,
                                  directions_set=directions_set,
                                  in_wishlist_set=in_wishlist_set,
                                  draft_year_set=draft_year_set, chosen_affiliation_set=in_wishlist_set)
