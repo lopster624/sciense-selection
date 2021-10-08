@@ -1,7 +1,7 @@
 import os
 
 
-MINIMUM_SCORE = 1
+MINIMUM_SCORE = 2
 MAX_SCORE = 5
 BOOKED = 'Отобран'
 IN_WISHLIST = 'В избранном'
