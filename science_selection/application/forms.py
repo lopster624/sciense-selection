@@ -153,8 +153,6 @@ class FilterForm(forms.Form):
         in_wishlist_set = kwargs.pop('in_wishlist_set')
         draft_year_set = kwargs.pop('draft_year_set')
         chosen_affiliation_set = kwargs.pop('chosen_affiliation_set')
-        if not kwargs.get('data', True):
-            kwargs.pop('data')
         super(FilterForm, self).__init__(*args, **kwargs)
         self.fields['directions'].choices = directions_set
         self.fields['affiliation'].choices = chosen_affiliation_set
