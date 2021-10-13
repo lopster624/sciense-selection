@@ -433,7 +433,7 @@ class ApplicationListView(MasterDataMixin, ListView):
         context = super().get_context_data(**kwargs)
         master_affiliations = self.get_master_affiliations().select_related('direction').defer('direction__description',
                                                                                                'direction__image')
-        directions_set = [(aff.direction.id, aff.direction.name) for aff in master_affiliations]
+        directions_set = set([(aff.direction.id, aff.direction.name) for aff in master_affiliations])
         in_wishlist_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
         draft_year_set = Application.objects.order_by('draft_year').distinct().values_list('draft_year', 'draft_year')
         current_year, current_season = get_current_draft_year()
