@@ -10,7 +10,7 @@ from utils.calculations import get_current_draft_year, convert_float
 from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
     PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT
 from utils.constants import NAME_ADDITIONAL_FIELD_TEMPLATE
-from .models import Application, AdditionField, AdditionFieldApp
+from .models import Application, AdditionField, AdditionFieldApp, MilitaryCommissariat
 
 
 def check_role(user, role_name):
@@ -122,7 +122,9 @@ class WordTemplate:
         }
 
     def _get_candidates_info(self, user_app, user_last_education):
+        commissariat = MilitaryCommissariat.objects.filter(name=user_app.military_commissariat).first()
         return {
+            'subject': commissariat.subject if commissariat else '',
             'birth_day': user_app.birth_day.year,
             'avg_score': user_last_education.avg_score,
         }

@@ -372,3 +372,27 @@ class ApplicationScores(models.Model):
 
     def __str__(self):
         return f'{self.application}'
+
+
+class MilitaryCommissariat(models.Model):
+    name = models.CharField(max_length=256, verbose_name='Название коммисариата', )
+    subject = models.CharField(max_length=128, verbose_name='Субъект', )
+    city = models.CharField(max_length=128, verbose_name='Город')
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = 'Военный комиссариат'
+        verbose_name_plural = 'Военные комиссариаты'
+
+
+class Specialization(models.Model):
+    name = models.CharField(max_length=128, verbose_name='Название специальности', )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = 'Специальность'
+        verbose_name_plural = 'Специальности'

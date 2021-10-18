@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 
 from application.models import Direction, File, Competence, Universities, Education, Application, validate_draft_year, \
-    ApplicationScores
+    ApplicationScores, Specialization, MilitaryCommissariat
 from account.models import Member, Role
 from utils.constants import DEFAULT_FILED_BLOCKS
 
@@ -174,3 +174,38 @@ class EducationModelTest(TestCase):
     def test_get_education_type_display(self):
         education = Education.objects.get(id=1)
         self.assertEquals(education.get_education_type_display(), Education.education_program[0][1])
+
+
+class SpecializationModelTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        Specialization.objects.create(name='Информатика и вычислительная техника')
+
+    def test_name_max_length(self):
+        spec = Specialization.objects.get(id=1)
+        max_length = spec._meta.get_field('name').max_length
+        self.assertEquals(max_length, 128)
+
+
+class MilitaryCommissariatModelTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        MilitaryCommissariat.objects.create(name='Военный комиссариат города Йошкар-Ола Республики Марий Эл',
+                                            subject='Республика Марий Эл', city='г.Йошкар-Ола')
+
+    def test_name_max_length(self):
+        mc = MilitaryCommissariat.objects.get(id=1)
+        max_length = mc._meta.get_field('name').max_length
+        self.assertEquals(max_length, 256)
+
+    def test_subject_max_length(self):
+        mc = MilitaryCommissariat.objects.get(id=1)
+        max_length = mc._meta.get_field('subject').max_length
+        self.assertEquals(max_length, 128)
+
+    def test_city_max_length(self):
+        mc = MilitaryCommissariat.objects.get(id=1)
+        max_length = mc._meta.get_field('city').max_length
+        self.assertEquals(max_length, 128)

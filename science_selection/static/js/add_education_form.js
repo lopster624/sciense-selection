@@ -3,10 +3,15 @@ let container = document.querySelector("#form-container")
 let addButton = document.querySelector("#add-form")
 let totalForms = document.querySelector("#id_form-TOTAL_FORMS")
 
+addActionToBtn()
+searchSpecialization()
+searchEducation()
+searchMilitaryCommissariat()
+
 addButton.addEventListener('click', addForm)
 addButton.addEventListener('click', searchEducation)
-addActionToBtn()
-searchEducation()
+addButton.addEventListener('click', searchSpecialization)
+addButton.addEventListener('click', searchMilitaryCommissariat)
 
 let edForm = document.querySelectorAll(".education-form")
 edForm[edForm.length-1].style.display = 'none'
@@ -35,11 +40,24 @@ function addForm(e){
     addActionToBtn()
 }
 
+function searchSpecialization(){
+    $(".specialization").autocomplete({
+        source: "/app/search/specialization/",
+  });
+}
+
 function searchEducation(){
     $(".university").autocomplete({
         source: "/app/search/universities/",
   });
 }
+
+function searchMilitaryCommissariat(){
+    $(".commissariat").autocomplete({
+        source: "/app/search/commissariat/",
+  });
+}
+
 
 function deleteForm(e){
     let total_forms = document.querySelector("#id_form-TOTAL_FORMS")

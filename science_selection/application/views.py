@@ -16,12 +16,13 @@ from django.views.generic.list import ListView
 
 from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterForm
+from engine.settings import MEDIA_DIR
 from utils import constants as const
 from utils.calculations import get_current_draft_year
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
-    Universities, AdditionFieldApp, AdditionField
+    Universities, AdditionFieldApp, AdditionField, Specialization, MilitaryCommissariat
 from .utils import check_permission_decorator, WordTemplate, check_booking_our, check_final_decorator, \
     add_additional_fields
 
@@ -168,6 +169,8 @@ class DocumentsInAppView(LoginRequiredMixin, View):
         app = get_object_or_404(Application, pk=pk)
         user_files = File.objects.filter(member=app.member).all()
         context = {'file_templates': file_templates, 'user_files': user_files, 'document_active': True, 'pk': pk}
+        if request.user.member.is_master():
+            context.update({'blocked': True})
         return render(request, 'application/application_documents.html', context=context)
 
     @check_permission_decorator()
@@ -312,7 +315,7 @@ class MasterFileTemplatesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
     def get(self, request):
         files = File.objects.filter(is_template=True).all().only('file_path', 'file_name', 'is_template')
-        return render(request, 'application/documents.html', context={'file_list': files})
+        return render(request, 'application/documents.html', context={'file_list': files, 'document_active': True})
 
     def post(self, request):
         new_files = request.FILES.getlist('downloaded_files')
@@ -332,6 +335,7 @@ class DeleteFileView(LoginRequiredMixin, View):
         file = File.objects.get(id=file_id)
         if file.member != request.user.member:
             return PermissionDenied('Только загрузивший пользователь может удалить файл.')
+        os.remove(os.path.join(MEDIA_DIR, str(file.file_path)))
         file.delete()
         if request.user.member.is_slave():
             request.user.member.application.update_scores(update_fields=['fullness', 'final_score'])
@@ -609,21 +613,21 @@ class DeleteFromWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 
 @login_required
-def ajax_search_universities(request):
-    """
-    Выводит json со списком подходящих университетов по шаблону (автодополнение)
-    query params:
-        term: string - строка шаблон, по которой идет фильтрация университетов
-    """
+def ajax_search_info_in_db_tables(request):
     result = []
     if request.is_ajax():
         term = request.GET.get('term', '')
-        universities = Universities.objects.filter(name__icontains=term)
-        result = [{'id': university.id,
-                   'value': university.name,
-                   'label': university.name} for university in universities]
-        result = json.dumps(result)
-    return HttpResponse(result)
+        db_table_name = {
+            'universities': Universities,
+            'specialization': Specialization,
+            'commissariat': MilitaryCommissariat,
+        }
+        db_table = db_table_name[request.path.split('/')[-2]]
+        filtered_table = db_table.objects.filter(name__icontains=term)
+        result = [{'id': record.id,
+                   'value': record.name,
+                   'label': record.name} for record in filtered_table]
+    return HttpResponse(json.dumps(result))
 
 
 class EditApplicationNote(MasterDataMixin, View):

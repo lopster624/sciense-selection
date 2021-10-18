@@ -27,6 +27,8 @@ urlpatterns = [
     path('wishlist/add/<int:pk>/', views.AddInWishlistView.as_view(), name='add_in_wishlist'),
     path('wishlist/delete/<int:pk>/', views.DeleteFromWishlistView.as_view(), name='delete_from_wishlist'),
 
-    path('search/universities/', views.ajax_search_universities, name='ajax_search_universities'),
+    path('search/universities/', views.ajax_search_info_in_db_tables, name='ajax_search_universities'),
+    path('search/specialization/', views.ajax_search_info_in_db_tables, name='ajax_search_specialization'),
+    path('search/commissariat/', views.ajax_search_info_in_db_tables, name='ajax_search_commissariat'),
     path('search/competencies/', views.CompetenceAutocomplete.as_view(), name='search_competencies',),
 ]

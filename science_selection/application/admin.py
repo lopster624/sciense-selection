@@ -62,8 +62,7 @@ class ApplicationNoteAdmin(admin.ModelAdmin):
 
 @admin.register(models.Universities)
 class UniversitiesAdmin(admin.ModelAdmin):
-    list_display = ('name', 'rating_place')
-    list_filter = ('name', 'rating_place')
+    list_display = ('id', 'name', 'rating_place')
     search_fields = ('name',)
 
 
@@ -81,3 +80,13 @@ class AdditionFieldAdmin(admin.ModelAdmin):
 @admin.register(models.AdditionFieldApp)
 class AdditionFieldAppAdmin(admin.ModelAdmin):
     list_display = ('addition_field', 'application', 'value')
+
+
+@admin.register(models.Specialization)
+class SpecializationAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+
+
+@admin.register(models.MilitaryCommissariat)
+class MilitaryCommissariatAdmin(admin.ModelAdmin):
+    list_display = ('name', 'subject',)
