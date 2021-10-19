@@ -57,11 +57,11 @@ class ApplicationMasterForm(forms.ModelForm):
     class Meta:
         model = Application
         exclude = ('create_date', 'update_date', 'fullness', 'final_score', 'member',
-                   'competencies', 'directions', 'id')
+                   'competencies', 'directions', 'id', 'is_final')
         widgets = {
             'birth_place': Input(attrs={'class': 'form-control'}),
             'nationality': Input(attrs={'class': 'form-control'}),
-            'military_commissariat': Input(attrs={'class': 'form-control'}),
+            'military_commissariat': Input(attrs={'class': 'form-control commissariat'}),
             'group_of_health': Input(attrs={'class': 'form-control'}),
             'draft_season': Select(attrs={'class': 'form-select'}),
             'ready_to_secret': CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -94,7 +94,7 @@ class EducationCreateForm(forms.ModelForm):
 
         widgets = {
             'university': Input(attrs={'class': 'form-control university'}),
-            'specialization': Input(attrs={'class': 'form-control'}),
+            'specialization': Input(attrs={'class': 'form-control specialization'}),
             'avg_score': NumberInput(attrs={'class': 'form-control'}),
             'end_year': NumberInput(attrs={'class': 'form-control'}),
             'theme_of_diploma': Input(attrs={'class': 'form-control'}),
