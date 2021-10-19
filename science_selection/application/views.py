@@ -79,7 +79,6 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
     def post(self, request):
         app_form = ApplicationCreateForm(request.POST)
         education_formset = EducationFormSet(request.POST)
-        context = {'app_active': True, 'msg': ''}
         if not Application.objects.filter(member=request.user.member):
             if app_form.is_valid() and education_formset.is_valid():
                 new_app = app_form.save(commit=False)
@@ -94,11 +93,11 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
                 add_additional_fields(request, new_app)
                 return redirect('application', pk=new_app.pk)
             else:
-                msg = 'Некорректные данные в заявке'
+                context = {'app_active': True, 'msg': 'Некорректные данные в заявке', 'app_form': app_form,
+                           'education_formset': education_formset}
+                return render(request, 'application/application_create.html', context=context, status=400)
         else:
-            msg = 'Заявка пользователя уже существует'
-        context.update({'msg': msg, 'app_form': app_form, 'education_formset': education_formset})
-        return render(request, 'application/application_create.html', context=context)
+            return redirect('application', pk=Application.objects.filter(member=request.user.member).first().id)
 
 
 class ApplicationView(LoginRequiredMixin, DetailView):
@@ -154,10 +153,9 @@ class EditApplicationView(LoginRequiredMixin, View):
             add_additional_fields(request, user_app)
             return redirect('application', pk=new_app.pk)
         else:
-            msg = 'Некорректные данные в заявке'
-        context = {'app_form': app_form, 'pk': pk, 'education_formset': education_formset, 'app_active': True,
-                   'msg': msg}
-        return render(request, 'application/application_edit.html', context=context)
+            context = {'app_form': app_form, 'pk': pk, 'education_formset': education_formset, 'app_active': True,
+                       'msg': 'Некорректные данные в заявке'}
+            return render(request, 'application/application_edit.html', context=context, status=400)
 
 
 class DocumentsInAppView(LoginRequiredMixin, View):
@@ -614,19 +612,17 @@ class DeleteFromWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 @login_required
 def ajax_search_info_in_db_tables(request):
-    result = []
-    if request.is_ajax():
-        term = request.GET.get('term', '')
-        db_table_name = {
-            'universities': Universities,
-            'specialization': Specialization,
-            'commissariat': MilitaryCommissariat,
-        }
-        db_table = db_table_name[request.path.split('/')[-2]]
-        filtered_table = db_table.objects.filter(name__icontains=term)
-        result = [{'id': record.id,
-                   'value': record.name,
-                   'label': record.name} for record in filtered_table]
+    term = request.GET.get('term', '')
+    db_table_name = {
+        'universities': Universities,
+        'specialization': Specialization,
+        'commissariat': MilitaryCommissariat,
+    }
+    db_table = db_table_name[request.path.split('/')[-2]]
+    filtered_table = db_table.objects.filter(name__icontains=term)
+    result = [{'id': record.id,
+               'value': record.name,
+               'label': record.name} for record in filtered_table]
     return HttpResponse(json.dumps(result))
 
 

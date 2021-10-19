@@ -64,7 +64,8 @@ class WordTemplate:
     def create_context_to_interview_list(self, pk):
         user_app = Application.objects.select_related('member').prefetch_related('education').defer('id').get(pk=pk)
         user_education = user_app.education.order_by('-end_year').values()
-        context = {**user_app.__dict__, **user_education[0]}
+        user_education = user_education[0] if user_education else {}
+        context = {**user_app.__dict__, **user_education}
         context.update({'father_name': user_app.member.father_name, 'phone': user_app.member.phone})
         context.update({'first_name': user_app.member.user.first_name, 'last_name': user_app.member.user.last_name})
         return context
