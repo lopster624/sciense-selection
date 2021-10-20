@@ -14,7 +14,7 @@
             {% for file in file_templates %}
             <li class="list-group-item list-group-item-light fs-5">
                 <img src="{% static 'images/file-earmark-arrow-down.svg' %}" alt="download file" width="32" height="32">
-                <a href="{{ file.file_path.url }}" class="mb-1">{{ file.file_name }}</a>
+                <a href="{% url 'download_documents' file.pk %}" class="mb-1">{{ file.file_name }}</a>
             </li>
             {% endfor %}
         </div>
@@ -23,7 +23,7 @@
             {% for file in user_files %}
             <li class="list-group-item list-group-item-light fs-5">
                 <img src="{% static 'images/file-earmark-arrow-down.svg' %}" alt="download file" width="32" height="32">
-                <a href="{{ file.file_path.url }}" class="mb-1">{{ file.file_name }}</a>
+                <a href="{% url 'download_documents' file.pk %}" class="mb-1">{{ file.file_name }}</a>
 
                 {% if not blocked %}
                     <button type="button" class="btn-close ms-2" data-bs-toggle="modal"

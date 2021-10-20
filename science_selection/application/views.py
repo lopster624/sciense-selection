@@ -7,6 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, BadRequest
 from django.db import transaction
 from django.db.models import F, Q, Count, OuterRef, Subquery, Prefetch
+from django.http import FileResponse
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.utils.encoding import escape_uri_path
@@ -79,7 +80,6 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
     def post(self, request):
         app_form = ApplicationCreateForm(request.POST)
         education_formset = EducationFormSet(request.POST)
-        context = {'app_active': True, 'msg': ''}
         if not Application.objects.filter(member=request.user.member):
             if app_form.is_valid() and education_formset.is_valid():
                 new_app = app_form.save(commit=False)
@@ -94,11 +94,11 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
                 add_additional_fields(request, new_app)
                 return redirect('application', pk=new_app.pk)
             else:
-                msg = 'Некорректные данные в заявке'
+                context = {'app_active': True, 'msg': 'Некорректные данные в заявке', 'app_form': app_form,
+                           'education_formset': education_formset}
+                return render(request, 'application/application_create.html', context=context, status=400)
         else:
-            msg = 'Заявка пользователя уже существует'
-        context.update({'msg': msg, 'app_form': app_form, 'education_formset': education_formset})
-        return render(request, 'application/application_create.html', context=context)
+            return redirect('application', pk=Application.objects.filter(member=request.user.member).first().id)
 
 
 class ApplicationView(LoginRequiredMixin, DetailView):
@@ -154,10 +154,9 @@ class EditApplicationView(LoginRequiredMixin, View):
             add_additional_fields(request, user_app)
             return redirect('application', pk=new_app.pk)
         else:
-            msg = 'Некорректные данные в заявке'
-        context = {'app_form': app_form, 'pk': pk, 'education_formset': education_formset, 'app_active': True,
-                   'msg': msg}
-        return render(request, 'application/application_edit.html', context=context)
+            context = {'app_form': app_form, 'pk': pk, 'education_formset': education_formset, 'app_active': True,
+                       'msg': 'Некорректные данные в заявке'}
+            return render(request, 'application/application_edit.html', context=context, status=400)
 
 
 class DocumentsInAppView(LoginRequiredMixin, View):
@@ -177,7 +176,7 @@ class DocumentsInAppView(LoginRequiredMixin, View):
     def post(self, request, pk):
         new_files = request.FILES.getlist('downloaded_files')
         for file in new_files:
-            file_name = os.path.splitext(os.path.basename(file.name))[0]
+            file_name = os.path.basename(file.name)
             new_file = File(member=request.user.member, file_path=file, file_name=file_name, is_template=False)
             new_file.save()
         return redirect(request.path_info)
@@ -320,10 +319,8 @@ class MasterFileTemplatesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def post(self, request):
         new_files = request.FILES.getlist('downloaded_files')
         for file in new_files:
-            new_file = File(member=request.user.member, file_path=file, is_template=True)
-            new_file.save()
-            # TODO: а надо? os.path.splitext(os.path.basename(file.name))[0]
-            new_file.file_name = new_file.file_path.name.split('/')[-1]  # отделяется название от пути загрузки
+            file_name = os.path.basename(file.name)
+            new_file = File(member=request.user.member, file_path=file, is_template=True, file_name=file_name)
             new_file.save()
         return redirect(request.path_info)
 
@@ -340,6 +337,16 @@ class DeleteFileView(LoginRequiredMixin, View):
         if request.user.member.is_slave():
             request.user.member.application.update_scores(update_fields=['fullness', 'final_score'])
         return redirect(request.META.get('HTTP_REFERER'))
+
+
+class DownloadFileView(LoginRequiredMixin, View):
+    """ Скачивает файлы по file_id """
+
+    def get(self, request, file_id):
+        file = get_object_or_404(File, pk=file_id)
+        file_path = os.path.join(MEDIA_DIR, str(file.file_path))
+        response = FileResponse(open(file_path, 'rb'), filename=file.file_name, as_attachment=True)
+        return response
 
 
 class ApplicationListView(MasterDataMixin, ListView):
@@ -623,19 +630,17 @@ class DeleteFromWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
 @login_required
 def ajax_search_info_in_db_tables(request):
-    result = []
-    if request.is_ajax():
-        term = request.GET.get('term', '')
-        db_table_name = {
-            'universities': Universities,
-            'specialization': Specialization,
-            'commissariat': MilitaryCommissariat,
-        }
-        db_table = db_table_name[request.path.split('/')[-2]]
-        filtered_table = db_table.objects.filter(name__icontains=term)
-        result = [{'id': record.id,
-                   'value': record.name,
-                   'label': record.name} for record in filtered_table]
+    term = request.GET.get('term', '')
+    db_table_name = {
+        'universities': Universities,
+        'specialization': Specialization,
+        'commissariat': MilitaryCommissariat,
+    }
+    db_table = db_table_name[request.path.split('/')[-2]]
+    filtered_table = db_table.objects.filter(name__icontains=term)
+    result = [{'id': record.id,
+               'value': record.name,
+               'label': record.name} for record in filtered_table]
     return HttpResponse(json.dumps(result))
 
 
