@@ -22,6 +22,7 @@ urlpatterns = [
     path('competence/create/', views.CreateCompetenceView.as_view(), name='create_competence'),
     path('documents/templates/delete/<int:file_id>/', views.DeleteFileView.as_view(), name='delete_file'),
     path('documents/templates/', views.MasterFileTemplatesView.as_view(), name='documents_templates'),
+    path('documents/<int:file_id>/download/', views.DownloadFileView.as_view(), name='download_documents'),
     path('booking/<int:pk>/', views.BookMemberView.as_view(), name='book_member'),
     path('booking/delete/<int:pk>/<int:aff_id>/', views.UnBookMemberView.as_view(), name='un-book_member'),
     path('wishlist/add/<int:pk>/', views.AddInWishlistView.as_view(), name='add_in_wishlist'),

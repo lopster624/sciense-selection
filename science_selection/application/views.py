@@ -7,6 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, BadRequest
 from django.db import transaction
 from django.db.models import F, Q, Count, OuterRef, Subquery, Prefetch
+from django.http import FileResponse
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.utils.encoding import escape_uri_path
@@ -175,7 +176,7 @@ class DocumentsInAppView(LoginRequiredMixin, View):
     def post(self, request, pk):
         new_files = request.FILES.getlist('downloaded_files')
         for file in new_files:
-            file_name = os.path.splitext(os.path.basename(file.name))[0]
+            file_name = os.path.basename(file.name)
             new_file = File(member=request.user.member, file_path=file, file_name=file_name, is_template=False)
             new_file.save()
         return redirect(request.path_info)
@@ -318,10 +319,8 @@ class MasterFileTemplatesView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def post(self, request):
         new_files = request.FILES.getlist('downloaded_files')
         for file in new_files:
-            new_file = File(member=request.user.member, file_path=file, is_template=True)
-            new_file.save()
-            # TODO: а надо? os.path.splitext(os.path.basename(file.name))[0]
-            new_file.file_name = new_file.file_path.name.split('/')[-1]  # отделяется название от пути загрузки
+            file_name = os.path.basename(file.name)
+            new_file = File(member=request.user.member, file_path=file, is_template=True, file_name=file_name)
             new_file.save()
         return redirect(request.path_info)
 
@@ -338,6 +337,16 @@ class DeleteFileView(LoginRequiredMixin, View):
         if request.user.member.is_slave():
             request.user.member.application.update_scores(update_fields=['fullness', 'final_score'])
         return redirect(request.META.get('HTTP_REFERER'))
+
+
+class DownloadFileView(LoginRequiredMixin, View):
+    """ Скачивает файлы по file_id """
+
+    def get(self, request, file_id):
+        file = get_object_or_404(File, pk=file_id)
+        file_path = os.path.join(MEDIA_DIR, str(file.file_path))
+        response = FileResponse(open(file_path, 'rb'), filename=file.file_name, as_attachment=True)
+        return response
 
 
 class ApplicationListView(MasterDataMixin, ListView):
