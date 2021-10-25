@@ -1,15 +1,13 @@
 import datetime
-import json
 
+from django.contrib.auth.models import User
 from django.db.models import Q
 from django.test import TestCase
 from django.urls import reverse
-from django.contrib.auth.models import User
 
-from account.models import Role, Member
 from account.models import Affiliation, Booking, BookingType
-from application.models import Direction, Education, Application, AdditionField, Competence, ApplicationCompetencies, \
-    Universities, MilitaryCommissariat, Specialization
+from account.models import Role, Member
+from application.models import Direction, Education, Application, Competence
 from utils.calculations import get_current_draft_year
 from utils.constants import SLAVE_ROLE_NAME, MASTER_ROLE_NAME, BOOKED, IN_WISHLIST
 
@@ -398,3 +396,363 @@ class BookMemberViewTest(TestCase):
         resp = self.client.post(
             reverse('book_member', kwargs={'pk': slave_member.application.id}), {'affiliation': new_affiliation.id})
         self.assertEqual(resp.status_code, 403)
+
+    def test_book_unexist_member(self):
+        """Проверяет, что нельзя забронировать несуществующего кандидата"""
+        affiliation = Affiliation.objects.get(company=3, platoon=3)
+        self.client.login(username='master', password='master')
+        resp = self.client.post(
+            reverse('book_member', kwargs={'pk': 15}), {'affiliation': affiliation.id})
+        self.assertEqual(resp.status_code, 404)
+
+
+class UnBookMemberViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        Role.objects.create(role_name=MASTER_ROLE_NAME)
+        BookingType.objects.create(name=BOOKED)
+        BookingType.objects.create(name=IN_WISHLIST)
+
+    def setUp(self) -> None:
+        slave_role = Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        slave = User.objects.create_user(username=f'slave', password='slave', first_name='mark')
+        slave_member = Member.objects.create(user=slave, role=slave_role, phone='89998887766')
+        slave2 = User.objects.create_user(username=f'slave2', password='slave2')
+        slave_member2 = Member.objects.create(user=slave2, role=slave_role, phone='89998887765')
+        app1 = Application.objects.create(member=slave_member,
+                                          birth_day=datetime.datetime.strptime('18/09/19', '%d/%m/%y'),
+                                          birth_place=f'test', nationality='РФ',
+                                          military_commissariat='Йо',
+                                          group_of_health='А1', draft_year=2021, draft_season=1)
+
+        app2 = Application.objects.create(member=slave_member2,
+                                          birth_day=datetime.datetime.strptime('18/09/19', '%d/%m/%y'),
+                                          birth_place=f'test', nationality='РФ',
+                                          military_commissariat='Йо',
+                                          group_of_health='А1', draft_year=2021, draft_season=1)
+        self.slave_members = [slave_member, slave_member2]
+        master_role = Role.objects.get(role_name=MASTER_ROLE_NAME)
+        master = User.objects.create_user(username=f'master', password='master', first_name='mattew')
+        master_member = Member.objects.create(user=master, role=master_role, phone='89998887766')
+        master2 = User.objects.create_user(username=f'master2', password='master2')
+        master_member2 = Member.objects.create(user=master2, role=master_role, phone='89998887766')
+        for i in range(4):
+            dir = Direction.objects.create(name=f'test{i}', description='description')
+            Affiliation.objects.create(direction=dir, company=i, platoon=i)
+        aff1 = Affiliation.objects.get(company=1, platoon=1)
+        aff2 = Affiliation.objects.get(company=2, platoon=2)
+        master_member2.affiliations.add(Affiliation.objects.get(company=3, platoon=3), aff1)
+        self.master_direction_1 = aff1.direction
+        self.master_direction_2 = aff2.direction
+        master_member.affiliations.add(aff1, aff2)
+        self.master_member = master_member
+        self.master_member2 = master_member2
+        app1.directions.add(aff1.direction)
+        app1.directions.add(Direction.objects.get(name='test3'))
+        app2.directions.add(Direction.objects.get(name='test3'))
+        booked = BookingType.objects.get(name=BOOKED)
+        Booking(booking_type=booked, master=self.master_member, slave=slave_member,
+                affiliation=aff1).save()
+
+    def test_redirect_if_not_logged_in(self):
+        slave_member = self.slave_members[0]
+        resp = self.client.post(reverse('un-book_member', args=[slave_member.application.id, 3]))
+        self.assertRedirects(resp, f'/accounts/login/?next=/app/booking/delete/{slave_member.application.id}/3/')
+
+    def test_get_method_not_allowed(self):
+        slave_member = self.slave_members[0]
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('un-book_member', args=[slave_member.application.id, 3]))
+        self.assertEqual(resp.status_code, 405)
+
+    def test_slave_access(self):
+        """Проверяет, что у кандидата нет доступа к странице"""
+        self.client.login(username='slave', password='slave')
+        slave_member = self.slave_members[0]
+        resp = self.client.post(reverse('un-book_member', args=[slave_member.application.id, 3]))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_un_book_correct_member_from_correct_affiliation(self):
+        """Проверяет, что происходит удаление правильного бронирования"""
+        self.client.login(username='master', password='master')
+        slave_member = self.slave_members[0]
+        affiliation = Affiliation.objects.get(company=1, platoon=1)
+        resp = self.client.post(
+            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}), )
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('application_list'))
+
+    def test_un_book_correct_member_from_incorrect_affiliation(self):
+        """Проверяет удаление корректного пользователя с некорректного направления"""
+        self.client.login(username='master', password='master')
+        slave_member = self.slave_members[0]
+        affiliation = Affiliation.objects.get(company=3, platoon=3)
+        resp = self.client.post(
+            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}), )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'access_error.html')
+
+    def test_un_book_incorrect_member_from_correct_affiliation(self):
+        """Проверяет удаление некорректного пользователя"""
+        self.client.login(username='master', password='master')
+        slave_member = self.slave_members[1]
+        affiliation = Affiliation.objects.get(company=1, platoon=1)
+        resp = self.client.post(
+            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}), )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'access_error.html')
+
+    def test_un_book_correct_member_by_incorrect_master(self):
+        """Проверяет удаление корректного пользователя с корректного направления не тем, кто бронировал"""
+        self.client.login(username='master2', password='master2')
+        slave_member = self.slave_members[0]
+        affiliation = Affiliation.objects.get(company=1, platoon=1)
+        resp = self.client.post(
+            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}), )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'access_error.html')
+        self.assertEqual(resp.context['error'],
+                         'Отказано в запросе на удаление. Удалять может только  mattew , отобравший кандидатуру.')
+
+
+class AddInWishlistViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        Role.objects.create(role_name=MASTER_ROLE_NAME)
+        BookingType.objects.create(name=BOOKED)
+        BookingType.objects.create(name=IN_WISHLIST)
+
+    def setUp(self) -> None:
+        slave_role = Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        slave = User.objects.create_user(username=f'slave', password='slave', first_name='mark')
+        slave_member = Member.objects.create(user=slave, role=slave_role, phone='89998887766')
+        app1 = Application.objects.create(member=slave_member,
+                                          birth_day=datetime.datetime.strptime('18/09/19', '%d/%m/%y'),
+                                          birth_place=f'test', nationality='РФ',
+                                          military_commissariat='Йо',
+                                          group_of_health='А1', draft_year=2021, draft_season=1)
+
+        self.slave_members = [slave_member]
+        master_role = Role.objects.get(role_name=MASTER_ROLE_NAME)
+        master = User.objects.create_user(username=f'master', password='master', first_name='mattew')
+        master_member = Member.objects.create(user=master, role=master_role, phone='89998887766')
+        master2 = User.objects.create_user(username=f'master2', password='master2')
+        master_member2 = Member.objects.create(user=master2, role=master_role, phone='89998887766')
+        for i in range(4):
+            dir = Direction.objects.create(name=f'test{i}', description='description')
+            Affiliation.objects.create(direction=dir, company=i, platoon=i)
+        aff1 = Affiliation.objects.get(company=1, platoon=1)
+        aff2 = Affiliation.objects.get(company=2, platoon=2)
+        master_member2.affiliations.add(Affiliation.objects.get(company=3, platoon=3), aff1)
+        self.master_direction_1 = aff1.direction
+        self.master_direction_2 = aff2.direction
+        master_member.affiliations.add(aff1, aff2)
+        self.master_member = master_member
+        self.master_member2 = master_member2
+        app1.directions.add(aff1.direction)
+        app1.directions.add(Direction.objects.get(name='test3'))
+
+    def test_redirect_if_not_logged_in(self):
+        slave_member = self.slave_members[0]
+        resp = self.client.post(reverse('add_in_wishlist', args=[slave_member.application.id]))
+        self.assertRedirects(resp, f'/accounts/login/?next=/app/wishlist/add/{slave_member.application.id}/')
+
+    def test_get_method_not_allowed(self):
+        slave_member = self.slave_members[0]
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('add_in_wishlist', args=[slave_member.application.id]))
+        self.assertEqual(resp.status_code, 405)
+
+    def test_slave_access(self):
+        """Проверяет, что у кандидата нет доступа к странице"""
+        self.client.login(username='slave', password='slave')
+        slave_member = self.slave_members[0]
+        resp = self.client.post(reverse('add_in_wishlist', args=[slave_member.application.id]))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_full_correct(self):
+        slave_member = self.slave_members[0]
+        booking_type = BookingType.objects.only('id').get(name=IN_WISHLIST)
+        self.client.login(username='master', password='master')
+        new_affiliation = Affiliation.objects.get(company=1, platoon=1)
+        resp = self.client.post(
+            reverse('add_in_wishlist', kwargs={'pk': slave_member.application.id}),
+            {'affiliations': [new_affiliation.id]})
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('application_list'))
+        self.assertTrue(Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member,
+                                               affiliation=new_affiliation).exists())
+
+    def test_wrong_affiliation(self):
+        slave_member = self.slave_members[0]
+        booking_type = BookingType.objects.only('id').get(name=IN_WISHLIST)
+        self.client.login(username='master', password='master')
+        new_affiliation = Affiliation.objects.get(company=1, platoon=1)
+        resp = self.client.post(
+            reverse('add_in_wishlist', kwargs={'pk': slave_member.application.id}),
+            {'affiliations': [new_affiliation.id, 2, 3, 4]})
+        self.assertEqual(resp.status_code, 403)
+        self.assertFalse(
+            Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member,
+                                   affiliation=new_affiliation).exists())
+
+    def test_add_already_booked_member(self):
+        """Проверяет, что не появится вторая запись, если добавить в избранное второй раз"""
+        slave_member = self.slave_members[0]
+        booking_type = BookingType.objects.only('id').get(name=IN_WISHLIST)
+        self.client.login(username='master', password='master')
+        new_affiliation = Affiliation.objects.get(company=1, platoon=1)
+        Booking(booking_type=booking_type, master=self.master_member, slave=slave_member,
+                affiliation=new_affiliation).save()
+        resp = self.client.post(
+            reverse('add_in_wishlist', kwargs={'pk': slave_member.application.id}),
+            {'affiliations': [new_affiliation.id]})
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('application_list'))
+        self.assertEqual(
+            Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member,
+                                   affiliation=new_affiliation).count(), 1)
+
+    def test_book_booked_other_member(self):
+        """Проверяет, что можно добавить в вишлист одну заявку на 2 разных направления"""
+        slave_member = self.slave_members[0]
+        booking_type = BookingType.objects.only('id').get(name=IN_WISHLIST)
+        self.client.login(username='master', password='master')
+        affiliation = Affiliation.objects.get(company=1, platoon=1)
+        Booking(booking_type=booking_type, master=self.master_member, slave=slave_member,
+                affiliation=affiliation).save()
+        new_affiliation = Affiliation.objects.get(company=2, platoon=2)
+        resp = self.client.post(
+            reverse('add_in_wishlist', kwargs={'pk': slave_member.application.id}),
+            {'affiliations': [new_affiliation.id]})
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('application_list'))
+        self.assertEqual(
+            Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member).count(), 2)
+
+
+class DeleteFromWishlistViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        Role.objects.create(role_name=MASTER_ROLE_NAME)
+        BookingType.objects.create(name=BOOKED)
+        BookingType.objects.create(name=IN_WISHLIST)
+
+    def setUp(self) -> None:
+        slave_role = Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        slave = User.objects.create_user(username=f'slave', password='slave', first_name='mark')
+        slave_member = Member.objects.create(user=slave, role=slave_role, phone='89998887766')
+        app1 = Application.objects.create(member=slave_member,
+                                          birth_day=datetime.datetime.strptime('18/09/19', '%d/%m/%y'),
+                                          birth_place=f'test', nationality='РФ',
+                                          military_commissariat='Йо',
+                                          group_of_health='А1', draft_year=2021, draft_season=1)
+
+        self.slave_members = [slave_member]
+        master_role = Role.objects.get(role_name=MASTER_ROLE_NAME)
+        master = User.objects.create_user(username=f'master', password='master', first_name='mattew')
+        master_member = Member.objects.create(user=master, role=master_role, phone='89998887766')
+        master2 = User.objects.create_user(username=f'master2', password='master2')
+        master_member2 = Member.objects.create(user=master2, role=master_role, phone='89998887766')
+        for i in range(4):
+            dir = Direction.objects.create(name=f'test{i}', description='description')
+            Affiliation.objects.create(direction=dir, company=i, platoon=i)
+        aff1 = Affiliation.objects.get(company=1, platoon=1)
+        aff2 = Affiliation.objects.get(company=2, platoon=2)
+        master_member2.affiliations.add(Affiliation.objects.get(company=3, platoon=3), aff1)
+        self.master_direction_1 = aff1.direction
+        self.master_direction_2 = aff2.direction
+        master_member.affiliations.add(aff1, aff2)
+        self.master_member = master_member
+        self.master_member2 = master_member2
+        app1.directions.add(aff1.direction)
+        app1.directions.add(Direction.objects.get(name='test3'))
+
+    def test_redirect_if_not_logged_in(self):
+        slave_member = self.slave_members[0]
+        resp = self.client.post(reverse('delete_from_wishlist', args=[slave_member.application.id]))
+        self.assertRedirects(resp, f'/accounts/login/?next=/app/wishlist/delete/{slave_member.application.id}/')
+
+    def test_get_method_not_allowed(self):
+        slave_member = self.slave_members[0]
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('delete_from_wishlist', args=[slave_member.application.id]))
+        self.assertEqual(resp.status_code, 405)
+
+    def test_slave_access(self):
+        """Проверяет, что у кандидата нет доступа к странице"""
+        self.client.login(username='slave', password='slave')
+        slave_member = self.slave_members[0]
+        resp = self.client.post(reverse('delete_from_wishlist', args=[slave_member.application.id]))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_full_correct(self):
+        slave_member = self.slave_members[0]
+        booking_type = BookingType.objects.only('id').get(name=IN_WISHLIST)
+        self.client.login(username='master', password='master')
+        new_affiliation = Affiliation.objects.get(company=1, platoon=1)
+        Booking(booking_type=booking_type, master=self.master_member, slave=slave_member,
+                affiliation=new_affiliation).save()
+        resp = self.client.post(
+            reverse('delete_from_wishlist', kwargs={'pk': slave_member.application.id}),
+            {'affiliations': [new_affiliation.id]})
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('application_list'))
+        self.assertFalse(
+            Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member,
+                                   affiliation=new_affiliation).exists())
+
+    def test_delete_non_exist_booking(self):
+        """Проверяет, что ошибка не будет возникать, если попытаться удалить несуществующее бронирование"""
+        slave_member = self.slave_members[0]
+        booking_type = BookingType.objects.only('id').get(name=IN_WISHLIST)
+        self.client.login(username='master', password='master')
+        new_affiliation = Affiliation.objects.get(company=1, platoon=1)
+        resp = self.client.post(
+            reverse('delete_from_wishlist', kwargs={'pk': slave_member.application.id}),
+            {'affiliations': [new_affiliation.id]})
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('application_list'))
+        self.assertFalse(
+            Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member,
+                                   affiliation=new_affiliation).exists())
+
+    def test_delete_not_our_member(self):
+        """Проверяет, что нельзя удалить чужое бронирование"""
+        slave_member = self.slave_members[0]
+        booking_type = BookingType.objects.only('id').get(name=IN_WISHLIST)
+        self.client.login(username='master', password='master')
+        new_affiliation = Affiliation.objects.get(company=1, platoon=1)
+        Booking(booking_type=booking_type, master=self.master_member2, slave=slave_member,
+                affiliation=new_affiliation).save()
+        resp = self.client.post(
+            reverse('delete_from_wishlist', kwargs={'pk': slave_member.application.id}),
+            {'affiliations': [new_affiliation.id]})
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('application_list'))
+        self.assertTrue(
+            Booking.objects.filter(booking_type=booking_type, master=self.master_member2, slave=slave_member,
+                                   affiliation=new_affiliation).exists())
+
+    def test_delete_one_of_two(self):
+        slave_member = self.slave_members[0]
+        booking_type = BookingType.objects.only('id').get(name=IN_WISHLIST)
+        self.client.login(username='master', password='master')
+        new_affiliation = Affiliation.objects.get(company=1, platoon=1)
+        Booking(booking_type=booking_type, master=self.master_member, slave=slave_member,
+                affiliation=new_affiliation).save()
+        new_affiliation = Affiliation.objects.get(company=2, platoon=2)
+        Booking(booking_type=booking_type, master=self.master_member, slave=slave_member,
+                affiliation=new_affiliation).save()
+        self.assertEqual(
+            Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member).count(), 2)
+        resp = self.client.post(
+            reverse('delete_from_wishlist', kwargs={'pk': slave_member.application.id}),
+            {'affiliations': [new_affiliation.id]})
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('application_list'))
+        self.assertEqual(
+            Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member).count(), 1)
