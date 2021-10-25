@@ -1,17 +1,14 @@
 import datetime
 import json
 
-from django.db.models import Q
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
-from django.contrib.auth.models import User
 
 from account.models import Role, Member
-from account.models import Affiliation, Booking, BookingType
 from application.models import Direction, Education, Application, AdditionField, Competence, ApplicationCompetencies, \
     Universities, MilitaryCommissariat, Specialization
-from utils.calculations import get_current_draft_year
-from utils.constants import SLAVE_ROLE_NAME, MASTER_ROLE_NAME, BOOKED, IN_WISHLIST
+from utils.constants import SLAVE_ROLE_NAME, MASTER_ROLE_NAME
 
 
 class CreateApplicationViewTest(TestCase):
@@ -105,7 +102,7 @@ class CreateApplicationViewTest(TestCase):
         self.form_data.update({
             'form-TOTAL_FORMS': 1,
             'form-INITIAL_FORMS': 0,
-            'draft_year': datetime.datetime.today().year-1,
+            'draft_year': datetime.datetime.today().year - 1,
         })
         resp = self.client.post(reverse('create_application'), data=self.form_data)
         self.assertEqual(resp.status_code, 400)
@@ -158,7 +155,6 @@ class CreateApplicationViewTest(TestCase):
                 })
                 resp = self.client.post(reverse('create_application'), data={**self.form_data, **new_data})
                 self.assertEqual(resp.status_code, 400)
-
 
 
 class ApplicationViewTest(TestCase):
@@ -299,7 +295,6 @@ class EditApplicationViewTest(TestCase):
                 self.assertEqual(user_app[k], v)
 
 
-
 class ChooseDirectionInAppViewTest(TestCase):
 
     @classmethod
@@ -388,8 +383,6 @@ class ChooseDirectionInAppViewTest(TestCase):
         self.assertEqual(resp.status_code, 403)
 
 
-
-
 class ChooseCompetenceInAppViewTest(TestCase):
 
     @classmethod
@@ -419,7 +412,7 @@ class ChooseCompetenceInAppViewTest(TestCase):
         }
         self.app = Application.objects.create(member=member, **self.form_data)
         for i in range(3):
-            direction = Direction.objects.create(name=f'test{i}',)
+            direction = Direction.objects.create(name=f'test{i}', )
             self.app.directions.add(direction)
             comp1 = Competence.objects.create(name=f'parent comp {i}')
             comp1.directions.add(direction)
@@ -604,7 +597,7 @@ class CreateServiceDocumentViewTest(TestCase):
         self.app = Application.objects.create(member=member, **self.form_data)
 
     def test_redirect_if_not_logged_in(self):
-        resp = self.client.get(reverse('create_word_service_document',))
+        resp = self.client.get(reverse('create_word_service_document', ))
         self.assertRedirects(resp, f'/accounts/login/?next=/app/application/list/service-document/')
 
     def test_bad_query_params(self):
@@ -637,6 +630,7 @@ class CreateServiceDocumentViewTest(TestCase):
         for query in ['candidates', 'rating', 'evaluation-statement']:
             resp = self.client.get(reverse('create_word_service_document') + '?doc=' + query)
             self.assertEqual(resp.status_code, 403)
+
 
 class CompetenceAutocompleteTest(TestCase):
 
@@ -719,4 +713,3 @@ class AjaxSearchInfoInDbTablesTest(TestCase):
         resp = self.client.get(reverse('ajax_search_specialization') + '?term=Инф')
         result = {row['value'] for row in json.loads(resp.content)}
         self.assertEqual(result - {'Информатика и вычислительная техника', 'Информационные технологии'}, set())
-
