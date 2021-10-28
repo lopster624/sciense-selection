@@ -20,6 +20,7 @@ from application.forms import CreateCompetenceForm, FilterForm
 from engine.settings import MEDIA_DIR
 from utils import constants as const
 from utils.calculations import get_current_draft_year
+from utils.exceptions import MasterHasNoDirectionsException
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
@@ -515,9 +516,8 @@ class CompetenceListView(MasterDataMixin, View):
         master_directions = self.get_master_directions()
         chosen_direction = self.get_chosen_direction(master_directions)
         if chosen_direction is None:
-            return render(request, 'access_error.html',
-                          context={
-                              'error': f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.'})
+            raise MasterHasNoDirectionsException(
+                f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.')
         competences_list, picking_competences = self.get_competences_lists(self.get_root_competences(),
                                                                            chosen_direction)
         picked_competences = Competence.objects.alias(
@@ -596,10 +596,8 @@ class UnBookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         booking = Booking.objects.filter(slave=slave_member, booking_type__name=const.BOOKED,
                                          affiliation__id=aff_id).first()
         master_name = booking.master if booking else ""
-        return render(request, 'access_error.html',
-                      context={
-                          'error': f'Отказано в запросе на удаление. Удалять может только {master_name}, отобравший '
-                                   'кандидатуру.'})
+        raise PermissionDenied(f'Отказано в запросе на удаление. Удалять может только {master_name}, отобравший '
+                               'кандидатуру.')
 
 
 class AddInWishlistView(MasterDataMixin, View):

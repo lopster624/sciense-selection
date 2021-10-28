@@ -255,9 +255,9 @@ class CompetenceListViewTest(TestCase):
         """Проверяет, что у мастера без направлений вылетает ошибка"""
         self.client.login(username='mastere', password='mastere')
         resp = self.client.get(reverse('competence_list'), follow=True)
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 403)
         self.assertTemplateUsed(resp, 'access_error.html')
-        self.assertEqual(resp.context['error'],
+        self.assertEqual(str(resp.context['error']),
                          'У вас нет ни одного направления, по которому вы можете осуществлять отбор.')
 
     def test_second_direction(self):
@@ -490,7 +490,7 @@ class UnBookMemberViewTest(TestCase):
         affiliation = Affiliation.objects.get(company=3, platoon=3)
         resp = self.client.post(
             reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}), )
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 403)
         self.assertTemplateUsed(resp, 'access_error.html')
 
     def test_un_book_incorrect_member_from_correct_affiliation(self):
@@ -500,7 +500,7 @@ class UnBookMemberViewTest(TestCase):
         affiliation = Affiliation.objects.get(company=1, platoon=1)
         resp = self.client.post(
             reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}), )
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 403)
         self.assertTemplateUsed(resp, 'access_error.html')
 
     def test_un_book_correct_member_by_incorrect_master(self):
@@ -510,9 +510,9 @@ class UnBookMemberViewTest(TestCase):
         affiliation = Affiliation.objects.get(company=1, platoon=1)
         resp = self.client.post(
             reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}), )
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 403)
         self.assertTemplateUsed(resp, 'access_error.html')
-        self.assertEqual(resp.context['error'],
+        self.assertEqual(str(resp.context['error']),
                          'Отказано в запросе на удаление. Удалять может только  mattew , отобравший кандидатуру.')
 
 

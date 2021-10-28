@@ -1,8 +1,12 @@
 import datetime
 
+from django.core.exceptions import PermissionDenied, BadRequest
+from django.http import Http404
+
 from application.models import Application
 
 from .constants import MIDDLE_RECRUITING_DATE
+from .exceptions import IncorrectActivationLinkException, ActivationFailedException, MasterHasNoDirectionsException
 
 
 def get_current_draft_year():
@@ -15,3 +19,15 @@ def get_current_draft_year():
 
 def convert_float(value):
     return str(value).replace('.', ',')
+
+
+def get_exception_status_code(exception):
+    """Возвращает статус кода ошибки по классу"""
+    if isinstance(exception, IncorrectActivationLinkException) or isinstance(exception, Http404):
+        return 404
+    if isinstance(exception, ActivationFailedException) or isinstance(exception, PermissionDenied) or isinstance(
+            exception, MasterHasNoDirectionsException):
+        return 403
+    if isinstance(exception, BadRequest):
+        return 400
+    return 500

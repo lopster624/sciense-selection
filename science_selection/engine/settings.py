@@ -53,6 +53,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'engine.middleware.ExceptionProcessorMiddleware',
 ]
 
 ROOT_URLCONF = 'engine.urls'
@@ -146,4 +147,5 @@ LOGOUT_REDIRECT_URL = 'login'
 
 if DEBUG:
     import mimetypes
+
     mimetypes.add_type("application/javascript", ".js", True)

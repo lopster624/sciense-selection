@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.db.models import Count, F, Q
 from django.shortcuts import render, redirect
 from django.views import View
@@ -7,6 +8,7 @@ from application.mixins import OnlySlaveAccessMixin, MasterDataMixin
 from application.models import Application
 from utils.calculations import get_current_draft_year
 from utils.constants import SLAVE_ROLE_NAME, BOOKED, DEFAULT_FILED_BLOCKS
+from utils.exceptions import IncorrectActivationLinkException, ActivationFailedException
 from .forms import RegisterForm
 from .models import Member, ActivationLink, Role, Booking
 
@@ -36,10 +38,9 @@ class ActivationView(LoginRequiredMixin, View):
         try:
             link_object = ActivationLink.objects.get(token=token)
         except ActivationLink.DoesNotExist:
-            return render(request, 'access_error.html', context={'error': 'Ссылка активации некорректна!.'}, status=400)
+            raise IncorrectActivationLinkException('Ссылка активации некорректна!')
         if link_object.user != request.user:
-            return render(request, 'access_error.html',
-                          context={'error': 'Ссылка предназначена для другого пользователя!'}, status=403)
+            raise IncorrectActivationLinkException('Ссылка предназначена для другого пользователя!')
         member = Member.objects.get(user=link_object.user)
         member.role = Role.objects.get(role_name=SLAVE_ROLE_NAME)
         member.save()
@@ -63,20 +64,20 @@ class HomeMasterView(MasterDataMixin, View):
                 distinct=True
             )
         ).annotate(booking_percent=F('booked_count') * 100 / 20).select_related('direction').order_by('-direction')
-
         return render(request, 'account/home_master.html',
                       context={'recruiting_season': current_season[1], 'count_apps': all_apps.count(),
                                'master_affiliations': master_affiliations, 'recruiting_year': current_year})
 
 
 class HomeView(LoginRequiredMixin, View):
+    """TODO: написать тест, при котором рейсится ошибка"""
+
     def get(self, request):
         if request.user.is_superuser:
             return redirect('/admin/')
         if not request.user.member.role:
-            return render(request, 'access_error.html', context={
-                'error': 'Пройдите по ссылке из сообщения, отправленного вам на почту, для активации аккаунта'},
-                          status=403)
+            raise ActivationFailedException(
+                'Пройдите по ссылке из сообщения, отправленного вам на почту, для активации аккаунта')
         if request.user.member.is_slave():
             return redirect('home_slave')
         if request.user.member.is_master():
