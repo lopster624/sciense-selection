@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Решение
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+
+<div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
+    <div class="row">
+        <h5 class="text-center">Вопросы к тесту - {{ test.name }}</h5>
+        <form action="{% url 'add_test_result' test.pk %}" class="form-horizontal" method="post" id="form-container">
+            {% csrf_token %}
+            {% for question in question_list %}
+                <li class="mb-2">
+                    <span class="pr-4">{{ question.wording }}</span>
+                    <div class="container">
+                        <div class="row row-cols-2">
+                        {% for answer in question.answer_options.all %}
+                            <div class="col">
+                                {% if question.question_type == 2 %}
+                                    <input class="form-check-input" type="checkbox" name="answer_{{question.id}}_{{ answer.pk }}"
+                                           {% if answer.pk in user_answers %} checked {% endif %}>
+                                {% elif question.question_type == 1 %}
+                                    <input class="form-check-input" type="radio" name="answer_{{ question.id }}_"
+                                           value="{{ answer.pk }}" {% if answer.pk in user_answers %} checked {% endif %}>
+                                {%endif%}
+                                {{ answer }}
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+                    <hr>
+                </li>
+            {% endfor %}
+            <div class="mb-2 text-center">
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

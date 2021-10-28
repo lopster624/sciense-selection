@@ -213,7 +213,7 @@ class DeleteCompetenceView(DataApplicationMixin, View):
 
     def get(self, request, competence_id, direction_id):
         if direction_id not in self.get_master_directions_id():
-            return PermissionDenied('Невозможно удалить компетенцию из чужого направления.')
+            raise PermissionDenied('Невозможно удалить компетенцию из чужого направления.')
         self.delete_competence(competence_id, direction_id)
         # todo: сделать select_related на directions
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
@@ -331,7 +331,7 @@ class DeleteFileView(LoginRequiredMixin, View):
     def get(self, request, file_id):
         file = File.objects.get(id=file_id)
         if file.member != request.user.member:
-            return PermissionDenied('Только загрузивший пользователь может удалить файл.')
+            raise PermissionDenied('Только загрузивший пользователь может удалить файл.')
         os.remove(os.path.join(MEDIA_DIR, str(file.file_path)))
         file.delete()
         if request.user.member.is_slave():

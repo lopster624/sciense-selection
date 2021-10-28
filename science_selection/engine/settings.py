@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'application.apps.ApplicationConfig',
     'account.apps.AccountConfig',
+    'testing.apps.TestingConfig',
     # 'debug_toolbar',
 ]
 
