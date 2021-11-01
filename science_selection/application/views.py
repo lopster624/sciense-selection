@@ -20,6 +20,7 @@ from application.forms import CreateCompetenceForm, FilterForm
 from engine.settings import MEDIA_DIR
 from utils import constants as const
 from utils.calculations import get_current_draft_year
+from utils.exceptions import MasterHasNoDirectionsException
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
@@ -380,11 +381,7 @@ class ApplicationListView(MasterDataMixin, ListView):
         ).only('id', 'member', 'directions', 'birth_day', 'birth_place', 'draft_year', 'draft_season', 'final_score',
                'fullness', 'member__user__id', 'member__user__first_name', 'member__user__last_name',
                'member__father_name')
-        if self.request.GET:
-            apps = self.get_filtered_sorted_queryset(apps)
-        else:
-            current_year, current_season = get_current_draft_year()
-            apps = apps.filter(draft_year=current_year, draft_season=current_season[0]).distinct()
+        apps = self.get_filtered_sorted_queryset(apps)
         apps = apps.annotate(
             is_booked=Count(
                 F('member__candidate'),
@@ -469,6 +466,11 @@ class ApplicationListView(MasterDataMixin, ListView):
         return context
 
     def get_filtered_sorted_queryset(self, apps):
+        """Возвращает отфильтрованный и отсортированный список анкет. Если в self.request.GET пусто, то
+        фильтрует по текущему году и сезону призыва"""
+        if not self.request.GET:
+            current_year, current_season = get_current_draft_year()
+            return apps.filter(draft_year=current_year, draft_season=current_season[0]).distinct()
         # тут производится вся сортировка и фильтрация
         # фильтрация по направлениям
         chosen_directions = self.request.GET.getlist('directions', None)
@@ -514,9 +516,8 @@ class CompetenceListView(MasterDataMixin, View):
         master_directions = self.get_master_directions()
         chosen_direction = self.get_chosen_direction(master_directions)
         if chosen_direction is None:
-            return render(request, 'access_error.html',
-                          context={
-                              'error': f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.'})
+            raise MasterHasNoDirectionsException(
+                f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.')
         competences_list, picking_competences = self.get_competences_lists(self.get_root_competences(),
                                                                            chosen_direction)
         picked_competences = Competence.objects.alias(
@@ -558,16 +559,26 @@ class CompetenceListView(MasterDataMixin, View):
         return chosen_competences_list, for_pick_competences_list
 
 
-class BookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
-    """Бронирует анкету с id=pk текущим пользователем на направления, полученные из post"""
+class BookMemberView(MasterDataMixin, View):
+    """Бронирует анкету с id=pk текущим пользователем на направление, полученное из post"""
 
     def post(self, request, pk):
         affiliation_id = request.POST.get('affiliation', None)
-        slave_member = Member.objects.get(application__id=pk)
-        booking_type = BookingType.objects.get(name=const.BOOKED)
-        affiliation = Affiliation.objects.get(id=affiliation_id)
-        Booking(booking_type=booking_type, master=request.user.member, slave=slave_member,
-                affiliation=affiliation).save()
+        slave_member = get_object_or_404(Member.objects.only('id'), application__id=pk)
+        booking_type = BookingType.objects.only('id').get(name=const.BOOKED)
+        affiliation = get_object_or_404(Affiliation.objects.select_related('direction').only('id', 'direction_id'),
+                                        id=affiliation_id)
+        slave_directions_id = Member.objects.prefetch_related(
+            'application__directions__id').only('application__directions__id').values_list(
+            'application__directions__id', flat=True).distinct().filter(application__id=pk)
+
+        if not Booking.objects.filter(booking_type=booking_type, slave=slave_member).exists() \
+                and affiliation.direction_id in self.get_master_directions_id() \
+                and affiliation.direction_id in slave_directions_id:
+            Booking(booking_type=booking_type, master=request.user.member, slave=slave_member,
+                    affiliation=affiliation).save()
+        else:
+            raise PermissionDenied('Бронирование на неверное направление.')
         return redirect('application_list')
 
 
@@ -575,7 +586,7 @@ class UnBookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     """Удаляет из бронирования анкету с id=pk текущим пользователем с направления id=aff_id"""
 
     def post(self, request, pk, aff_id):
-        slave_member = Member.objects.get(application__id=pk)
+        slave_member = get_object_or_404(Member, application__id=pk)
         booking = Booking.objects.filter(master=request.user.member, slave=slave_member,
                                          booking_type__name=const.BOOKED,
                                          affiliation__id=aff_id)
@@ -585,23 +596,25 @@ class UnBookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         booking = Booking.objects.filter(slave=slave_member, booking_type__name=const.BOOKED,
                                          affiliation__id=aff_id).first()
         master_name = booking.master if booking else ""
-        return render(request, 'access_error.html',
-                      context={
-                          'error': f'Отказано в запросе на удаление. Удалять может только {master_name}, отобравший '
-                                   'кандидатуру.'})
+        raise PermissionDenied(f'Отказано в запросе на удаление. Удалять может только {master_name}, отобравший '
+                               'кандидатуру.')
 
 
-class AddInWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+class AddInWishlistView(MasterDataMixin, View):
     """Добавляет в список желания на направления, полученные из post заявку с id=pk"""
 
     def post(self, request, pk):
-        affiliations_id = request.POST.getlist('affiliations', None)
+        affiliations_id = list(map(int, request.POST.getlist('affiliations', None)))
+        if not set(affiliations_id).issubset(set(self.get_master_affiliations().values_list('id', flat=True))):
+            raise PermissionDenied("Невозможно добавить заявку в избранное на чужое направление.")
         slave_member = Member.objects.get(application__id=pk)
         booking_type = BookingType.objects.get(name=const.IN_WISHLIST)
         for affiliation_id in affiliations_id:
             affiliation = Affiliation.objects.get(id=affiliation_id)
-            Booking(booking_type=booking_type, master=request.user.member, slave=slave_member,
-                    affiliation=affiliation).save()
+            if not Booking.objects.filter(booking_type=booking_type, slave=slave_member,
+                                          affiliation=affiliation).exists():
+                Booking(booking_type=booking_type, master=request.user.member, slave=slave_member,
+                        affiliation=affiliation).save()
         return redirect('application_list')
 
 

@@ -16,7 +16,7 @@ class RegistrationViewTest(TestCase):
 
     def setUp(self) -> None:
         self.user_master = User.objects.create(username='admin', is_superuser=True)
-        self.user_officer = User.objects.create(username='officer',)
+        self.user_officer = User.objects.create(username='officer', )
         officer_role = Role.objects.get(role_name=MASTER_ROLE_NAME)
         slave_role = Role.objects.get(role_name=SLAVE_ROLE_NAME)
         Member.objects.create(user=self.user_officer, role=officer_role, phone='89998881111')
@@ -61,8 +61,8 @@ class RegistrationViewTest(TestCase):
     def test_login_user(self):
         self.client.force_login(self.user)
         resp = self.client.get(reverse('activation', kwargs={'token': '12345'}))
-        self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.context['error'], 'Ссылка активации некорректна!.')
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(str(resp.context['error']), 'Ссылка активации некорректна!')
 
     def test_activate_member(self):
         self.client.post(reverse('register'), data=self.form_data)
@@ -80,7 +80,8 @@ class RegistrationViewTest(TestCase):
         user = User.objects.get(username=self.form_data['username'])
         self.client.force_login(user)
         resp = self.client.get(reverse('home'))
-        self.assertEqual(resp.context['error'], 'Пройдите по ссылке из сообщения, отправленного вам на почту, для активации аккаунта')
+        self.assertEqual(str(resp.context['error']),
+                         'Пройдите по ссылке из сообщения, отправленного вам на почту, для активации аккаунта')
         self.assertEqual(resp.status_code, 403)
 
     def test_logged_master_to_home_view(self):
