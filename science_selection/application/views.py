@@ -732,19 +732,23 @@ class WorkGroupsListView(MasterDataMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        affiliations_with_groups = self.get_master_affiliations().prefetch_related('work_group',
-                                                                                   'work_group__application')
+        affiliations_with_groups = self.get_master_affiliations(). \
+            prefetch_related('work_group')
         context.update({'work_groups_active': True, 'affiliations_with_groups': affiliations_with_groups})
         return context
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs.update({'master_affiliations': self.get_master_affiliations()})
+        master_affiliations = self.get_master_affiliations()
+        if not master_affiliations:
+            raise MasterHasNoDirectionsException(
+                f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.')
+        kwargs.update({'master_affiliations': master_affiliations})
         return kwargs
 
 
-class DeleteWorkGroupView(DataApplicationMixin, View):
-    """Рекурсивно удаляет компетенцию с competence_id и все ее дочерние из направления с direction_id"""
+class DeleteWorkGroupView(MasterDataMixin, View):
+    """Рекурсивно удаляет рабочую группу с group_id"""
 
     def get(self, request, group_id):
         if group_id not in self.get_master_affiliations().values_list('work_group', flat=True):
@@ -759,6 +763,10 @@ class WorkGroupView(MasterDataMixin, DetailView):
     model = WorkGroup
     template_name = 'application/work_group_detail.html'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        return context
+    def get_object(self, queryset=None):
+        current_year, current_season = get_current_draft_year()
+        group = get_object_or_404(WorkGroup.objects.prefetch_related(
+            Prefetch('application', queryset=Application.objects.filter(draft_year=current_year,
+                                                                        draft_season=current_season[0]))),
+            pk=self.kwargs.get('pk'))
+        return group

@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from account.models import Affiliation, Booking, BookingType
 from account.models import Role, Member
-from application.models import Direction, Education, Application, Competence
+from application.models import Direction, Education, Application, Competence, WorkGroup
 from utils.calculations import get_current_draft_year
 from utils.constants import SLAVE_ROLE_NAME, MASTER_ROLE_NAME, BOOKED, IN_WISHLIST
 
@@ -756,3 +756,71 @@ class DeleteFromWishlistViewTest(TestCase):
         self.assertRedirects(resp, reverse('application_list'))
         self.assertEqual(
             Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member).count(), 1)
+
+
+class WorkGroupsListViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        Role.objects.create(role_name=MASTER_ROLE_NAME)
+
+    def setUp(self) -> None:
+        slave_role = Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        slave = User.objects.create_user(username=f'slave', password='slave')
+        slave_member = Member.objects.create(user=slave, role=slave_role, phone='89998887766')
+        master_role = Role.objects.get(role_name=MASTER_ROLE_NAME)
+        master_empty = User.objects.create_user(username=f'mastere', password='mastere')
+        empty_master_member = Member.objects.create(user=master_empty, role=master_role, phone='89998887766')
+        master = User.objects.create_user(username=f'master', password='master')
+        master_member = Member.objects.create(user=master, role=master_role, phone='89998887766')
+        for i in range(4):
+            dir = Direction.objects.create(name=f'test{i}', description='description')
+            Affiliation.objects.create(direction=dir, company=i, platoon=i)
+        aff1 = Affiliation.objects.get(company=1, platoon=1)
+        aff2 = Affiliation.objects.get(company=2, platoon=2)
+        aff3 = Affiliation.objects.get(company=3, platoon=3)
+        master_member.affiliations.add(aff1, aff3)
+        self.master_member = master_member
+        self.aff1 = aff1
+        for i in range(5):
+            WorkGroup.objects.create(name=f'group{i}', affiliation=aff1)
+        WorkGroup.objects.create(name='groupf', affiliation=aff2)
+
+    def test_redirect_if_not_logged_in(self):
+        resp = self.client.get(reverse('work_group_list'))
+        self.assertRedirects(resp, '/accounts/login/?next=/app/work_group/')
+
+    def test_logged_in_uses_correct_template(self):
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('work_group_list'))
+        self.assertEqual(str(resp.context['user']), 'master')
+        self.assertEqual(resp.status_code, 200)
+        # Проверка того, что мы используем правильный шаблон
+        self.assertTemplateUsed(resp, 'application/create_work_group.html')
+
+    def test_slave_access(self):
+        """Проверяет, что у кандидата нет доступа к странице"""
+        self.client.login(username='slave', password='slave')
+        resp = self.client.get(reverse('work_group_list'))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_not_show_all_affiliations_and_work_groups(self):
+        """Проверяет, что компетенция исчезла из списка на выбор, если все ее элементы были выбраны"""
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('work_group_list'))
+        self.assertEqual(list(resp.context['affiliations_with_groups']),
+                         list(Affiliation.objects.filter(platoon__in=[1, 3])))
+        self.assertEqual(list(resp.context['affiliations_with_groups'][0].work_group.all()),
+                         list(WorkGroup.objects.filter(affiliation=self.aff1)))
+        self.assertTrue(resp.context['work_groups_active'])
+        self.assertTrue(resp.context['form'])
+
+    def test_member_without_directions(self):
+        """Проверяет, что у мастера без направлений вылетает ошибка"""
+        self.client.login(username='mastere', password='mastere')
+        resp = self.client.get(reverse('work_group_list'), follow=True)
+        self.assertEqual(resp.status_code, 403)
+        self.assertTemplateUsed(resp, 'access_error.html')
+        self.assertEqual(str(resp.context['error']),
+                         'У вас нет ни одного направления, по которому вы можете осуществлять отбор.')
+# TODO: сделать тесты для страницы просмотра одного workgroup
