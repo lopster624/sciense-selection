@@ -22,7 +22,14 @@ def get_intersections(value, arg):
 
 @register.inclusion_tag('application/tags/delete_competence_tag.html')
 def get_delete_competence_modal(competence, direction):
+    """Рендерит шаблон модального окна для подтверждения удаления компетенции."""
     return {'comp': competence, 'direction': direction}
+
+
+@register.inclusion_tag('application/tags/delete_work_group.html')
+def get_delete_work_group_modal(group, affiliation):
+    """Рендерит шаблон модального окна для подтверждения удаления рабочей группы."""
+    return {'group': group, 'affiliation': affiliation}
 
 
 @register.inclusion_tag('application/tags/application_note_tag.html')

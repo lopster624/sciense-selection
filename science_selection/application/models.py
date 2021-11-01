@@ -13,7 +13,23 @@ def validate_draft_year(value: int):
         raise ValidationError(_(f'Год призыва {value} раньше текущего'))
 
 
+class WorkGroup(models.Model):
+    """Рабочая группа, в которую происходит распрежедение забронированных заявок"""
+    name = models.CharField(max_length=256, verbose_name='Название рабочей группы')
+    affiliation = models.ForeignKey(Affiliation, verbose_name="Принадлежность", related_name='work_group',
+                                    on_delete=models.CASCADE)
+    description = models.TextField(verbose_name='Описание рабочей группы', blank=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = 'Рабочая группа'
+        verbose_name_plural = 'Рабочие группы'
+
+
 class Application(models.Model):
+    """Заявка кандидата в операторы"""
     season = [
         (1, 'Весна'),
         (2, 'Осень')
@@ -51,7 +67,8 @@ class Application(models.Model):
     fullness = models.IntegerField(default=0, verbose_name='Процент заполненности')
     final_score = models.FloatField(default=0, verbose_name='Итоговая оценка заявки')
     is_final = models.BooleanField(default=False, verbose_name='Законченность анкеты')
-
+    work_group = models.ForeignKey(WorkGroup, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Рабочая группа",
+                                   related_name='application')
     # дальше идут новые поля для калькулятора
     international_articles = models.BooleanField(default=False,
                                                  verbose_name="Наличие опубликованных научных статей в международных изданиях")
@@ -190,6 +207,7 @@ def validate_avg_score(value: float):
 
 
 class Education(models.Model):
+    """Образование, указанное в заявке кандидата"""
     education_program = [
         ('b', 'Бакалавриат'),
         ('m', 'Магистратура'),
@@ -224,6 +242,7 @@ class Education(models.Model):
 
 
 class Direction(models.Model):
+    """Направление работы"""
     name = models.CharField(max_length=128, verbose_name='Наименование направления')
     description = models.TextField(verbose_name='Описание направления')
     image = models.ImageField(upload_to='images/', blank=True, null=True, verbose_name='Изображения')
@@ -243,6 +262,7 @@ class Direction(models.Model):
 
 
 class File(models.Model):
+    """Файл, загружаемый пользователем на сервер в качестве вложения"""
     member = models.ForeignKey(Member, on_delete=models.CASCADE, verbose_name='Пользователь')
     file_path = models.FileField(upload_to='files/%Y/%m/%d', verbose_name='Путь к файлу')
     file_name = models.CharField(max_length=128, verbose_name='Имя файла', blank=True)
@@ -263,6 +283,7 @@ class File(models.Model):
 
 
 class AdditionField(models.Model):
+    """Дополнительное поле, которое необходимо заполнить в заявке"""
     name = models.CharField(max_length=128, verbose_name='Название дополнительного поля')
 
     def __str__(self):
@@ -275,7 +296,8 @@ class AdditionField(models.Model):
 
 
 class AdditionFieldApp(models.Model):
-    addition_field = models.ForeignKey(AdditionField, on_delete=models.CASCADE, verbose_name='Название доп поля',)
+    """Значение заполненного дополнительного поля в заявке"""
+    addition_field = models.ForeignKey(AdditionField, on_delete=models.CASCADE, verbose_name='Название доп поля', )
     application = models.ForeignKey(Application, on_delete=models.CASCADE, verbose_name='Заявка')
     value = models.TextField(verbose_name='Название дополнительного поля')
 

@@ -8,7 +8,7 @@ from django.forms.widgets import Input, SelectMultiple, Select, CheckboxInput, C
     NumberInput, Textarea, DateInput
 
 from account.models import Member, Affiliation
-from .models import Application, Education, Direction, Competence
+from .models import Application, Education, Direction, Competence, WorkGroup
 
 
 class CreateCompetenceForm(ModelForm):
@@ -41,7 +41,8 @@ class CreateCompetenceForm(ModelForm):
         current_user = kwargs.pop('current_user', None)
         super().__init__(*args, **kwargs)
         if current_user:
-            directions_id = Affiliation.objects.filter(member=Member.objects.only('id').get(user=current_user)).values_list('direction__id', flat=True)
+            directions_id = Affiliation.objects.filter(
+                member=Member.objects.only('id').get(user=current_user)).values_list('direction__id', flat=True)
             directions = Direction.objects.filter(id__in=directions_id).defer('description', 'image')
             self.fields['directions'].queryset = directions
 
@@ -158,3 +159,30 @@ class FilterForm(forms.Form):
         self.fields['affiliation'].choices = chosen_affiliation_set
         self.fields['in_wishlist'].choices = in_wishlist_set
         self.fields['draft_year'].choices = draft_year_set
+
+
+class CreateWorkGroupForm(ModelForm):
+    class Meta:
+        model = WorkGroup
+        fields = ['name', 'affiliation', 'description']
+
+        widgets = {
+            'name': Input(attrs={'class': 'form-control bg-light'}),
+            'description': Textarea(attrs={'class': 'form-control'}),
+            'is_estimated': CheckboxInput(attrs={
+                'class': 'form-check-input',
+                'type': 'checkbox',
+            }),
+        }
+
+    affiliation = ModelChoiceField(
+        queryset=Affiliation.objects.all(),
+        label='Принадлежность',
+        required=True,
+        widget=Select(attrs={'class': 'form-select'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        master_affiliations = kwargs.pop('master_affiliations', None)
+        super().__init__(*args, **kwargs)
+        self.fields['affiliation'].queryset = master_affiliations

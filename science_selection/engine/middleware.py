@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.views.generic.base import logger
 
 from utils.calculations import get_exception_status_code
 
@@ -13,4 +14,5 @@ class ExceptionProcessorMiddleware:
 
     def process_exception(self, request, exception):
         status = get_exception_status_code(exception)
+        logger.error(exception, request)
         return render(request, 'access_error.html', context={'error': exception}, status=status)

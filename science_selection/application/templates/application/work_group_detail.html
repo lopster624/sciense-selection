@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load application_extras %}
+{% block title %}
+{{object.name}}
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-6 bg-white list-group-item list-group-item-light">
+            <div class="text-center">
+                <h4 class=""> Рабочая группа "{{object.name}}"</h4>
+            </div>
+            <ul class="list-group fs-4">
+                <li class="list-group-item">
+                    <h5>Описание</h5>
+                    {{object.description}}
+                </li>
+                <li class="list-group-item">
+                    <h5>Принадлежность</h5>
+                    {{object.affiliation}}
+                </li>
+                <li class="list-group-item mb-2">
+                    <h5>Участники</h5>
+                    {% for app in object.application.all %}
+                    <a href="{% url 'application' app.id %}">{{app}}</a>;
+                    {% endfor %}
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

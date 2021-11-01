@@ -90,3 +90,20 @@ class SpecializationAdmin(admin.ModelAdmin):
 @admin.register(models.MilitaryCommissariat)
 class MilitaryCommissariatAdmin(admin.ModelAdmin):
     list_display = ('name', 'subject',)
+
+
+class ApplicationInlineAdmin(admin.TabularInline):
+    model = models.Application
+
+
+@admin.register(models.WorkGroup)
+class WorkGroupAdmin(admin.ModelAdmin):
+    list_display = ('name', 'affiliation', 'description', 'get_applications')
+    list_filter = ('name', 'affiliation')
+
+    def get_applications(self, obj):
+        return '; '.join([d.__str__() for d in obj.application.all()])
+
+    get_applications.short_description = 'Взводы'
+
+    inlines = [ApplicationInlineAdmin]

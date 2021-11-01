@@ -16,7 +16,7 @@ from django.views.generic import CreateView, DetailView
 from django.views.generic.list import ListView
 
 from account.models import Member, Affiliation, Booking, BookingType
-from application.forms import CreateCompetenceForm, FilterForm
+from application.forms import CreateCompetenceForm, FilterForm, CreateWorkGroupForm
 from engine.settings import MEDIA_DIR
 from utils import constants as const
 from utils.calculations import get_current_draft_year
@@ -24,7 +24,7 @@ from utils.exceptions import MasterHasNoDirectionsException
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
-    Universities, AdditionFieldApp, AdditionField, Specialization, MilitaryCommissariat
+    Universities, AdditionFieldApp, AdditionField, Specialization, MilitaryCommissariat, WorkGroup
 from .utils import check_permission_decorator, WordTemplate, check_booking_our, check_final_decorator, \
     add_additional_fields
 
@@ -722,3 +722,43 @@ class CreateServiceDocumentView(LoginRequiredMixin, OnlyMasterAccessMixin, View)
             response['Content-Disposition'] = 'attachment; filename="' + escape_uri_path(filename) + '"'
             return response
         raise BadRequest('Плохой query параметр')
+
+
+class WorkGroupsListView(MasterDataMixin, CreateView):
+    """ Показывает список всех рабочих групп. Создает новую рабочую группу. """
+    template_name = 'application/create_work_group.html'
+    form_class = CreateWorkGroupForm
+    success_url = reverse_lazy('work_group_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        affiliations_with_groups = self.get_master_affiliations().prefetch_related('work_group',
+                                                                                   'work_group__application')
+        context.update({'work_groups_active': True, 'affiliations_with_groups': affiliations_with_groups})
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({'master_affiliations': self.get_master_affiliations()})
+        return kwargs
+
+
+class DeleteWorkGroupView(DataApplicationMixin, View):
+    """Рекурсивно удаляет компетенцию с competence_id и все ее дочерние из направления с direction_id"""
+
+    def get(self, request, group_id):
+        if group_id not in self.get_master_affiliations().values_list('work_group', flat=True):
+            return PermissionDenied('Невозможно удалить чужую рабочую группу.')
+        group = get_object_or_404(WorkGroup, pk=group_id)
+        group.delete()
+        return redirect('work_group_list')
+
+
+class WorkGroupView(MasterDataMixin, DetailView):
+    """ Показывает рабочую группу"""
+    model = WorkGroup
+    template_name = 'application/work_group_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context

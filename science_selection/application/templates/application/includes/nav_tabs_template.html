@@ -5,6 +5,10 @@
                href="{% url 'application_list' %}">Список заявок</a>
         </li>
 
+        <li class="nav-item">
+            <a class="nav-link {% if work_list_active %}active{% endif %}" href="{% url 'documents_templates' %}">Рабочий список</a>
+        </li>
+
         <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle {% if competence_active %}active{%endif %}" data-bs-toggle="dropdown"
                href="{% url 'competence_list' %}" role="button" aria-expanded="false">Компетенции</a>
@@ -15,6 +19,9 @@
             </ul>
         </li>
 
+        <li class="nav-item">
+            <a class="nav-link {% if work_groups_active %}active{% endif %}" href="{% url 'work_group_list' %}">Рабочие группы</a>
+        </li>
 
         <li class="nav-item">
             <a class="nav-link {% if document_active %}active{% endif %}" href="{% url 'documents_templates' %}">Шаблоны документов</a>
