@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load testing_extras %}
+{% block title %}
+Список тестов
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+
+<div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
+    <h4 class="text-center mb-3">Список тестов</h4>
+    {% if msg %}
+        <div class="alert alert-info text-center">{{ msg }}</div>
+    {% else %}
+    <div class="container">
+        {% if user.member.is_master %}
+            <div class="mb-2">
+                <a href="{% url 'create_test' %}">Добавить тест</a>
+            </div>
+        {% endif %}
+        {% for test in testing_list %}
+            <div class="row justify-content-between mb-2">
+                <div class="col-6">
+                    <h6>
+                        {% if test.test_res.all.0.status == 2 %}
+                            <a href="{% url  'add_test_result' test.pk %}">{{test.name}}</a>
+                        {% else %}
+                            <a href="{% url 'test'  test.pk %}">{{test.name}}</a>
+                        {% endif %}
+                    </h6>
+                </div>
+                {% if user.member.is_slave %}
+                    {% if test.test_res.all.0.status == 3 and not test.type.is_psychological %}
+                        <div class="col-3">
+                            Результат: {{test.test_res.all.0.result|default:"0" }}
+                        </div>
+                    {% endif %}
+                    <div class="col-3">
+                        Статус: {{test.test_res.all.0.get_status_display|default:"Не начат" }}
+                    </div>
+                {% elif user.member.is_master and test.creator.pk == user.member.pk %}
+                    <div class="col-1">
+                        <button type="button" class="btn ms-3 p-1" data-bs-toggle="modal" aria-label="delete" data-bs-target="#deleteTestModal{{ test.pk }}">
+                                <img src="{% static 'images/trash.svg' %}" alt="Удалить" width="20" height="20">
+                        </button>
+                        {% get_delete_test_modal test=test %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

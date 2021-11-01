@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Редактирование теста
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+
+<div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
+    <div class="row">
+        <h5 class="text-center mb-3">Редактирование теста</h5>
+        <form action="{% url 'edit_test' pk %}" class="form-horizontal" method="post" id="form-container">
+            {% include 'includes/test_create_edit_form_template.html' %}
+        </form>
+    </div>
+</div>
+
+{% endblock %}
