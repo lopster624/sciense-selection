@@ -1,0 +1,18 @@
+<div class="modal fade" id="deleteTestModal{{ test.pk }}" data-bs-backdrop="static" tabindex="-1" role="dialog"
+     aria-labelledby="deleteTestModal{{ test.pk }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content bg-light">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deletetTestDropLabel{{ test.pk }}">Удаление теста</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Вы действительно хотите удалить тест "{{test.name}}"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <a href="{% url 'delete_test' test.pk %}"><button type="submit" class="btn btn-danger">Удалить тест</button></a>
+            </div>
+        </div>
+    </div>
+</div>

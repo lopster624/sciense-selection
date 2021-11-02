@@ -26,6 +26,7 @@ urlpatterns = [
                   path('admin/', admin.site.urls),
                   path('accounts/', include('account.urls')),
                   path('app/', include('application.urls')),
+                  path('test/', include('testing.urls')),
                   path('', HomeView.as_view(), name='home'),
                   path('master/', HomeMasterView.as_view(), name='home_master'),
                   path('operator/', HomeSlaveView.as_view(), name='home_slave'),
