@@ -443,6 +443,7 @@ class UnBookMemberViewTest(TestCase):
         aff1 = Affiliation.objects.get(company=1, platoon=1)
         aff2 = Affiliation.objects.get(company=2, platoon=2)
         master_member2.affiliations.add(Affiliation.objects.get(company=3, platoon=3), aff1)
+        self.group = WorkGroup.objects.create(name='test', affiliation=aff1)
         self.master_direction_1 = aff1.direction
         self.master_direction_2 = aff2.direction
         master_member.affiliations.add(aff1, aff2)
@@ -514,6 +515,19 @@ class UnBookMemberViewTest(TestCase):
         self.assertTemplateUsed(resp, 'access_error.html')
         self.assertEqual(str(resp.context['error']),
                          'Отказано в запросе на удаление. Удалять может только  mattew , отобравший кандидатуру.')
+
+    def test_reseting_of_workgroup_deleted_user(self):
+        """Проверяет, что у удаляемой заявки удаляется workgroup"""
+        self.client.login(username='master', password='master')
+        slave_member = self.slave_members[0]
+        affiliation = Affiliation.objects.get(company=1, platoon=1)
+        slave_member.application.work_group = self.group
+        slave_member.application.save(update_fields=["work_group"])
+        resp = self.client.post(
+            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}), )
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('application_list'))
+        self.assertEqual(Application.objects.get(member=slave_member).work_group, None)
 
 
 class AddInWishlistViewTest(TestCase):
@@ -788,7 +802,7 @@ class WorkGroupsListViewTest(TestCase):
 
     def test_redirect_if_not_logged_in(self):
         resp = self.client.get(reverse('work_group_list'))
-        self.assertRedirects(resp, '/accounts/login/?next=/app/work_group/list/')
+        self.assertRedirects(resp, '/accounts/login/?next=/app/work-group/list/')
 
     def test_logged_in_uses_correct_template(self):
         self.client.login(username='master', password='master')
@@ -875,7 +889,7 @@ class WorkGroupsViewTest(TestCase):
 
     def test_redirect_if_not_logged_in(self):
         resp = self.client.get(reverse('work_group', args=[self.group.id]))
-        self.assertRedirects(resp, f'/accounts/login/?next=/app/work_group/{self.group.id}/')
+        self.assertRedirects(resp, f'/accounts/login/?next=/app/work-group/{self.group.id}/')
 
     def test_logged_in_uses_correct_template(self):
         self.client.login(username='master', password='master')
@@ -923,3 +937,105 @@ class WorkGroupsViewTest(TestCase):
         self.assertEqual(list(resp.context['object'].application.all()),
                          list(self.group.application.all().filter(draft_year=current_year,
                                                                   draft_season=current_season[0])))
+
+
+class RemoveApplicationWorkGroupViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        Role.objects.create(role_name=MASTER_ROLE_NAME)
+
+    def setUp(self) -> None:
+        slave_role = Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        slave = User.objects.create_user(username=f'slave', password='slave')
+        Member.objects.create(user=slave, role=slave_role, phone='89998887766')
+        master_role = Role.objects.get(role_name=MASTER_ROLE_NAME)
+        master_empty = User.objects.create_user(username=f'mastere', password='mastere')
+        Member.objects.create(user=master_empty, role=master_role, phone='89998887766')
+        master = User.objects.create_user(username=f'master', password='master')
+        master_member = Member.objects.create(user=master, role=master_role, phone='89998887766')
+        for i in range(4):
+            dir = Direction.objects.create(name=f'test{i}', description='description')
+            Affiliation.objects.create(direction=dir, company=i, platoon=i)
+        aff1 = Affiliation.objects.get(company=1, platoon=1)
+        aff2 = Affiliation.objects.get(company=2, platoon=2)
+        aff3 = Affiliation.objects.get(company=3, platoon=3)
+        master_member.affiliations.add(aff1, aff3)
+        self.master_member = master_member
+        self.aff1 = aff1
+        for i in range(5):
+            WorkGroup.objects.create(name=f'group{i}', affiliation=aff1)
+        aff2_group = WorkGroup.objects.create(name='groupf', affiliation=aff2)
+        group2_aff1 = WorkGroup.objects.get(name='group2')
+        current_year, current_season = get_current_draft_year()
+        for i in range(6):
+            cur_user = User.objects.create_user(username=f'testuser{i}', last_name=f'testuser{i}', password='12345')
+            cur_member = Member.objects.create(user=cur_user, role=slave_role, phone='89998887766')
+            if i == 4:
+                Application.objects.create(member=cur_member,
+                                           birth_day=datetime.datetime.strptime('18/09/19', '%d/%m/%y'),
+                                           birth_place=f'Test{abs(i - 6)}', nationality='РФ',
+                                           military_commissariat='Йо',
+                                           group_of_health='А1', draft_year=current_year, draft_season=i % 2 + 1,
+                                           work_group=aff2_group)
+            else:
+                Application.objects.create(member=cur_member,
+                                           birth_day=datetime.datetime.strptime('18/09/19', '%d/%m/%y'),
+                                           birth_place=f'Test{abs(i - 6)}', nationality='РФ',
+                                           military_commissariat='Йо',
+                                           group_of_health='А1', draft_year=current_year, draft_season=i % 2 + 1,
+                                           work_group=group2_aff1)
+        self.group = group2_aff1
+
+    def test_redirect_if_not_logged_in(self):
+        resp = self.client.get(reverse('remove_app_from_group', args=[1, self.group.id]),
+                               HTTP_REFERER=reverse('work_group', args=[self.group.id]))
+        self.assertRedirects(resp, f'/accounts/login/?next=/app/work-group/remove-application/1/{self.group.id}/')
+
+    def test_logged_in_uses_correct_template(self):
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('remove_app_from_group', args=[1, self.group.id]),
+                               HTTP_REFERER=reverse('work_group', args=[self.group.id]))
+        self.assertEqual(resp.status_code, 302)
+        # Проверка того, что мы используем правильный шаблон
+
+    def test_slave_access(self):
+        """Проверяет, что у кандидата нет доступа к странице"""
+        self.client.login(username='slave', password='slave')
+        resp = self.client.get(reverse('remove_app_from_group', args=[1, self.group.id]),
+                               HTTP_REFERER=reverse('work_group', args=[self.group.id]))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_delete_incorrect_app(self):
+        """Проверяет, что вылетает ошибка 404, если пытается удалить несуществующую заявку"""
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('remove_app_from_group', args=[40, self.group.id]),
+                               HTTP_REFERER=reverse('work_group', args=[self.group.id]))
+        self.assertEqual(resp.status_code, 404)
+        self.assertTemplateUsed(resp, 'access_error.html')
+
+    def test_delete_from_incorrect_group(self):
+        """Проверяет, что вылетает ошибка 404, если пытается удалить несуществующую заявку"""
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('remove_app_from_group', args=[1, 24]),
+                               HTTP_REFERER=reverse('work_group', args=[self.group.id]))
+        self.assertEqual(resp.status_code, 404)
+        self.assertTemplateUsed(resp, 'access_error.html')
+
+    def test_not_our_group(self):
+        """Проверяет, что вылетает ошибка 403 при попытке удаления из группы не того направления"""
+        self.client.login(username='mastere', password='mastere')
+        resp = self.client.get(reverse('remove_app_from_group', args=[1, self.group.id]),
+                               HTTP_REFERER=reverse('work_group', args=[self.group.id]))
+        self.assertEqual(resp.status_code, 403)
+        self.assertTemplateUsed(resp, 'access_error.html')
+        self.assertEqual(str(resp.context['error']), 'Данная рабочая группа не принадлежит вашим направлениям!')
+
+    def test_correct_deleting(self):
+        """Проверяет, что удаление происходит корректно"""
+        self.client.login(username='master', password='master')
+        self.assertEqual(Application.objects.get(pk=1).work_group, self.group)
+        resp = self.client.get(reverse('remove_app_from_group', args=[1, self.group.id]),
+                               HTTP_REFERER=reverse('work_group', args=[self.group.id]))
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(Application.objects.get(pk=1).work_group, None)

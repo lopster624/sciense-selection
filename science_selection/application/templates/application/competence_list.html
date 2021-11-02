@@ -78,27 +78,32 @@
             {% for comp_lvl1 in competences_list %}
             <li class="list-group-item list-group-item-light">
                 {% if comp_lvl1 in picked_competences %}
-                <span class="{% if not comp_lvl1.is_estimated %} fw-bold {% endif %} ms-1 fs-4">{{comp_lvl1.name}}</span>
-                <button type="button" class="btn-close ms-3" data-bs-toggle="modal"
-                        data-bs-target="#staticBackdrop{{ comp_lvl1.id }}" aria-label="Close"></button>
-
-                {% get_delete_competence_modal competence=comp_lvl1 direction=selected_direction %}
+                    {% url 'delete_competence' comp_lvl1.id selected_direction.id as link %}
+                    {% vals_to_str 'Вы действительно хотите удалить компетенцию "' comp_lvl1.name '" из направления "' selected_direction.name '" и все ее связанные компетенции?' as text %}
+                    <span class="{% if not comp_lvl1.is_estimated %} fw-bold {% endif %} ms-1 fs-4">{{comp_lvl1.name}}</span>
+                    <button type="button" class="btn-close ms-3" data-bs-toggle="modal"
+                            data-bs-target="#staticBackdrop{{ comp_lvl1.id }}" aria-label="Close"></button>
+                    {% get_modal_window text=text action_link=link title='Удаление компетенции из направления' link_id=comp_lvl1.id %}
                 {% endif %}
                 {% for comp_lvl2 in comp_lvl1.child.all %}
                 <div class="ms-5">
                     {% if comp_lvl2 in picked_competences %}
+                    {% url 'delete_competence' comp_lvl2.id selected_direction.id as link %}
+                    {% vals_to_str 'Вы действительно хотите удалить компетенцию "' comp_lvl2.name '" из направления "' selected_direction.name '" и все ее связанные компетенции?' as text %}
                     <span class="{% if not comp_lvl2.is_estimated %} fw-bold {% endif %} ms-1 fs-5">{{comp_lvl2.name}}</span>
                     <button type="button" class="btn-close ms-3" data-bs-toggle="modal"
                             data-bs-target="#staticBackdrop{{ comp_lvl2.id }}" aria-label="Close"></button>
-                    {% get_delete_competence_modal competence=comp_lvl2 direction=selected_direction %}
+                    {% get_modal_window text=text action_link=link title='Удаление компетенции из направления' link_id=comp_lvl2.id %}
                     {% endif %}
                     {% for comp_lvl3 in comp_lvl2.child.all %}
                     {% if comp_lvl3 in picked_competences %}
+                    {% url 'delete_competence' comp_lvl3.id selected_direction.id as link %}
+                    {% vals_to_str 'Вы действительно хотите удалить компетенцию "' comp_lvl3.name '" из направления "' selected_direction.name '" и все ее связанные компетенции?' as text %}
                     <div class="ms-5">
                         <span class="{% if not comp_lvl3.is_estimated %} fw-bold {% endif %} ms-1 fs-6">{{comp_lvl3.name}}</span>
                         <button type="button" class="btn-close ms-3" data-bs-toggle="modal"
                                 data-bs-target="#staticBackdrop{{ comp_lvl3.id }}" aria-label="Close"></button>
-                        {% get_delete_competence_modal competence=comp_lvl3 direction=selected_direction %}
+                        {% get_modal_window text=text action_link=link title='Удаление компетенции из направления' link_id=comp_lvl3.id %}
                     </div>
                     {% endif %}
                     {% endfor %}

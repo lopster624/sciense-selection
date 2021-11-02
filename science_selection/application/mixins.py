@@ -41,6 +41,14 @@ class DataApplicationMixin:
     def get_master_directions_id(self):
         return self.get_master_affiliations().values_list('direction__id', flat=True)
 
+    def check_master_has_work_group(self, affiliation_id, error_message):
+        """Вызывает ошибку PermissionDenied с текстом error_message,
+         если принадлежность с affiliation_id не принадлежит мастеру"""
+        if isinstance(affiliation_id, int):
+            affiliation_id = [affiliation_id]
+        if not set(affiliation_id).issubset(set(self.get_master_affiliations().values_list('id', flat=True))):
+            raise PermissionDenied(error_message)
+
 
 class MasterDataMixin(LoginRequiredMixin, OnlyMasterAccessMixin, DataApplicationMixin):
     """

@@ -216,7 +216,6 @@ class DeleteCompetenceView(DataApplicationMixin, View):
         if direction_id not in self.get_master_directions_id():
             raise PermissionDenied('Невозможно удалить компетенцию из чужого направления.')
         self.delete_competence(competence_id, direction_id)
-        # todo: сделать select_related на directions
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
     def delete_competence(self, competence_id, direction_id):
@@ -586,11 +585,14 @@ class UnBookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     """Удаляет из бронирования анкету с id=pk текущим пользователем с направления id=aff_id"""
 
     def post(self, request, pk, aff_id):
-        slave_member = get_object_or_404(Member, application__id=pk)
+        slave_member = get_object_or_404(Member.objects.select_related('application__work_group'), application__id=pk)
         booking = Booking.objects.filter(master=request.user.member, slave=slave_member,
                                          booking_type__name=const.BOOKED,
                                          affiliation__id=aff_id)
         if booking:
+            if slave_member.application.work_group:
+                slave_member.application.work_group = None
+                slave_member.application.save(update_fields=["work_group"])
             booking.delete()
             return redirect('application_list')
         booking = Booking.objects.filter(slave=slave_member, booking_type__name=const.BOOKED,
@@ -605,8 +607,8 @@ class AddInWishlistView(MasterDataMixin, View):
 
     def post(self, request, pk):
         affiliations_id = list(map(int, request.POST.getlist('affiliations', None)))
-        if not set(affiliations_id).issubset(set(self.get_master_affiliations().values_list('id', flat=True))):
-            raise PermissionDenied("Невозможно добавить заявку в избранное на чужое направление.")
+        self.check_master_has_work_group(affiliations_id,
+                                         "Невозможно добавить заявку в избранное на чужое направление.")
         slave_member = Member.objects.get(application__id=pk)
         booking_type = BookingType.objects.get(name=const.IN_WISHLIST)
         for affiliation_id in affiliations_id:
@@ -770,7 +772,20 @@ class WorkGroupView(MasterDataMixin, DetailView):
             Prefetch('application', queryset=Application.objects.filter(draft_year=current_year,
                                                                         draft_season=current_season[0]))),
             pk=pk)
-        if group.affiliation.id not in self.get_master_affiliations().values_list('id', flat=True):
-
-            raise PermissionDenied('Данная рабочая группа не принадлежит вашим направлениям!')
+        self.check_master_has_work_group(group.affiliation.id,
+                                         'Данная рабочая группа не принадлежит вашим направлениям!')
         return group
+
+
+class RemoveApplicationWorkGroupView(MasterDataMixin, View):
+    """Удаляет заявку с app_id из рабочей группы с group_id"""
+
+    def get(self, request, app_id, group_id):
+        group = get_object_or_404(WorkGroup, pk=group_id)
+        application = get_object_or_404(Application, pk=app_id)
+        self.check_master_has_work_group(group.affiliation.id,
+                                         'Данная рабочая группа не принадлежит вашим направлениям!')
+        if application.work_group:
+            application.work_group = None
+            application.save(update_fields=['work_group'])
+        return redirect(request.META.get('HTTP_REFERER'))

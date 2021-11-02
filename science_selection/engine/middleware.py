@@ -1,4 +1,5 @@
 import logging
+import traceback
 
 from django.shortcuts import render
 
@@ -19,7 +20,8 @@ class ExceptionProcessorMiddleware:
         status = get_exception_status_code(exception)
         additional_info = f'user: {request.user}, path: {request.path_info}, ' \
                           f'{"GET: " + str(request.GET) + "," if request.GET else ""} ' \
-                          f'{"POST: " + str(request.POST) + "," if request.POST else ""} {exception}'
+                          f'{"POST: " + str(request.POST) + "," if request.POST else ""} ' \
+                          f'{exception} {traceback.format_exc()}'
         if status >= 500:
             logger.error(additional_info)
         else:

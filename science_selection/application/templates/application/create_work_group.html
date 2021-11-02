@@ -29,10 +29,12 @@
                 <div class="ms-4">
                     {% for group in affiliation.work_group.all %}
                     <div>
+                        {% url 'delete_work_group' group.id as link %}
+                        {% vals_to_str 'Вы действительно хотите удалить рабочую группу "' group.name '" из принадлежности "' affiliation '" ?' as text %}
                         <a href="{% url 'work_group' group.id %}">{{group.name}}</a>
                         <button type="button" class="btn-close fs-6" data-bs-toggle="modal"
                                 data-bs-target="#staticBackdrop{{ group.id }}" aria-label="Close"></button>
-                        {% get_delete_work_group_modal group=group affiliation=affiliation %}
+                        {% get_modal_window text=text action_link=link title='Удаление рабочей группы' link_id=group.id %}
                     </div>
                     {% endfor %}
                 </div>

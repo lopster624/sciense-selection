@@ -25,7 +25,14 @@
                 <li class="list-group-item mb-2">
                     <h5>Участники</h5>
                     {% for app in object.application.all %}
-                    <a href="{% url 'application' app.id %}">{{app}}</a>;
+                    <div>
+                        {% url 'remove_app_from_group' app.id object.id as link %}
+                        {% vals_to_str 'Вы действительно хотите удалить "' app '"из рабочей группы "' object.name '" ?' as text %}
+                        <a href="{% url 'application' app.id %}">{{app}}</a>
+                        <button type="button" class="btn-close fs-6" data-bs-toggle="modal"
+                                data-bs-target="#staticBackdrop{{ app.id }}" aria-label="Close"></button>
+                        {% get_modal_window text=text action_link=link title='Удаление кандидата из рабочей группы' link_id=app.id %}
+                    </div>
                     {% endfor %}
                 </li>
             </ul>
