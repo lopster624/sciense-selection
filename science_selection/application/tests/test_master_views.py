@@ -788,7 +788,7 @@ class WorkGroupsListViewTest(TestCase):
 
     def test_redirect_if_not_logged_in(self):
         resp = self.client.get(reverse('work_group_list'))
-        self.assertRedirects(resp, '/accounts/login/?next=/app/work_group/')
+        self.assertRedirects(resp, '/accounts/login/?next=/app/work_group/list/')
 
     def test_logged_in_uses_correct_template(self):
         self.client.login(username='master', password='master')
@@ -823,4 +823,103 @@ class WorkGroupsListViewTest(TestCase):
         self.assertTemplateUsed(resp, 'access_error.html')
         self.assertEqual(str(resp.context['error']),
                          'У вас нет ни одного направления, по которому вы можете осуществлять отбор.')
-# TODO: сделать тесты для страницы просмотра одного workgroup
+
+
+class WorkGroupsViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        Role.objects.create(role_name=MASTER_ROLE_NAME)
+
+    def setUp(self) -> None:
+        slave_role = Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        slave = User.objects.create_user(username=f'slave', password='slave')
+        Member.objects.create(user=slave, role=slave_role, phone='89998887766')
+        master_role = Role.objects.get(role_name=MASTER_ROLE_NAME)
+        master_empty = User.objects.create_user(username=f'mastere', password='mastere')
+        Member.objects.create(user=master_empty, role=master_role, phone='89998887766')
+        master = User.objects.create_user(username=f'master', password='master')
+        master_member = Member.objects.create(user=master, role=master_role, phone='89998887766')
+        for i in range(4):
+            dir = Direction.objects.create(name=f'test{i}', description='description')
+            Affiliation.objects.create(direction=dir, company=i, platoon=i)
+        aff1 = Affiliation.objects.get(company=1, platoon=1)
+        aff2 = Affiliation.objects.get(company=2, platoon=2)
+        aff3 = Affiliation.objects.get(company=3, platoon=3)
+        master_member.affiliations.add(aff1, aff3)
+        self.master_member = master_member
+        self.aff1 = aff1
+        for i in range(5):
+            WorkGroup.objects.create(name=f'group{i}', affiliation=aff1)
+        aff2_group = WorkGroup.objects.create(name='groupf', affiliation=aff2)
+        group2_aff1 = WorkGroup.objects.get(name='group2')
+        current_year, current_season = get_current_draft_year()
+        for i in range(6):
+            cur_user = User.objects.create_user(username=f'testuser{i}', last_name=f'testuser{i}', password='12345')
+            cur_member = Member.objects.create(user=cur_user, role=slave_role, phone='89998887766')
+            if i == 4:
+                Application.objects.create(member=cur_member,
+                                           birth_day=datetime.datetime.strptime('18/09/19', '%d/%m/%y'),
+                                           birth_place=f'Test{abs(i - 6)}', nationality='РФ',
+                                           military_commissariat='Йо',
+                                           group_of_health='А1', draft_year=current_year, draft_season=i % 2 + 1,
+                                           work_group=aff2_group)
+            else:
+                Application.objects.create(member=cur_member,
+                                           birth_day=datetime.datetime.strptime('18/09/19', '%d/%m/%y'),
+                                           birth_place=f'Test{abs(i - 6)}', nationality='РФ',
+                                           military_commissariat='Йо',
+                                           group_of_health='А1', draft_year=current_year, draft_season=i % 2 + 1,
+                                           work_group=group2_aff1)
+        self.group = group2_aff1
+
+    def test_redirect_if_not_logged_in(self):
+        resp = self.client.get(reverse('work_group', args=[self.group.id]))
+        self.assertRedirects(resp, f'/accounts/login/?next=/app/work_group/{self.group.id}/')
+
+    def test_logged_in_uses_correct_template(self):
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('work_group', args=[self.group.id]))
+        self.assertEqual(str(resp.context['user']), 'master')
+        self.assertEqual(resp.status_code, 200)
+        # Проверка того, что мы используем правильный шаблон
+        self.assertTemplateUsed(resp, 'application/work_group_detail.html')
+
+    def test_slave_access(self):
+        """Проверяет, что у кандидата нет доступа к странице"""
+        self.client.login(username='slave', password='slave')
+        resp = self.client.get(reverse('work_group', args=[self.group.id]))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_show_correct_group(self):
+        """Проверяет, что в контекст передается корректная группа"""
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('work_group', args=[self.group.id]))
+        self.assertEqual(resp.context['object'], self.group)
+
+    def test_show_incorrect_group(self):
+        """Проверяет, что вылетает ошибка 404, если пытается найти несуществующую группу"""
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('work_group', args=[40]))
+        self.assertEqual(resp.status_code, 404)
+        self.assertTemplateUsed(resp, 'access_error.html')
+
+    def test_not_our_group(self):
+        """Проверяет, что вылетает ошибка 403 при заходе в группу не того направления"""
+        self.client.login(username='mastere', password='mastere')
+        resp = self.client.get(reverse('work_group', args=[self.group.id]))
+        self.assertEqual(resp.status_code, 403)
+        self.assertTemplateUsed(resp, 'access_error.html')
+        self.assertEqual(str(resp.context['error']), 'Данная рабочая группа не принадлежит вашим направлениям!')
+
+    def test_show_correct_group_params(self):
+        """Проверяет, что показываются верные параметры группы"""
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('work_group', args=[self.group.id]))
+        self.assertEqual(resp.context['object'].name, self.group.name)
+        self.assertEqual(resp.context['object'].description, self.group.description)
+        self.assertEqual(resp.context['object'].affiliation, self.group.affiliation)
+        current_year, current_season = get_current_draft_year()
+        self.assertEqual(list(resp.context['object'].application.all()),
+                         list(self.group.application.all().filter(draft_year=current_year,
+                                                                  draft_season=current_season[0])))

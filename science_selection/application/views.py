@@ -764,9 +764,13 @@ class WorkGroupView(MasterDataMixin, DetailView):
     template_name = 'application/work_group_detail.html'
 
     def get_object(self, queryset=None):
+        pk = self.kwargs.get('pk')
         current_year, current_season = get_current_draft_year()
         group = get_object_or_404(WorkGroup.objects.prefetch_related(
             Prefetch('application', queryset=Application.objects.filter(draft_year=current_year,
                                                                         draft_season=current_season[0]))),
-            pk=self.kwargs.get('pk'))
+            pk=pk)
+        if group.affiliation.id not in self.get_master_affiliations().values_list('id', flat=True):
+
+            raise PermissionDenied('Данная рабочая группа не принадлежит вашим направлениям!')
         return group

@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'application.apps.ApplicationConfig',
     'account.apps.AccountConfig',
-    #'debug_toolbar',
+    # 'debug_toolbar',
 ]
 
 MIDDLEWARE = [
@@ -52,7 +52,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    #'debug_toolbar.middleware.DebugToolbarMiddleware',
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     'engine.middleware.ExceptionProcessorMiddleware',
 ]
 
@@ -174,7 +174,11 @@ LOGGING = {
         }
     },
     'loggers': {
-
+        '': {
+            'level': 'DEBUG',
+            'handlers': ['console', 'file'],
+            'propagate': False,
+        },
         'django': {
             'handlers': ['console', 'file'],
             'propagate': False,
@@ -184,11 +188,7 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': False,
         },
-        '': {
-            'level': 'DEBUG',
-            'handlers': ['console', 'file'],
-            'propagate': False,
-        },
+
         'django.security': {
             'handlers': ['console', 'file'],
             'propagate': False,

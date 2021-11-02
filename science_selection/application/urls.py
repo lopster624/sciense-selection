@@ -28,7 +28,7 @@ urlpatterns = [
     path('booking/delete/<int:pk>/<int:aff_id>/', views.UnBookMemberView.as_view(), name='un-book_member'),
     path('wishlist/add/<int:pk>/', views.AddInWishlistView.as_view(), name='add_in_wishlist'),
     path('wishlist/delete/<int:pk>/', views.DeleteFromWishlistView.as_view(), name='delete_from_wishlist'),
-    path('work_group/', views.WorkGroupsListView.as_view(), name='work_group_list'),
+    path('work_group/list/', views.WorkGroupsListView.as_view(), name='work_group_list'),
     path('work_group/delete/<int:group_id>/', views.DeleteWorkGroupView.as_view(), name='delete_work_group'),
     path('work_group/<int:pk>/', views.WorkGroupView.as_view(), name='work_group'),
 
