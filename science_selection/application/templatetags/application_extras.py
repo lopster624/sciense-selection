@@ -32,6 +32,13 @@ def vals_to_str(*vals):
     return ''.join(map(str, vals))
 
 
+@register.simple_tag
+def init_field(field, init):
+    """Инициализирует поле значением из init и возвращает его"""
+    field.initial = init
+    return field
+
+
 @register.inclusion_tag('application/tags/application_note_tag.html')
 def get_application_note(application, user):
     master_affiliations = Affiliation.objects.filter(member=user.member)

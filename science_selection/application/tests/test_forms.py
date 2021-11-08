@@ -5,7 +5,7 @@ from django.test import TestCase
 
 from account.models import Affiliation
 from application.forms import CreateCompetenceForm, EducationCreateForm, ApplicationMasterForm, CreateWorkGroupForm
-from application.forms import FilterForm
+from application.forms import FilterAppListForm
 from application.models import Direction, Competence, Education, Application, WorkGroup
 from utils.calculations import get_current_draft_year
 
@@ -38,24 +38,24 @@ class FilterFormTest(TestCase):
                              }
 
     def test_valid_form(self):
-        form = FilterForm(initial=self.initial_data, data=self.form_data,
-                          directions_set=self.directions_set,
-                          in_wishlist_set=self.in_wishlist_set,
-                          draft_year_set=self.draft_year_set, chosen_affiliation_set=self.in_wishlist_set)
+        form = FilterAppListForm(initial=self.initial_data, data=self.form_data,
+                                 directions_set=self.directions_set,
+                                 in_wishlist_set=self.in_wishlist_set,
+                                 draft_year_set=self.draft_year_set, chosen_affiliation_set=self.in_wishlist_set)
         self.assertTrue(form.is_valid())
 
     def test_invalid_form(self):
-        form = FilterForm(initial=self.initial_data, data={'draft_year': ['2920']},
-                          directions_set=self.directions_set,
-                          in_wishlist_set=self.in_wishlist_set,
-                          draft_year_set=self.draft_year_set, chosen_affiliation_set=self.in_wishlist_set)
+        form = FilterAppListForm(initial=self.initial_data, data={'draft_year': ['2920']},
+                                 directions_set=self.directions_set,
+                                 in_wishlist_set=self.in_wishlist_set,
+                                 draft_year_set=self.draft_year_set, chosen_affiliation_set=self.in_wishlist_set)
         self.assertFalse(form.is_valid())
 
     def test_initial_value(self):
-        form = FilterForm(initial=self.initial_data, data=self.form_data,
-                          directions_set=self.directions_set,
-                          in_wishlist_set=self.in_wishlist_set,
-                          draft_year_set=self.draft_year_set, chosen_affiliation_set=self.in_wishlist_set)
+        form = FilterAppListForm(initial=self.initial_data, data=self.form_data,
+                                 directions_set=self.directions_set,
+                                 in_wishlist_set=self.in_wishlist_set,
+                                 draft_year_set=self.draft_year_set, chosen_affiliation_set=self.in_wishlist_set)
         self.assertEqual(form['draft_year'].initial, 2021)
 
 

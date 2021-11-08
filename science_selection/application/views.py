@@ -16,7 +16,8 @@ from django.views.generic import CreateView, DetailView
 from django.views.generic.list import ListView
 
 from account.models import Member, Affiliation, Booking, BookingType
-from application.forms import CreateCompetenceForm, FilterForm, CreateWorkGroupForm
+from application.forms import CreateCompetenceForm, FilterAppListForm, CreateWorkGroupForm, FilterWorkGroupForm, \
+    ChooseWorkGroupForm
 from engine.settings import MEDIA_DIR
 from utils import constants as const
 from utils.calculations import get_current_draft_year
@@ -448,10 +449,10 @@ class ApplicationListView(MasterDataMixin, ListView):
                    'draft_season': current_season,
                    }
         data = self.request.GET if self.request.GET else None
-        filter_form = FilterForm(initial=initial, data=data,
-                                 directions_set=directions_set,
-                                 in_wishlist_set=in_wishlist_set,
-                                 draft_year_set=draft_year_set, chosen_affiliation_set=in_wishlist_set)
+        filter_form = FilterAppListForm(initial=initial, data=data,
+                                        directions_set=directions_set,
+                                        in_wishlist_set=in_wishlist_set,
+                                        draft_year_set=draft_year_set, chosen_affiliation_set=in_wishlist_set)
         context['form'] = filter_form
         context['reset_filters'] = True if self.request.GET else False
         context['application_active'] = True
@@ -512,8 +513,7 @@ class CompetenceListView(MasterDataMixin, View):
     """Показывает список выбранных компетенций и невыбранных компетенций для данного направления"""
 
     def get(self, request):
-        master_directions = self.get_master_directions()
-        chosen_direction = self.get_chosen_direction(master_directions)
+        chosen_direction = self.get_chosen_direction()
         if chosen_direction is None:
             raise MasterHasNoDirectionsException(
                 f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.')
@@ -524,16 +524,17 @@ class CompetenceListView(MasterDataMixin, View):
         ).filter(picked__gt=0)
         context = {'competences_list': competences_list, 'picked_competences': picked_competences,
                    'picking_competences': picking_competences,
-                   'selected_direction': chosen_direction, 'directions': master_directions, 'competence_active': True}
+                   'selected_direction': chosen_direction, 'directions': self.get_master_directions(),
+                   'competence_active': True}
         return render(request, 'application/competence_list.html', context=context)
 
-    def get_chosen_direction(self, master_directions):
+    def get_chosen_direction(self):
         """Возвращает выбранное направление, если оно было получено через GET, первое направление,
          закрепленное за пользователем или None, если первых двух нет"""
         selected_direction_id = self.request.GET.get('direction')
         if selected_direction_id:
             return Direction.objects.get(id=int(selected_direction_id))
-        return master_directions.first() if master_directions else None
+        return self.get_first_master_direction_or_exception()
 
     def get_competences_lists(self, roots, selected_direction):
         """
@@ -788,4 +789,153 @@ class RemoveApplicationWorkGroupView(MasterDataMixin, View):
         if application.work_group:
             application.work_group = None
             application.save(update_fields=['work_group'])
+        return redirect(request.META.get('HTTP_REFERER'))
+
+
+class WorkingListView(MasterDataMixin, ListView):
+    """
+    Показывает список заявок по одному из направлений мастера.
+    В таблице показываются все компетенции кандидатов, сгруппированные по уровню владению.
+    Также показываются результаты тестов.
+    Каждого забронированного кандидата можно добавить в рабочую группу
+    Фильтр сбоку: забронированные, в избранном, выбранное направление
+    """
+    model = Application
+    template_name = 'application/working_list.html'
+
+    def get_queryset(self):
+        chosen_affiliation_id = self.get_chosen_affiliation_id()
+        chosen_direction = Direction.objects.get(affiliation__id=chosen_affiliation_id)
+        wishlist_affiliations = Booking.objects.filter(affiliation__in=self.get_master_affiliations(),
+                                                       booking_type__name=const.IN_WISHLIST).select_related(
+            'affiliation').only('affiliation', 'slave')
+
+        booked_member_affiliation = Booking.objects.filter(slave=OuterRef('member'),
+                                                           booking_type__name=const.BOOKED)
+        apps = Application.objects.all().select_related('member', 'member__user').prefetch_related(
+            Prefetch('member__candidate', queryset=wishlist_affiliations),
+            Prefetch('directions', queryset=self.get_master_directions().only('id'), to_attr='aval_dir'),
+            Prefetch('app_competence',
+                     queryset=ApplicationCompetencies.objects.filter(competence__directions=chosen_direction,
+                                                                     level=3).select_related('competence'),
+                     to_attr='lvl1_comps'),
+            Prefetch('app_competence',
+                     queryset=ApplicationCompetencies.objects.filter(competence__directions=chosen_direction,
+                                                                     level=2).select_related('competence'),
+                     to_attr='lvl2_comps'),
+            Prefetch('app_competence',
+                     queryset=ApplicationCompetencies.objects.filter(competence__directions=chosen_direction,
+                                                                     level=1).select_related('competence'),
+                     to_attr='lvl3_comps')
+        ).only('id', 'member', 'directions', 'birth_day', 'birth_place', 'draft_year', 'draft_season',
+               'final_score',
+               'fullness', 'member__user__id', 'member__user__first_name', 'member__user__last_name',
+               'member__father_name')
+        apps = self.get_filtered_sorted_queryset(apps)
+        apps = apps.annotate(
+            is_booked=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.BOOKED),
+                distinct=True
+            ),
+            company=Subquery(booked_member_affiliation.values('affiliation__company')),
+            platoon=Subquery(booked_member_affiliation.values('affiliation__platoon')),
+            booked_id=Subquery(booked_member_affiliation.values('affiliation__id')),
+            is_booked_our=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.BOOKED,
+                         member__candidate__affiliation__in=self.get_master_affiliations()),
+                distinct=True
+            ),
+            can_unbook=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.BOOKED,
+                         member__candidate__affiliation__in=self.get_master_affiliations(),
+                         member__candidate__master=self.request.user.member),
+                distinct=True
+            ),
+            wishlist_len=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.IN_WISHLIST),
+                distinct=True
+            ),
+            our_direction=Count(
+                F('directions'),
+                filter=Q(directions__id__in=self.get_master_directions_id()),
+                distinct=True
+            ),
+            is_in_wishlist=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.IN_WISHLIST,
+                         member__candidate__affiliation__in=self.get_master_affiliations()),
+                distinct=True
+            ),
+            author_note=Subquery(
+                ApplicationNote.objects.filter(application=OuterRef('pk'), author=self.request.user.member,
+                                               affiliations__in=self.get_master_affiliations(),
+                                               ).values('text')[:1]),
+            note=Subquery(
+                ApplicationNote.objects.filter(application=OuterRef('pk'),
+                                               affiliations__in=self.get_master_affiliations(),
+                                               ).values('text')[:1]),
+        )
+        return apps
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        booked_type_id = BookingType.objects.only('id').get(name=const.BOOKED)
+        master_affiliations = self.get_master_affiliations().select_related('direction').defer('direction__description',
+                                                                                               'direction__image')
+        initial = {'affiliation': self.get_first_master_affiliation_or_exception(),
+                   'booking_type': booked_type_id.id,
+                   }
+        data = self.request.GET if self.request.GET else None
+        affiliation_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
+        filter_form = FilterWorkGroupForm(initial=initial, data=data, affiliation_set=affiliation_set)
+        chosen_affiliation_id = self.get_chosen_affiliation_id()
+        group_set = WorkGroup.objects.filter(affiliation__id=chosen_affiliation_id)
+        work_group_select = ChooseWorkGroupForm(group_set=group_set)
+        context['group_form'] = work_group_select
+        context['form'] = filter_form
+        context['reset_filters'] = True if self.request.GET else False
+        context['work_list_active'] = True
+        return context
+
+    def get_chosen_affiliation_id(self):
+        """Возвращает выбранную принадлежность из get или первую принадлежность мастера"""
+        chosen_competence = self.request.GET.get('affiliation', None)
+        return chosen_competence if chosen_competence else self.get_first_master_affiliation_or_exception().id
+
+    def get_filtered_sorted_queryset(self, apps):
+        """Возвращает отфильтрованный и отсортированный список анкет.
+        Если в self.request.GET пусто, то фильтрует по первой принадлежности, забронированным участникам, текущему году,
+
+        """
+        chosen_affiliation_id = self.get_first_master_affiliation_or_exception().id
+        booked_members = Booking.objects.filter(affiliation__id=chosen_affiliation_id,
+                                                booking_type__name=const.BOOKED).values_list('slave', flat=True)
+        if not self.request.GET:
+            current_year, current_season = get_current_draft_year()
+            return apps.filter(draft_year=current_year, draft_season=current_season[0],
+                               directions__affiliation__id=chosen_affiliation_id,
+                               member__id__in=booked_members).distinct()
+
+        # тут производится вся сортировка и фильтрация
+        # фильтрация по принадлежностям
+        chosen_affiliation = self.request.GET.get('affiliation', None)
+        apps = apps.filter(directions__affiliation__id=chosen_affiliation)
+        booking_type_id = self.request.GET.getlist('booking_type', None)
+        if not booking_type_id or 'all' in booking_type_id:
+            return apps
+        booked_members = Booking.objects.filter(affiliation__in=chosen_affiliation,
+                                                booking_type__id__in=booking_type_id).values_list('slave', flat=True)
+        return apps.filter(member__id__in=booked_members)
+
+
+class ChangeWorkGroupView(MasterDataMixin, View):
+    def post(self, request, app_id):
+        application = get_object_or_404(Application, pk=app_id)
+        work_group_select = ChooseWorkGroupForm(data=request.POST, instance=application)
+        if work_group_select.is_valid():
+            work_group_select.save()
         return redirect(request.META.get('HTTP_REFERER'))

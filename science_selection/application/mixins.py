@@ -5,6 +5,7 @@ from account.models import Affiliation
 from application.models import Competence, Direction
 from application.utils import check_role
 from utils.constants import MASTER_ROLE_NAME
+from utils.exceptions import MasterHasNoDirectionsException
 
 
 class OnlyMasterAccessMixin:
@@ -48,6 +49,20 @@ class DataApplicationMixin:
             affiliation_id = [affiliation_id]
         if not set(affiliation_id).issubset(set(self.get_master_affiliations().values_list('id', flat=True))):
             raise PermissionDenied(error_message)
+
+    def get_first_master_direction_or_exception(self):
+        master_directions = self.get_master_directions()
+        chosen_direction = master_directions.first() if master_directions else None
+        if not chosen_direction:
+            raise MasterHasNoDirectionsException('У вас нет направлений для отбора.')
+        return chosen_direction
+
+    def get_first_master_affiliation_or_exception(self):
+        master_affiliations = self.get_master_affiliations()
+        chosen_affiliation = master_affiliations.first() if master_affiliations else None
+        if not chosen_affiliation:
+            raise MasterHasNoDirectionsException('У вас нет направлений для отбора.')
+        return chosen_affiliation
 
 
 class MasterDataMixin(LoginRequiredMixin, OnlyMasterAccessMixin, DataApplicationMixin):

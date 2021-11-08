@@ -333,8 +333,8 @@ class ApplicationCompetencies(models.Model):
         (3,
          'уровнень, позволяющий давать обоснованные рекомендации по совершенствованию компетенции разработчикам данной компетенции')
     ]
-    application = models.ForeignKey(Application, on_delete=models.CASCADE)
-    competence = models.ForeignKey(Competence, on_delete=models.CASCADE)
+    application = models.ForeignKey(Application, on_delete=models.CASCADE, related_name='app_competence')
+    competence = models.ForeignKey(Competence, on_delete=models.CASCADE, related_name='competence_value')
     level = models.IntegerField(choices=competence_levels)
 
     class Meta:
