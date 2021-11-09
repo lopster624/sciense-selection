@@ -41,7 +41,7 @@
                 </thead>
                 <tbody>
                 {% for app in object_list|dictsortreversed:"our_direction" %}
-                <tr class="{% if app.is_booked_our %}bg-success bg-opacity-25{%endif%} {% if not app.our_direction %} table-active {% endif %}">
+                <tr class="{% if app.is_booked_our %}{% if app.company == chosen_company and app.platoon == chosen_platoon %} bg-success {% else %} bg-info {%endif%} bg-opacity-25{%endif%}{% if not app.our_direction %} table-active {% endif %}">
                     <th>{{ forloop.counter }}</th>
                     <td scope="row">
                         <h5 class="card-title">
@@ -50,17 +50,17 @@
                     </td>
                     <td scope="row">
                         {% for comp in app.lvl1_comps %}
-                            "{{comp.competence.name}}"
+                        "{{comp.competence.name}}"
                         {% endfor %}
                     </td>
                     <td scope="row">
-                         {% for comp in app.lvl2_comps %}
-                            "{{comp.competence.name}}"
+                        {% for comp in app.lvl2_comps %}
+                        "{{comp.competence.name}}"
                         {% endfor %}
                     </td>
                     <td scope="row">
-                         {% for comp in app.lvl3_comps %}
-                            "{{comp.competence.name}}"
+                        {% for comp in app.lvl3_comps %}
+                        "{{comp.competence.name}}"
                         {% endfor %}
                     </td>
                     <td scope="row">
@@ -102,8 +102,9 @@
                         {% endif %}
                     </td>
                     <td scope="row" class="text-nowrap">
-                        {% if app.is_booked_our %}
-                        <form method="post" id="work_group_form{{app.id}}" action="{% url 'change_work_group' app.id %}">
+                        {% if app.company == chosen_company and app.platoon == chosen_platoon %}
+                        <form method="post" id="work_group_form{{app.id}}"
+                              action="{% url 'change_work_group' app.id %}">
                             {% csrf_token %}
                             {% for f in group_form %}
                             <div class="form-group mb-1 clearfix">

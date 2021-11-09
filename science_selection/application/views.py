@@ -905,6 +905,9 @@ class WorkingListView(MasterDataMixin, ListView):
             item = [*old, affiliation] if old else [affiliation]
             master_directions_affiliations.update({affiliation.direction.id: item})
         context['master_directions_affiliations'] = master_directions_affiliations
+        chosen_affiliation = get_object_or_404(Affiliation, pk=chosen_affiliation_id)
+        context['chosen_company'] = chosen_affiliation.company
+        context['chosen_platoon'] = chosen_affiliation.platoon
         return context
 
     def get_chosen_affiliation_id(self):
