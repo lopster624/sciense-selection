@@ -21,7 +21,7 @@ from application.forms import CreateCompetenceForm, FilterAppListForm, CreateWor
 from engine.settings import MEDIA_DIR
 from utils import constants as const
 from utils.calculations import get_current_draft_year
-from utils.exceptions import MasterHasNoDirectionsException
+from utils.exceptions import MasterHasNoDirectionsException, NoHTTPReferer
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
@@ -579,10 +579,10 @@ class BookMemberView(MasterDataMixin, View):
                     affiliation=affiliation).save()
         else:
             raise PermissionDenied('Бронирование на неверное направление.')
-        return redirect('application_list')
+        return self.get_redirect_on_previous_page(request)
 
 
-class UnBookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+class UnBookMemberView(MasterDataMixin, View):
     """Удаляет из бронирования анкету с id=pk текущим пользователем с направления id=aff_id"""
 
     def post(self, request, pk, aff_id):
@@ -595,7 +595,7 @@ class UnBookMemberView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
                 slave_member.application.work_group = None
                 slave_member.application.save(update_fields=["work_group"])
             booking.delete()
-            return redirect('application_list')
+            return self.get_redirect_on_previous_page(request)
         booking = Booking.objects.filter(slave=slave_member, booking_type__name=const.BOOKED,
                                          affiliation__id=aff_id).first()
         master_name = booking.master if booking else ""
@@ -618,10 +618,10 @@ class AddInWishlistView(MasterDataMixin, View):
                                           affiliation=affiliation).exists():
                 Booking(booking_type=booking_type, master=request.user.member, slave=slave_member,
                         affiliation=affiliation).save()
-        return redirect('application_list')
+        return self.get_redirect_on_previous_page(request)
 
 
-class DeleteFromWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+class DeleteFromWishlistView(MasterDataMixin, View):
     """Удаляет из списка желаемых заявку с id=pk с направлений, полученных с post"""
 
     def post(self, request, pk):
@@ -632,7 +632,7 @@ class DeleteFromWishlistView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
                                                      slave=slave_member, affiliation__id=affiliation_id)
             if current_booking:
                 current_booking.first().delete()
-        return redirect('application_list')
+        return self.get_redirect_on_previous_page(request)
 
 
 @login_required
@@ -789,7 +789,7 @@ class RemoveApplicationWorkGroupView(MasterDataMixin, View):
         if application.work_group:
             application.work_group = None
             application.save(update_fields=['work_group'])
-        return redirect(request.META.get('HTTP_REFERER'))
+        return self.get_redirect_on_previous_page(request)
 
 
 class WorkingListView(MasterDataMixin, ListView):
@@ -899,6 +899,12 @@ class WorkingListView(MasterDataMixin, ListView):
         context['form'] = filter_form
         context['reset_filters'] = True if self.request.GET else False
         context['work_list_active'] = True
+        master_directions_affiliations = {}
+        for affiliation in master_affiliations:
+            old = master_directions_affiliations.pop(affiliation.direction.id, None)
+            item = [*old, affiliation] if old else [affiliation]
+            master_directions_affiliations.update({affiliation.direction.id: item})
+        context['master_directions_affiliations'] = master_directions_affiliations
         return context
 
     def get_chosen_affiliation_id(self):
@@ -938,4 +944,4 @@ class ChangeWorkGroupView(MasterDataMixin, View):
         work_group_select = ChooseWorkGroupForm(data=request.POST, instance=application)
         if work_group_select.is_valid():
             work_group_select.save()
-        return redirect(request.META.get('HTTP_REFERER'))
+        return self.get_redirect_on_previous_page(request)

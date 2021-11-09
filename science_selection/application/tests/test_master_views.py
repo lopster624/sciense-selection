@@ -258,7 +258,7 @@ class CompetenceListViewTest(TestCase):
         self.assertEqual(resp.status_code, 403)
         self.assertTemplateUsed(resp, 'access_error.html')
         self.assertEqual(str(resp.context['error']),
-                         'У вас нет ни одного направления, по которому вы можете осуществлять отбор.')
+                         'У вас нет направлений для отбора.')
 
     def test_second_direction(self):
         """Проверяет компетенции второго направления"""
@@ -332,13 +332,15 @@ class BookMemberViewTest(TestCase):
 
     def test_redirect_if_not_logged_in(self):
         slave_member = self.slave_members[0]
-        resp = self.client.post(reverse('book_member', args=[slave_member.application.id]))
+        resp = self.client.post(reverse('book_member', args=[slave_member.application.id]),
+                                HTTP_REFERER=reverse('application_list'))
         self.assertRedirects(resp, f'/accounts/login/?next=/app/booking/{slave_member.application.id}/')
 
     def test_get_method_not_allowed(self):
         slave_member = self.slave_members[0]
         self.client.login(username='master', password='master')
-        resp = self.client.get(reverse('book_member', args=[slave_member.application.id]))
+        resp = self.client.get(reverse('book_member', args=[slave_member.application.id]),
+                               HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 405)
 
     def test_slave_access(self):
@@ -353,7 +355,8 @@ class BookMemberViewTest(TestCase):
         slave_member = self.slave_members[0]
         affiliation = Affiliation.objects.get(company=1, platoon=1)
         resp = self.client.post(
-            reverse('book_member', kwargs={'pk': slave_member.application.id}), {'affiliation': affiliation.id})
+            reverse('book_member', kwargs={'pk': slave_member.application.id}), {'affiliation': affiliation.id},
+            HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, reverse('application_list'))
 
@@ -363,7 +366,8 @@ class BookMemberViewTest(TestCase):
         slave_member = self.slave_members[0]
         affiliation = Affiliation.objects.get(company=2, platoon=2)
         resp = self.client.post(
-            reverse('book_member', kwargs={'pk': slave_member.application.id}), {'affiliation': affiliation.id})
+            reverse('book_member', kwargs={'pk': slave_member.application.id}), {'affiliation': affiliation.id},
+            HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 403)
 
     def test_book_correct_member_to_incorrect_affiliation2(self):
@@ -372,7 +376,8 @@ class BookMemberViewTest(TestCase):
         slave_member = self.slave_members[0]
         affiliation = Affiliation.objects.get(company=3, platoon=3)
         resp = self.client.post(
-            reverse('book_member', kwargs={'pk': slave_member.application.id}), {'affiliation': affiliation.id})
+            reverse('book_member', kwargs={'pk': slave_member.application.id}), {'affiliation': affiliation.id},
+            HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 403)
 
     def test_book_without_master_affiliation(self):
@@ -381,7 +386,8 @@ class BookMemberViewTest(TestCase):
         slave_member = self.slave_members[0]
         affiliation = Affiliation.objects.get(company=3, platoon=3)
         resp = self.client.post(
-            reverse('book_member', kwargs={'pk': slave_member.application.id}), {'affiliation': affiliation.id})
+            reverse('book_member', kwargs={'pk': slave_member.application.id}), {'affiliation': affiliation.id},
+            HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 403)
 
     def test_booked_member(self):
@@ -394,7 +400,8 @@ class BookMemberViewTest(TestCase):
         self.client.login(username='master', password='master')
         new_affiliation = Affiliation.objects.get(company=1, platoon=1)
         resp = self.client.post(
-            reverse('book_member', kwargs={'pk': slave_member.application.id}), {'affiliation': new_affiliation.id})
+            reverse('book_member', kwargs={'pk': slave_member.application.id}), {'affiliation': new_affiliation.id},
+            HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 403)
 
     def test_book_unexist_member(self):
@@ -402,8 +409,18 @@ class BookMemberViewTest(TestCase):
         affiliation = Affiliation.objects.get(company=3, platoon=3)
         self.client.login(username='master', password='master')
         resp = self.client.post(
-            reverse('book_member', kwargs={'pk': 15}), {'affiliation': affiliation.id})
+            reverse('book_member', kwargs={'pk': 15}), {'affiliation': affiliation.id},
+            HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 404)
+
+    def test_no_http_referer(self):
+        self.client.login(username='master', password='master')
+        slave_member = self.slave_members[0]
+        affiliation = Affiliation.objects.get(company=1, platoon=1)
+        resp = self.client.post(
+            reverse('book_member', kwargs={'pk': slave_member.application.id}), {'affiliation': affiliation.id})
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(str(resp.context['error']), 'Вернитесь на предыдущую страницу и повторите действие.')
 
 
 class UnBookMemberViewTest(TestCase):
@@ -458,20 +475,23 @@ class UnBookMemberViewTest(TestCase):
 
     def test_redirect_if_not_logged_in(self):
         slave_member = self.slave_members[0]
-        resp = self.client.post(reverse('un-book_member', args=[slave_member.application.id, 3]))
+        resp = self.client.post(reverse('un-book_member', args=[slave_member.application.id, 3]),
+                                HTTP_REFERER=reverse('application_list'))
         self.assertRedirects(resp, f'/accounts/login/?next=/app/booking/delete/{slave_member.application.id}/3/')
 
     def test_get_method_not_allowed(self):
         slave_member = self.slave_members[0]
         self.client.login(username='master', password='master')
-        resp = self.client.get(reverse('un-book_member', args=[slave_member.application.id, 3]))
+        resp = self.client.get(reverse('un-book_member', args=[slave_member.application.id, 3]),
+                               HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 405)
 
     def test_slave_access(self):
         """Проверяет, что у кандидата нет доступа к странице"""
         self.client.login(username='slave', password='slave')
         slave_member = self.slave_members[0]
-        resp = self.client.post(reverse('un-book_member', args=[slave_member.application.id, 3]))
+        resp = self.client.post(reverse('un-book_member', args=[slave_member.application.id, 3]),
+                                HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 403)
 
     def test_un_book_correct_member_from_correct_affiliation(self):
@@ -480,7 +500,8 @@ class UnBookMemberViewTest(TestCase):
         slave_member = self.slave_members[0]
         affiliation = Affiliation.objects.get(company=1, platoon=1)
         resp = self.client.post(
-            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}), )
+            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}),
+            HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, reverse('application_list'))
 
@@ -490,7 +511,8 @@ class UnBookMemberViewTest(TestCase):
         slave_member = self.slave_members[0]
         affiliation = Affiliation.objects.get(company=3, platoon=3)
         resp = self.client.post(
-            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}), )
+            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}),
+            HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 403)
         self.assertTemplateUsed(resp, 'access_error.html')
 
@@ -500,7 +522,8 @@ class UnBookMemberViewTest(TestCase):
         slave_member = self.slave_members[1]
         affiliation = Affiliation.objects.get(company=1, platoon=1)
         resp = self.client.post(
-            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}), )
+            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}),
+            HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 403)
         self.assertTemplateUsed(resp, 'access_error.html')
 
@@ -510,7 +533,8 @@ class UnBookMemberViewTest(TestCase):
         slave_member = self.slave_members[0]
         affiliation = Affiliation.objects.get(company=1, platoon=1)
         resp = self.client.post(
-            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}), )
+            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}),
+            HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 403)
         self.assertTemplateUsed(resp, 'access_error.html')
         self.assertEqual(str(resp.context['error']),
@@ -524,10 +548,21 @@ class UnBookMemberViewTest(TestCase):
         slave_member.application.work_group = self.group
         slave_member.application.save(update_fields=["work_group"])
         resp = self.client.post(
-            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}), )
+            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}),
+            HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, reverse('application_list'))
         self.assertEqual(Application.objects.get(member=slave_member).work_group, None)
+
+    def test_no_http_referer(self):
+        """Проверяет, что вызовется ошибка, если нет предыдущей страницы(http_referer)"""
+        self.client.login(username='master', password='master')
+        slave_member = self.slave_members[0]
+        affiliation = Affiliation.objects.get(company=1, platoon=1)
+        resp = self.client.post(
+            reverse('un-book_member', kwargs={'pk': slave_member.application.id, 'aff_id': affiliation.id}))
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(str(resp.context['error']), 'Вернитесь на предыдущую страницу и повторите действие.')
 
 
 class AddInWishlistViewTest(TestCase):
@@ -570,20 +605,23 @@ class AddInWishlistViewTest(TestCase):
 
     def test_redirect_if_not_logged_in(self):
         slave_member = self.slave_members[0]
-        resp = self.client.post(reverse('add_in_wishlist', args=[slave_member.application.id]))
+        resp = self.client.post(reverse('add_in_wishlist', args=[slave_member.application.id]),
+                                HTTP_REFERER=reverse('application_list'))
         self.assertRedirects(resp, f'/accounts/login/?next=/app/wishlist/add/{slave_member.application.id}/')
 
     def test_get_method_not_allowed(self):
         slave_member = self.slave_members[0]
         self.client.login(username='master', password='master')
-        resp = self.client.get(reverse('add_in_wishlist', args=[slave_member.application.id]))
+        resp = self.client.get(reverse('add_in_wishlist', args=[slave_member.application.id]),
+                               HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 405)
 
     def test_slave_access(self):
         """Проверяет, что у кандидата нет доступа к странице"""
         self.client.login(username='slave', password='slave')
         slave_member = self.slave_members[0]
-        resp = self.client.post(reverse('add_in_wishlist', args=[slave_member.application.id]))
+        resp = self.client.post(reverse('add_in_wishlist', args=[slave_member.application.id]),
+                                HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 403)
 
     def test_full_correct(self):
@@ -593,7 +631,7 @@ class AddInWishlistViewTest(TestCase):
         new_affiliation = Affiliation.objects.get(company=1, platoon=1)
         resp = self.client.post(
             reverse('add_in_wishlist', kwargs={'pk': slave_member.application.id}),
-            {'affiliations': [new_affiliation.id]})
+            {'affiliations': [new_affiliation.id]}, HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, reverse('application_list'))
         self.assertTrue(Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member,
@@ -606,7 +644,7 @@ class AddInWishlistViewTest(TestCase):
         new_affiliation = Affiliation.objects.get(company=1, platoon=1)
         resp = self.client.post(
             reverse('add_in_wishlist', kwargs={'pk': slave_member.application.id}),
-            {'affiliations': [new_affiliation.id, 2, 3, 4]})
+            {'affiliations': [new_affiliation.id, 2, 3, 4]}, HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 403)
         self.assertFalse(
             Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member,
@@ -622,7 +660,7 @@ class AddInWishlistViewTest(TestCase):
                 affiliation=new_affiliation).save()
         resp = self.client.post(
             reverse('add_in_wishlist', kwargs={'pk': slave_member.application.id}),
-            {'affiliations': [new_affiliation.id]})
+            {'affiliations': [new_affiliation.id]}, HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, reverse('application_list'))
         self.assertEqual(
@@ -640,11 +678,23 @@ class AddInWishlistViewTest(TestCase):
         new_affiliation = Affiliation.objects.get(company=2, platoon=2)
         resp = self.client.post(
             reverse('add_in_wishlist', kwargs={'pk': slave_member.application.id}),
-            {'affiliations': [new_affiliation.id]})
+            {'affiliations': [new_affiliation.id]}, HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, reverse('application_list'))
         self.assertEqual(
             Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member).count(), 2)
+
+    def test_no_http_referer(self):
+        """Проверяет, что вызовется ошибка, если нет предыдущей страницы(http_referer)"""
+        slave_member = self.slave_members[0]
+        booking_type = BookingType.objects.only('id').get(name=IN_WISHLIST)
+        self.client.login(username='master', password='master')
+        new_affiliation = Affiliation.objects.get(company=1, platoon=1)
+        resp = self.client.post(
+            reverse('add_in_wishlist', kwargs={'pk': slave_member.application.id}),
+            {'affiliations': [new_affiliation.id]})
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(str(resp.context['error']), 'Вернитесь на предыдущую страницу и повторите действие.')
 
 
 class DeleteFromWishlistViewTest(TestCase):
@@ -687,20 +737,23 @@ class DeleteFromWishlistViewTest(TestCase):
 
     def test_redirect_if_not_logged_in(self):
         slave_member = self.slave_members[0]
-        resp = self.client.post(reverse('delete_from_wishlist', args=[slave_member.application.id]))
+        resp = self.client.post(reverse('delete_from_wishlist', args=[slave_member.application.id]),
+                                HTTP_REFERER=reverse('application_list'))
         self.assertRedirects(resp, f'/accounts/login/?next=/app/wishlist/delete/{slave_member.application.id}/')
 
     def test_get_method_not_allowed(self):
         slave_member = self.slave_members[0]
         self.client.login(username='master', password='master')
-        resp = self.client.get(reverse('delete_from_wishlist', args=[slave_member.application.id]))
+        resp = self.client.get(reverse('delete_from_wishlist', args=[slave_member.application.id]),
+                               HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 405)
 
     def test_slave_access(self):
         """Проверяет, что у кандидата нет доступа к странице"""
         self.client.login(username='slave', password='slave')
         slave_member = self.slave_members[0]
-        resp = self.client.post(reverse('delete_from_wishlist', args=[slave_member.application.id]))
+        resp = self.client.post(reverse('delete_from_wishlist', args=[slave_member.application.id]),
+                                HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 403)
 
     def test_full_correct(self):
@@ -712,7 +765,7 @@ class DeleteFromWishlistViewTest(TestCase):
                 affiliation=new_affiliation).save()
         resp = self.client.post(
             reverse('delete_from_wishlist', kwargs={'pk': slave_member.application.id}),
-            {'affiliations': [new_affiliation.id]})
+            {'affiliations': [new_affiliation.id]}, HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, reverse('application_list'))
         self.assertFalse(
@@ -727,7 +780,7 @@ class DeleteFromWishlistViewTest(TestCase):
         new_affiliation = Affiliation.objects.get(company=1, platoon=1)
         resp = self.client.post(
             reverse('delete_from_wishlist', kwargs={'pk': slave_member.application.id}),
-            {'affiliations': [new_affiliation.id]})
+            {'affiliations': [new_affiliation.id]}, HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, reverse('application_list'))
         self.assertFalse(
@@ -744,7 +797,7 @@ class DeleteFromWishlistViewTest(TestCase):
                 affiliation=new_affiliation).save()
         resp = self.client.post(
             reverse('delete_from_wishlist', kwargs={'pk': slave_member.application.id}),
-            {'affiliations': [new_affiliation.id]})
+            {'affiliations': [new_affiliation.id]}, HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, reverse('application_list'))
         self.assertTrue(
@@ -765,11 +818,28 @@ class DeleteFromWishlistViewTest(TestCase):
             Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member).count(), 2)
         resp = self.client.post(
             reverse('delete_from_wishlist', kwargs={'pk': slave_member.application.id}),
-            {'affiliations': [new_affiliation.id]})
+            {'affiliations': [new_affiliation.id]}, HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, reverse('application_list'))
         self.assertEqual(
             Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member).count(), 1)
+
+    def test_no_http_referer(self):
+        """Проверяет, что вызовется ошибка, если нет предыдущей страницы(http_referer)"""
+        slave_member = self.slave_members[0]
+        booking_type = BookingType.objects.only('id').get(name=IN_WISHLIST)
+        self.client.login(username='master', password='master')
+        new_affiliation = Affiliation.objects.get(company=1, platoon=1)
+        Booking(booking_type=booking_type, master=self.master_member, slave=slave_member,
+                affiliation=new_affiliation).save()
+        resp = self.client.post(
+            reverse('delete_from_wishlist', kwargs={'pk': slave_member.application.id}),
+            {'affiliations': [new_affiliation.id]})
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(str(resp.context['error']), 'Вернитесь на предыдущую страницу и повторите действие.')
+        self.assertFalse(
+            Booking.objects.filter(booking_type=booking_type, master=self.master_member, slave=slave_member,
+                                   affiliation=new_affiliation).exists())
 
 
 class WorkGroupsListViewTest(TestCase):
