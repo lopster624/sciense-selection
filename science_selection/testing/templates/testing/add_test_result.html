@@ -14,10 +14,15 @@
             {% for question in question_list %}
                 <li class="mb-2">
                     <span class="pr-4">{{ question.wording }}</span>
+                    {% if question.image %}
+                        <div class="col-6 offset-3">
+                            <img src="{{ question.image.url }}" class="card-img-top">
+                        </div>
+                    {% endif %}
                     <div class="container">
                         <div class="row row-cols-2">
                         {% for answer in question.answer_options.all %}
-                            <div class="col">
+                            <div class="col-4 offset-2">
                                 {% if question.question_type == 2 %}
                                     <input class="form-check-input" type="checkbox" name="answer_{{question.id}}_{{ answer.pk }}"
                                            {% if answer.pk in user_answers %} checked {% endif %}>

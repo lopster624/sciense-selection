@@ -1,31 +1,20 @@
-{% extends 'base.html' %}
 {% load static %}
 {% load testing_extras %}
-{% block title %}
-Список тестов
-{% endblock %}
-{% block content %}
-{% include 'includes/header_template.html' %}
 
-<div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
-    <h4 class="text-center mb-3">Список тестов</h4>
-    {% if msg %}
-        <div class="alert alert-info text-center">{{ msg }}</div>
-    {% else %}
-    <div class="container">
-        {% if user.member.is_master %}
-            <div class="mb-2">
-                <a href="{% url 'create_test' %}">Добавить тест</a>
-            </div>
-        {% endif %}
-        {% for test in testing_list %}
-            <div class="row justify-content-between mb-2">
+{% if msg %}
+    <div class="alert alert-info text-center">{{ msg }}</div>
+{% else %}
+<div class="container">
+    <ul class="list-group list-group-flush">
+        {% for test in test_list %}
+        <li class="list-group-item">
+            <div class="row justify-content-between">
                 <div class="col-6">
                     <h6>
                         {% if test.test_res.all.0.status == 2 %}
-                            <a href="{% url  'add_test_result' test.pk %}">{{test.name}}</a>
+                            <a href="{% url  'add_test_result' test.pk %}" class="text-primary">{{test.name}}</a>
                         {% else %}
-                            <a href="{% url 'test'  test.pk %}">{{test.name}}</a>
+                                <a href="{% url 'test'  test.pk %}" class="text-primary">{{test.name}}</a>
                         {% endif %}
                     </h6>
                 </div>
@@ -47,10 +36,8 @@
                     </div>
                 {% endif %}
             </div>
+        </li>
         {% endfor %}
-    </div>
-    {% endif %}
-
+    </ul>
 </div>
-
-{% endblock %}
+{% endif %}

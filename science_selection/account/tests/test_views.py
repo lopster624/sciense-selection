@@ -49,22 +49,26 @@ class RegistrationViewTest(TestCase):
         self.assertIsNone(user.member.role)
 
     def test_incorrect_phone_in_registration(self):
+        """ Проверяет правильность номера """
         self.form_data['phone'] = '123'
         resp = self.client.post(reverse('register'), data=self.form_data)
         self.assertFormError(resp, 'form', 'phone', 'Введите правильное значение.')
 
     def test_duplicate_username_in_registration(self):
+        """ Воспроизводит ошибку создания пользователя с имеющимся username """
         self.form_data['username'] = 'test_user'
         resp = self.client.post(reverse('register'), data=self.form_data)
         self.assertFormError(resp, 'form', 'username', 'Пользователь с таким именем уже существует')
 
     def test_login_user(self):
+        """ Проверять вход пользователя с плохим токеном """
         self.client.force_login(self.user)
         resp = self.client.get(reverse('activation', kwargs={'token': '12345'}))
         self.assertEqual(resp.status_code, 404)
         self.assertEqual(str(resp.context['error']), 'Ссылка активации некорректна!')
 
     def test_activate_member(self):
+        """ Проверяет активацию пользователя """
         self.client.post(reverse('register'), data=self.form_data)
         user = User.objects.get(username=self.form_data['username'])
         link = ActivationLink.objects.get(user=user)
@@ -76,6 +80,7 @@ class RegistrationViewTest(TestCase):
         self.assertEqual(resp.status_code, 302)
 
     def test_not_activated_member(self):
+        """ Проверять вход пользователя без его активации """
         self.client.post(reverse('register'), data=self.form_data)
         user = User.objects.get(username=self.form_data['username'])
         self.client.force_login(user)
@@ -111,11 +116,61 @@ class RegistrationViewTest(TestCase):
         self.assertEqual(resp.context['chooser'], {})
 
     def test_user_with_incorrect_perm_to_home_master_view(self):
+        """ Проверять вход пользователя с правами оператора на страницу мастера """
         self.client.force_login(self.user)
         resp = self.client.get(reverse('home_master'))
         self.assertEqual(resp.status_code, 403)
 
     def test_user_with_incorrect_perm_to_home_slave_view(self):
+        """ Проверять вход пользователя с правами мастера на страницу оператора """
         self.client.force_login(self.user_officer)
         resp = self.client.get(reverse('home_slave'))
         self.assertEqual(resp.status_code, 403)
+
+
+class ActivationViewTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        Role.objects.create(role_name=SLAVE_ROLE_NAME)
+
+    def setUp(self) -> None:
+        self.form_data = {
+            'phone': '+79998887755',
+            'father_name': 'Тестович',
+            'username': 'test',
+            'password': 'test',
+            'first_name': 'Тест',
+            'last_name': 'Тестовый',
+            'email': 'test@test.ru'
+        }
+        self.client.post(reverse('register'), data=self.form_data)
+        self.form_data['username'] = 'test2'
+        self.form_data['email'] = 'test2@test.ru'
+        self.client.post(reverse('register'), data=self.form_data)
+
+    def test_valid_data(self):
+        link = ActivationLink.objects.first()
+        user = User.objects.get(username='test')
+        self.client.force_login(user)
+        resp = self.client.get(reverse('activation', kwargs={'token': link.token}))
+        self.assertEqual(resp.status_code, 302)
+        member = Member.objects.get(user=user)
+        self.assertEqual(member.role.role_name, SLAVE_ROLE_NAME)
+        links = ActivationLink.objects.all()
+        self.assertEqual(len(links), 1)
+
+    def test_link_not_exists(self):
+        """ Проверяет активацию пользователя с плохим токеном """
+        user = User.objects.get(username='test')
+        self.client.force_login(user)
+        resp = self.client.get(reverse('activation', kwargs={'token': 'test-token'}))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_invalid_link_for_user(self):
+        """ Проверка активации пользователя через чужой токен """
+        link = ActivationLink.objects.first()
+        user = User.objects.get(username='test2')
+        self.client.force_login(user)
+        resp = self.client.get(reverse('activation', kwargs={'token': link.token}))
+        self.assertEqual(resp.status_code, 404)

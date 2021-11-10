@@ -7,15 +7,93 @@
 {% block content %}
 {% include 'includes/header_template.html' %}
 
-<div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
-    <h4 class="text-center mb-3">Результаты тестирования</h4>
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <h4 class="text-center mb-3">Результаты тестирования</h4>
 
-    <div class="container">
-
+        <div class="col-6">
+            <table class="table bg-white">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <td scope="col">ФИО</td>
+                        <td scope="col">Название теста</td>
+                        <td scope="col">Результат теста</td>
+                        <td scope="col">Статус теста</td>
+                        <td scope="col">Отчет</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member, res in results.items %}
+                        {% if res|length > 1 %}
+                            <tr>
+                                <th rowspan="{{res|length}}">
+                                    {{ forloop.counter }}
+                                </th>
+                                <td rowspan="{{res|length}}" scope="row" class="text-nowrap">
+                                    {{ member }}
+                                </td>
+                                {% for test in res %}
+                                    {% if forloop.first %}
+                                        <td scope="row" class="text-nowrap">
+                                            {{ test.test.name }}
+                                        </td>
+                                        <td scope="row" class="text-nowrap">
+                                            {{ test.result }}
+                                        </td>
+                                        <td scope="row" class="text-nowrap">
+                                            {{ test.get_status_display }}
+                                        </td>
+                                        <td scope="row" class="text-nowrap">
+                                            <a href="{% url 'test_result' test.test.pk test.pk %}">Подробнее</a>
+                                        </td>
+                                        </tr>
+                                    {% else %}
+                                        <tr>
+                                            <td scope="row" class="text-nowrap">
+                                                {{ test.test.name }}
+                                            </td>
+                                            <td scope="row" class="text-nowrap">
+                                                {{ test.result }}
+                                            </td>
+                                            <td scope="row" class="text-nowrap">
+                                                {{ test.get_status_display }}
+                                            </td>
+                                            <td scope="row" class="text-nowrap">
+                                                <a href="{% url 'test_result' test.test.pk test.pk %}">Подробнее</a>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                        {% else %}
+                            <tr>
+                                <th>
+                                    {{ forloop.counter }}
+                                </th>
+                                <td scope="row" class="text-nowrap">
+                                    {{ member }}
+                                </td>
+                                {% for test in res %}
+                                    <td scope="row" class="text-nowrap">
+                                        {{ test.test.name }}
+                                    </td>
+                                    <td scope="row" class="text-nowrap">
+                                        {{ test.result }}
+                                    </td>
+                                    <td scope="row" class="text-nowrap">
+                                        {{ test.get_status_display }}
+                                    </td>
+                                    <td scope="row" class="text-nowrap">
+                                        <a href="{% url 'test_result' test.test.pk test.pk %}">Подробнее</a>
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-
-
 </div>
-
 
 {% endblock %}
