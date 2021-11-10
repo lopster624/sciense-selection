@@ -69,7 +69,7 @@ def get_item(dictionary, key):
 @register.simple_tag
 def get_test_result(test_id, results):
     """
-    :param test_id: id экземпляра Testing
+    :param test_id: id экземпляра Test
     :param results: queryset из всех результатов заявки
     :return: результат пройденного теста или '-', если тест не был пройден
     """

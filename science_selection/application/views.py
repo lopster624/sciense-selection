@@ -19,7 +19,7 @@ from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterAppListForm, CreateWorkGroupForm, FilterWorkGroupForm, \
     ChooseWorkGroupForm
 from engine.settings import MEDIA_DIR
-from testing.models import TestResult, Testing
+from testing.models import TestResult, Test
 from utils import constants as const
 from utils.calculations import get_current_draft_year
 from utils.exceptions import MasterHasNoDirectionsException, NoHTTPReferer
@@ -905,7 +905,7 @@ class WorkingListView(MasterDataMixin, ListView):
                                                pk=self.chosen_affiliation_id)
         context['chosen_company'] = chosen_affiliation.company
         context['chosen_platoon'] = chosen_affiliation.platoon
-        context['direction_tests'] = Testing.objects.filter(directions=chosen_affiliation.direction)
+        context['direction_tests'] = Test.objects.filter(directions=chosen_affiliation.direction)
         return context
 
     def get_chosen_affiliation_id(self):
