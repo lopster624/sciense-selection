@@ -175,7 +175,11 @@ LOGGING = {
         }
     },
     'loggers': {
-
+        '': {
+            'level': 'DEBUG',
+            'handlers': ['console', 'file'],
+            'propagate': False,
+        },
         'django': {
             'handlers': ['console', 'file'],
             'propagate': False,
@@ -185,11 +189,7 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': False,
         },
-        '': {
-            'level': 'DEBUG',
-            'handlers': ['console', 'file'],
-            'propagate': False,
-        },
+
         'django.security': {
             'handlers': ['console', 'file'],
             'propagate': False,

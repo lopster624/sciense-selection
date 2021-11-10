@@ -13,7 +13,8 @@ urlpatterns = [
     path('application/<int:pk>/add_note/', views.EditApplicationNote.as_view(), name='add_application_note'),
     path('application/list/', views.ApplicationListView.as_view(), name='application_list'),
     path('application/<int:pk>/finished/', views.ChangeAppFinishedView.as_view(), name='change_finished'),
-    path('application/list/service-document/', views.CreateServiceDocumentView.as_view(), name='create_word_service_document'),
+    path('application/list/service-document/', views.CreateServiceDocumentView.as_view(),
+         name='create_word_service_document'),
 
     path('competence/add/<int:direction_id>/', views.AddCompetencesView.as_view(), name='add_competences'),
     path('competence/list/', views.CompetenceListView.as_view(), name='competence_list'),
@@ -27,9 +28,16 @@ urlpatterns = [
     path('booking/delete/<int:pk>/<int:aff_id>/', views.UnBookMemberView.as_view(), name='un-book_member'),
     path('wishlist/add/<int:pk>/', views.AddInWishlistView.as_view(), name='add_in_wishlist'),
     path('wishlist/delete/<int:pk>/', views.DeleteFromWishlistView.as_view(), name='delete_from_wishlist'),
+    path('work-group/list/', views.WorkGroupsListView.as_view(), name='work_group_list'),
+    path('work-group/delete/<int:group_id>/', views.DeleteWorkGroupView.as_view(), name='delete_work_group'),
+    path('work-group/<int:pk>/', views.WorkGroupView.as_view(), name='work_group'),
+    path('work-group/remove-application/<int:app_id>/<int:group_id>/', views.RemoveApplicationWorkGroupView.as_view(),
+         name='remove_app_from_group'),
+    path('work-list/', views.WorkingListView.as_view(), name='work_list'),
+    path('application/set-work-group/<int:app_id>/', views.ChangeWorkGroupView.as_view(), name='change_work_group'),
 
     path('search/universities/', views.ajax_search_info_in_db_tables, name='ajax_search_universities'),
     path('search/specialization/', views.ajax_search_info_in_db_tables, name='ajax_search_specialization'),
     path('search/commissariat/', views.ajax_search_info_in_db_tables, name='ajax_search_commissariat'),
-    path('search/competencies/', views.CompetenceAutocomplete.as_view(), name='search_competencies',),
+    path('search/competencies/', views.CompetenceAutocomplete.as_view(), name='search_competencies', ),
 ]

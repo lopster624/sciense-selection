@@ -4,9 +4,9 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 
 from account.models import Affiliation
-from application.forms import CreateCompetenceForm, EducationCreateForm, ApplicationMasterForm
-from application.forms import FilterForm
-from application.models import Direction, Competence, Education, Application
+from application.forms import CreateCompetenceForm, EducationCreateForm, ApplicationMasterForm, CreateWorkGroupForm
+from application.forms import FilterAppListForm
+from application.models import Direction, Competence, Education, Application, WorkGroup
 from utils.calculations import get_current_draft_year
 
 
@@ -38,24 +38,24 @@ class FilterFormTest(TestCase):
                              }
 
     def test_valid_form(self):
-        form = FilterForm(initial=self.initial_data, data=self.form_data,
-                          directions_set=self.directions_set,
-                          in_wishlist_set=self.in_wishlist_set,
-                          draft_year_set=self.draft_year_set, chosen_affiliation_set=self.in_wishlist_set)
+        form = FilterAppListForm(initial=self.initial_data, data=self.form_data,
+                                 directions_set=self.directions_set,
+                                 in_wishlist_set=self.in_wishlist_set,
+                                 draft_year_set=self.draft_year_set, chosen_affiliation_set=self.in_wishlist_set)
         self.assertTrue(form.is_valid())
 
     def test_invalid_form(self):
-        form = FilterForm(initial=self.initial_data, data={'draft_year': ['2920']},
-                          directions_set=self.directions_set,
-                          in_wishlist_set=self.in_wishlist_set,
-                          draft_year_set=self.draft_year_set, chosen_affiliation_set=self.in_wishlist_set)
+        form = FilterAppListForm(initial=self.initial_data, data={'draft_year': ['2920']},
+                                 directions_set=self.directions_set,
+                                 in_wishlist_set=self.in_wishlist_set,
+                                 draft_year_set=self.draft_year_set, chosen_affiliation_set=self.in_wishlist_set)
         self.assertFalse(form.is_valid())
 
     def test_initial_value(self):
-        form = FilterForm(initial=self.initial_data, data=self.form_data,
-                          directions_set=self.directions_set,
-                          in_wishlist_set=self.in_wishlist_set,
-                          draft_year_set=self.draft_year_set, chosen_affiliation_set=self.in_wishlist_set)
+        form = FilterAppListForm(initial=self.initial_data, data=self.form_data,
+                                 directions_set=self.directions_set,
+                                 in_wishlist_set=self.in_wishlist_set,
+                                 draft_year_set=self.draft_year_set, chosen_affiliation_set=self.in_wishlist_set)
         self.assertEqual(form['draft_year'].initial, 2021)
 
 
@@ -185,3 +185,40 @@ class ApplicationMasterFormTest(TestCase):
             self.form_data['draft_season'] = season[0]
             form = ApplicationMasterForm(data=self.form_data)
             self.assertTrue(form.is_valid())
+
+
+class CreateWorkGroupFormTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        direction = Direction.objects.create(name='ИВТ', description='программирование и роботы')
+        aff = Affiliation.objects.create(direction=direction, company=1, platoon=1)
+        WorkGroup.objects.create(name='Фотоника', affiliation=aff)
+
+    def setUp(self) -> None:
+        self.aff = Affiliation.objects.filter(pk=1)
+        self.form_data = {
+            'name': 'Программирование',
+            'affiliation': 1,
+            'description': 'Что-то',
+        }
+
+    def test_affiliation_not_exists(self):
+        self.form_data['affiliation'] = 99
+        form = CreateWorkGroupForm(data=self.form_data, master_affiliations=self.aff)
+        self.assertFalse(form.is_valid())
+
+    def test_form_without_affiliation_exists(self):
+        form = CreateWorkGroupForm(data={'name': 'test'}, master_affiliations=self.aff)
+        self.assertFalse(form.is_valid())
+
+    def test_valid_data(self):
+        form = CreateWorkGroupForm(data=self.form_data, master_affiliations=self.aff)
+        self.assertTrue(form.is_valid())
+
+    def test_form_without_master_affiliation(self):
+        try:
+            CreateWorkGroupForm(data=self.form_data)
+            self.assertFalse(True)
+        except Exception:
+            self.assertFalse(False)

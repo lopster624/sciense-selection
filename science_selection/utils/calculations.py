@@ -6,7 +6,8 @@ from django.http import Http404
 from application.models import Application
 
 from .constants import MIDDLE_RECRUITING_DATE
-from .exceptions import IncorrectActivationLinkException, ActivationFailedException, MasterHasNoDirectionsException
+from .exceptions import IncorrectActivationLinkException, ActivationFailedException, MasterHasNoDirectionsException, \
+    NoHTTPReferer
 
 
 def get_current_draft_year():
@@ -23,7 +24,8 @@ def convert_float(value):
 
 def get_exception_status_code(exception):
     """Возвращает статус кода ошибки по классу"""
-    if isinstance(exception, IncorrectActivationLinkException) or isinstance(exception, Http404):
+    if isinstance(exception, IncorrectActivationLinkException) or isinstance(exception, Http404) or isinstance(
+            exception, NoHTTPReferer):
         return 404
     if isinstance(exception, ActivationFailedException) or isinstance(exception, PermissionDenied) or isinstance(
             exception, MasterHasNoDirectionsException):

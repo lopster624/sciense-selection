@@ -20,9 +20,23 @@ def get_intersections(value, arg):
     return False
 
 
-@register.inclusion_tag('application/tags/delete_competence_tag.html')
-def get_delete_competence_modal(competence, direction):
-    return {'comp': competence, 'direction': direction}
+@register.inclusion_tag('application/tags/modal_window_tag.html')
+def get_modal_window(text, action_link, title, link_id):
+    """Рендерит шаблон универсального модального окна для подтверждения удаления."""
+    return {'text': text, 'action_link': action_link, 'title': title, 'link_id': link_id, }
+
+
+@register.simple_tag
+def vals_to_str(*vals):
+    """Возвращает все переданные переменные в виде одной строки"""
+    return ''.join(map(str, vals))
+
+
+@register.simple_tag
+def init_field(field, init):
+    """Инициализирует поле значением из init и возвращает его"""
+    field.initial = init
+    return field
 
 
 @register.inclusion_tag('application/tags/application_note_tag.html')

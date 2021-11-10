@@ -11,3 +11,8 @@ class ActivationFailedException(Exception):
 class MasterHasNoDirectionsException(Exception):
     """403 ошибка, если у мастера нет направлений"""
     pass
+
+
+class NoHTTPReferer(Exception):
+    """404 ошибка, если нет предыдущей страницы"""
+    pass
