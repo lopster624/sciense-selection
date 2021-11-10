@@ -12,6 +12,17 @@
         <form action="{% url 'edit_test' pk %}" class="form-horizontal" method="post" id="form-container">
             {% include 'includes/test_create_edit_form_template.html' %}
         </form>
+        <h5 class="text-center mb-3">Список вопросов к тесту</h5>
+        <ul class="list-group-flush">
+            {% for question in questions %}
+                <li class="list-group-item">
+                    <a href="{% url 'update_question' pk question.pk %}">{{ question.wording }}</a>
+                    <a href="{% url 'delete_question' pk question.pk %}">
+                        <button type="button" class="btn-close float-end"></button>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
     </div>
 </div>
 

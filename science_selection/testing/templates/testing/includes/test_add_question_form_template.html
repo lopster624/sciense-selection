@@ -1,0 +1,40 @@
+{% csrf_token %}
+{% if msg %}
+    <div class="alert alert-danger">{{ msg }}</div>
+{% endif %}
+
+{{ answer_formset.management_form }}
+
+{% for q_f in question_form %}
+    <div class="form-group row mb-2 {% if q_f.label == 'Id' %}visually-hidden{% endif %}">
+        <label class="col-4 col-form-label">{{ q_f.label }}</label>
+        <div class="col-8">
+            {{ q_f }}
+        </div>
+    </div>
+    {% if q_f.errors %}
+        <div class="mt-1 mb-0 alert-danger rounded">
+            {{ q_f.errors }}
+        </div>
+    {% endif %}
+{% endfor %}
+
+<h6 class="text-center mb-3">Варианты ответов</h6>
+<div class="row mb-2">
+    {% for a_form in answer_formset %}
+        {% for a_f in a_form %}
+            {% if a_f.label != 'Id' %}
+                <div class="form-check col-1">
+                    <input class="form-check-input" type="checkbox" {% if a_f.value in correct_answers %} checked {% endif %} value="{{ a_f.html_name }}" name="correct_answers">
+                </div>
+                <div class="col-5 mb-2">
+                    {{ a_f }}
+                </div>
+            {% else %}
+                <div class="visually-hidden">
+                        {{ a_f }}
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+</div>

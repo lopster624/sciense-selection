@@ -10,7 +10,7 @@
     <div class="row justify-content-center">
         <div class="col-6 bg-white list-group-item list-group-item-light">
             <div class="text-center">
-                <h4 class=""> Тест: {{ testing.name }}</h4>
+                <h4 class=""> Тест: {{ test.name }}</h4>
             </div>
             <ul class="list-group">
                 <li class="list-group-item mb-2">
@@ -19,7 +19,7 @@
                             Описание теста:
                         </div>
                         <div class="col">
-                            {{ testing.description }}
+                            {{ test.description }}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -27,7 +27,7 @@
                             Ограничение по времени:
                         </div>
                         <div class="col">
-                            {{ testing.time_limit }} минут
+                            {{ test.time_limit }} минут
                         </div>
                     </div>
                     {% if user.member.is_master %}
@@ -36,7 +36,7 @@
                                 Направления тестирования:
                             </div>
                             <div class="col">
-                                {{ testing.directions.all|join:", " }}
+                                {{ test.directions.all|join:", " }}
                             </div>
                         </div>
                         <div class="row col-12 mb-2">
@@ -44,7 +44,7 @@
                                 Тип теста:
                             </div>
                             <div class="col">
-                                {{ testing.type }}
+                                {{ test.type }}
                             </div>
                         </div>
                         <div class="row col-12 mb-2">
@@ -52,12 +52,15 @@
                                 Создатель теста:
                             </div>
                             <div class="col">
-                                {{ testing.creator }}
+                                {{ test.creator }}
                             </div>
                         </div>
-                        {% if testing.creator == user.member %}
+                        {% if test.creator == user.member %}
                             <div class="d-flex justify-content-end mb-2">
-                                <a href="{% url 'edit_test' testing.pk %}">
+                                <a href="{% url 'add_question_to_test' test.pk %}" class="me-2">
+                                    <button type="button" class="btn btn-secondary">Добавить вопрос</button>
+                                </a>
+                                <a href="{% url 'edit_test' test.pk %}" >
                                     <button type="button" class="btn btn-primary">Редактировать</button>
                                 </a>
                             </div>
@@ -65,7 +68,7 @@
                     {% elif user.member.is_slave %}
                         <div class="d-flex justify-content-center mb-2">
                             {% if not blocked %}
-                                <a href="{% url 'add_test_result' testing.pk %}">
+                                <a href="{% url 'add_test_result' test.pk %}">
                                     <button type="button" class="btn btn-primary">Пройти тест</button>
                                 </a>
                             {% else %}

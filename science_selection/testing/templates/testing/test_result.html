@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load testing_extras %}
+{% block title %}
+Результат теста
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-6 bg-white list-group-item list-group-item-light">
+            <div class="text-center">
+                <h4 class="">Ответы пользователя</h4>
+            </div>
+            <ul class="list-group">
+                {% for question in question_list %}
+                    <li class="list-group-item mb-2">
+                        <div class="text-center">
+                            {{ question.wording }}
+                        </div>
+                        {% if question.image %}
+                            <div class="col-6 offset-3">
+                                <img src="{{ question.image.url }}" class="card-img-top">
+                            </div>
+                        {% endif %}
+                        <div class="row mb-2">
+                            {% for answer in question.answer_options.all %}
+                                <div class="col-4 offset-2 mb-2
+                                    {% if is_psychological and answer.pk in user_answers or answer.pk in user_answers and answer.pk|to_str in question.correct_answers %}
+                                        text-success
+                                    {% elif answer.pk in user_answers %}
+                                        text-danger
+                                    {% endif %}">
+                                    {{ answer.meaning }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

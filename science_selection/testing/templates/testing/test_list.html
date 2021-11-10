@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Список тестов
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+
+<div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
+
+    {% if user.member.is_master %}
+        {% include 'testing/includes/test_master_template.html' %}
+    {% elif user.member.is_slave %}
+        <h4 class="text-center mb-3">Тестирование</h4>
+        {% include 'testing/includes/test_slave_template.html' %}
+    {% endif %}
+
+</div>
+
+{% endblock %}

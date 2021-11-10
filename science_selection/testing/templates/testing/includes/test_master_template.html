@@ -1,0 +1,76 @@
+{% load static %}
+{% load testing_extras %}
+
+<div class="container">
+    <ul class="nav nav-pills  justify-content-end">
+        <li class="nav-item me-2">
+            <a class="nav-link text-white bg-secondary" href="{% url 'create_test' %}">Добавить новый тест</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-white bg-secondary" href="{% url 'test_results' %}">Результаты тестирования</a>
+        </li>
+    </ul>
+</div>
+
+{% if directions %}
+    <form id="form" action=" {% url 'test_list' %}">
+        <h3>Список добавленных тестов в направление:</h3>
+        <select class="form-select mt-3" aria-label="Select direction" name="direction" id="switch_submit">
+            {% for dir in directions %}
+            <option {% ifequal selected_direction.id dir.id %} selected {% endifequal %} value="{{dir.id}}">
+                {{ dir.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+{% else %}
+    <div>
+        У вас нет доступных направлений.
+    </div>
+{% endif %}
+
+<div class="row">
+    <div class="col">
+        <h3>Созданные тесты:</h3>
+        <form enctype="multipart/form-data" action="{% url 'add_test' selected_direction.id %}" method="post">
+            {% csrf_token %}
+            {% for test in test_list %}
+                <li class="list-group-item list-group-item-light">
+                    <label class="ms-1 fs-4">
+                        <input class="form-check-input ms-1 main_choose me-1" type="checkbox" name="chosen_test" value={{test.id}}>
+                        <a href="{% url 'test' test.pk %}">{{test.name}}</a>
+                    </label>
+                    {% if test.creator.pk == user.member.pk %}
+                        <button type="button" class="btn pt-0" data-bs-toggle="modal" aria-label="Delete"
+                                data-bs-target="#deleteTestModal{{ test.pk }}">
+                            <img src="{% static 'images/trash.svg' %}" alt="Удалить" width="20" height="20">
+                        </button>
+                        {% get_delete_test_modal test=test %}
+                    {% endif %}
+                </li>
+            {% endfor %}
+            <input type="submit" class="btn btn-outline-dark mt-2 mb-2" value="Добавить тесты"/>
+        </form>
+    </div>
+
+    <div class="col">
+        <h3>Закрепленные тесты:</h3>
+        {% for test in direction_tests %}
+            <li class="list-group-item list-group-item-light">
+                <span class="ms-1 fs-4"><a href="{% url 'test' test.pk %}">{{test.name}}</a></span>
+                <button type="button" class="btn-close ms-3" data-bs-toggle="modal"
+                        data-bs-target="#excludeTestModal{{ test.id }}" aria-label="Close"></button>
+                {% get_exclude_test_modal test=test direction=selected_direction %}
+                {% if test.creator.pk == user.member.pk %}
+                    <button type="button" class="btn pt-0" data-bs-toggle="modal" aria-label="Delete"
+                            data-bs-target="#deleteTestModal{{ test.pk }}">
+                        <img src="{% static 'images/trash.svg' %}" alt="Удалить" width="20" height="20">
+                    </button>
+                    {% get_delete_test_modal test=test %}
+                {% endif %}
+            </li>
+        {% endfor %}
+    </div>
+</div>
+
+<script src="{% static 'js/submit_form.js' %}" type="text/javascript"></script>

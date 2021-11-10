@@ -3,7 +3,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content bg-light">
             <div class="modal-header">
-                <h5 class="modal-title" id="deletetTestDropLabel{{ test.pk }}">Удаление теста</h5>
+                <h5 class="modal-title" id="deleteTestDropLabel{{ test.pk }}">Удаление теста</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -11,7 +11,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <a href="{% url 'delete_test' test.pk %}"><button type="submit" class="btn btn-danger">Удалить тест</button></a>
+                <a href="{% url 'delete_test' test.pk %}"><button type="button" class="btn btn-danger">Удалить тест</button></a>
             </div>
         </div>
     </div>

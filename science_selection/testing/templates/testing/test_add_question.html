@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Добавить вопрос к тесту
+{% endblock %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+
+<div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
+    <div class="row">
+        <h5 class="text-center mb-3">Создать новый вопрос</h5>
+        <form action="{% url 'add_question_to_test' pk %}" enctype="multipart/form-data" class="form-horizontal" method="post" id="form-container">
+            {% include 'testing/includes/test_add_question_form_template.html' %}
+            <div class="mb-2 text-center">
+                <button type="submit" class="btn btn-primary">Создать</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

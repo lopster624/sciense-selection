@@ -3,7 +3,7 @@ from django.contrib import admin
 from . import models
 
 
-@admin.register(models.Testing)
+@admin.register(models.Test)
 class TestingAdmin(admin.ModelAdmin):
     list_display = ('name', 'time_limit', 'creator', 'get_directions')
     list_filter = ('name', 'creator')
@@ -33,7 +33,7 @@ class QuestionAdmin(admin.ModelAdmin):
 
 @admin.register(models.Answer)
 class AnswerAdmin(admin.ModelAdmin):
-    list_display = ('meaning',)
+    list_display = ('pk', 'meaning',)
 
 
 @admin.register(models.UserAnswer)
