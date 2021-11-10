@@ -33,7 +33,9 @@
                     <td scope="col">Сильные компетенции</td>
                     <td scope="col">Средние компетенции</td>
                     <td scope="col">Базовые компетенции</td>
-                    <td scope="col">Результаты тестов</td>
+                    {% for test in direction_tests %}
+                    <td scope="col">Тест "{{test.name}}"</td>
+                    {% endfor %}
                     <td scope="col">Бронирование</td>
                     <td scope="col">Заметки</td>
                     <td scope="col" class="text-nowrap">Рабочая группа</td>
@@ -49,23 +51,32 @@
                         </h5>
                     </td>
                     <td scope="row">
-                        {% for comp in app.lvl1_comps %}
+                        {% for comp in app.app_competence.all %}
+                        {% if comp.level == 3 %}
                         "{{comp.competence.name}}"
+                        {% endif %}
                         {% endfor %}
                     </td>
                     <td scope="row">
-                        {% for comp in app.lvl2_comps %}
+                        {% for comp in app.app_competence.all %}
+                        {% if comp.level == 2 %}
                         "{{comp.competence.name}}"
+                        {% endif %}
                         {% endfor %}
                     </td>
                     <td scope="row">
-                        {% for comp in app.lvl3_comps %}
+                        {% for comp in app.app_competence.all %}
+                        {% if comp.level == 1 %}
                         "{{comp.competence.name}}"
+                        {% endif %}
                         {% endfor %}
                     </td>
-                    <td scope="row">
-                        Результаты тестов
-                    </td>
+
+                    {% for test in direction_tests %}
+                        <td scope="row">{% get_test_result test.id app.member.test_results%}</td>
+                    {% endfor %}
+
+
                     <td scope="row">
                         {% if app.can_unbook or app.our_direction and not app.is_booked %}
                         <button type="button" class="btn btn-white ps-0" data-bs-toggle="modal"

@@ -64,3 +64,16 @@ def get_education_type_name(letter):
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)
+
+
+@register.simple_tag
+def get_test_result(test_id, results):
+    """
+    :param test_id: id экземпляра Testing
+    :param results: queryset из всех результатов заявки
+    :return: результат пройденного теста или '-', если тест не был пройден
+    """
+    for test_result in results:
+        if test_result.test.id == test_id:
+            return test_result.result
+    return '-'

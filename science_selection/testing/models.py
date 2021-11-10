@@ -22,7 +22,7 @@ class Testing(models.Model):
     name = models.CharField(max_length=128, verbose_name='Название теста')
     time_limit = models.IntegerField(verbose_name='Ограничение по времени (в мин.)', validators=[MinValueValidator(1)])
     description = models.CharField(max_length=256, verbose_name='Описание теста', blank=True)
-    directions = models.ManyToManyField('application.Direction', verbose_name='Направления тестов', blank=True,)
+    directions = models.ManyToManyField('application.Direction', verbose_name='Направления тестов', blank=True, )
     creator = models.ForeignKey('account.Member', on_delete=models.CASCADE, verbose_name='Создатель теста')
     type = models.ForeignKey(TypeOfTest, on_delete=models.CASCADE, verbose_name='Тип теста')
     create_date = models.DateTimeField(auto_now_add=True)
@@ -48,7 +48,8 @@ class TestResult(models.Model):
         (3, 'Закончен'),
     ]
     test = models.ForeignKey(Testing, on_delete=models.CASCADE, verbose_name='Тесты', related_name='test_res')
-    member = models.ForeignKey('account.Member', on_delete=models.CASCADE, verbose_name='Пользователь')
+    member = models.ForeignKey('account.Member', on_delete=models.CASCADE, verbose_name='Пользователь',
+                               related_name='test_result')
     result = models.IntegerField(verbose_name='Результат тестирования', blank=True, validators=[validate_result])
     start_date = models.DateTimeField(auto_now_add=True, verbose_name='Дата начала теста')
     end_date = models.DateTimeField(blank=True, verbose_name='Дата окончания теста')
@@ -85,7 +86,8 @@ class Question(models.Model):
 
 class Answer(models.Model):
     meaning = models.CharField(max_length=256, verbose_name='Ответ к вопросу')
-    question = models.ForeignKey(Question, on_delete=models.CASCADE, verbose_name='Вопрос', related_name='answer_options')
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, verbose_name='Вопрос',
+                                 related_name='answer_options')
 
     class Meta:
         verbose_name = "Ответ"
