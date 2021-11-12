@@ -281,7 +281,8 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
             context.update({'levels': competence_levels, 'selected_competencies': selected_competencies,
                             'competencies': competencies, 'selected_directions': user_directions})
         else:
-            context.update({'msg': 'Заполните направления', 'name': 'choose_app_direction'})
+            msg = 'Направления не выбраны' if request.user.member.is_master() else 'Заполните направления'
+            context.update({'msg': msg, 'name': 'choose_app_direction'})
         return render(request, 'application/application_competence_choose.html', context=context)
 
     @check_final_decorator
