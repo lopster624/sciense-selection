@@ -39,24 +39,7 @@ class Migration(migrations.Migration):
             name='wording',
             field=models.CharField(max_length=256, verbose_name='Формулировка'),
         ),
-        migrations.CreateModel(
-            name='Test',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=128, verbose_name='Название теста')),
-                ('time_limit', models.IntegerField(validators=[django.core.validators.MinValueValidator(1)], verbose_name='Ограничение по времени (в мин.)')),
-                ('description', models.CharField(blank=True, max_length=256, verbose_name='Описание теста')),
-                ('create_date', models.DateTimeField(auto_now_add=True)),
-                ('creator', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='account.member', verbose_name='Создатель теста')),
-                ('directions', models.ManyToManyField(blank=True, to='application.Direction', verbose_name='Направления тестов')),
-                ('type', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='testing.typeoftest', verbose_name='Тип теста')),
-            ],
-            options={
-                'verbose_name': 'Тест',
-                'verbose_name_plural': 'Тесты',
-                'ordering': ['create_date'],
-            },
-        ),
+        migrations.RenameModel('Testing', 'Test'),
         migrations.AlterField(
             model_name='question',
             name='test',
@@ -66,8 +49,5 @@ class Migration(migrations.Migration):
             model_name='testresult',
             name='test',
             field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='test_res', to='testing.test', verbose_name='Тесты'),
-        ),
-        migrations.DeleteModel(
-            name='Testing',
         ),
     ]

@@ -33,7 +33,9 @@
                     <td scope="col">Сильные компетенции</td>
                     <td scope="col">Средние компетенции</td>
                     <td scope="col">Базовые компетенции</td>
-                    <td scope="col">Результаты тестов</td>
+                    {% for test in direction_tests %}
+                    <td scope="col">Тест "{{test.name}}"</td>
+                    {% endfor %}
                     <td scope="col">Бронирование</td>
                     <td scope="col">Заметки</td>
                     <td scope="col" class="text-nowrap">Рабочая группа</td>
@@ -41,7 +43,7 @@
                 </thead>
                 <tbody>
                 {% for app in object_list|dictsortreversed:"our_direction" %}
-                <tr class="{% if app.is_booked_our %}bg-success bg-opacity-25{%endif%} {% if not app.our_direction %} table-active {% endif %}">
+                <tr class="{% if app.is_booked_our %}{% if app.company == chosen_company and app.platoon == chosen_platoon %} bg-success {% else %} bg-info {%endif%} bg-opacity-25{%endif%}{% if not app.our_direction %} table-active {% endif %}">
                     <th>{{ forloop.counter }}</th>
                     <td scope="row">
                         <h5 class="card-title">
@@ -49,23 +51,32 @@
                         </h5>
                     </td>
                     <td scope="row">
-                        {% for comp in app.lvl1_comps %}
-                            "{{comp.competence.name}}"
+                        {% for comp in app.app_competence.all %}
+                        {% if comp.level == 3 %}
+                        "{{comp.competence.name}}"
+                        {% endif %}
                         {% endfor %}
                     </td>
                     <td scope="row">
-                         {% for comp in app.lvl2_comps %}
-                            "{{comp.competence.name}}"
+                        {% for comp in app.app_competence.all %}
+                        {% if comp.level == 2 %}
+                        "{{comp.competence.name}}"
+                        {% endif %}
                         {% endfor %}
                     </td>
                     <td scope="row">
-                         {% for comp in app.lvl3_comps %}
-                            "{{comp.competence.name}}"
+                        {% for comp in app.app_competence.all %}
+                        {% if comp.level == 1 %}
+                        "{{comp.competence.name}}"
+                        {% endif %}
                         {% endfor %}
                     </td>
-                    <td scope="row">
-                        Результаты тестов
-                    </td>
+
+                    {% for test in direction_tests %}
+                        <td scope="row">{% get_test_result test.id app.member.test_results%}</td>
+                    {% endfor %}
+
+
                     <td scope="row">
                         {% if app.can_unbook or app.our_direction and not app.is_booked %}
                         <button type="button" class="btn btn-white ps-0" data-bs-toggle="modal"
@@ -102,8 +113,9 @@
                         {% endif %}
                     </td>
                     <td scope="row" class="text-nowrap">
-                        {% if app.is_booked_our %}
-                        <form method="post" id="work_group_form{{app.id}}" action="{% url 'change_work_group' app.id %}">
+                        {% if app.company == chosen_company and app.platoon == chosen_platoon %}
+                        <form method="post" id="work_group_form{{app.id}}"
+                              action="{% url 'change_work_group' app.id %}">
                             {% csrf_token %}
                             {% for f in group_form %}
                             <div class="form-group mb-1 clearfix">

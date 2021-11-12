@@ -19,6 +19,7 @@ from account.models import Member, Affiliation, Booking, BookingType
 from application.forms import CreateCompetenceForm, FilterAppListForm, CreateWorkGroupForm, FilterWorkGroupForm, \
     ChooseWorkGroupForm
 from engine.settings import MEDIA_DIR
+from testing.models import TestResult, Test
 from utils import constants as const
 from utils.calculations import get_current_draft_year
 from utils.exceptions import MasterHasNoDirectionsException, NoHTTPReferer
@@ -804,34 +805,29 @@ class WorkingListView(MasterDataMixin, ListView):
     template_name = 'application/working_list.html'
 
     def get_queryset(self):
-        chosen_affiliation_id = self.get_chosen_affiliation_id()
-        chosen_direction = Direction.objects.get(affiliation__id=chosen_affiliation_id)
+        self.chosen_affiliation_id = self.get_chosen_affiliation_id()
+        chosen_direction = Direction.objects.get(affiliation__id=self.chosen_affiliation_id)
         wishlist_affiliations = Booking.objects.filter(affiliation__in=self.get_master_affiliations(),
                                                        booking_type__name=const.IN_WISHLIST).select_related(
             'affiliation').only('affiliation', 'slave')
 
         booked_member_affiliation = Booking.objects.filter(slave=OuterRef('member'),
                                                            booking_type__name=const.BOOKED)
-        apps = Application.objects.all().select_related('member', 'member__user').prefetch_related(
+        apps = Application.objects.all().select_related('member', 'member__user', 'work_group').prefetch_related(
             Prefetch('member__candidate', queryset=wishlist_affiliations),
             Prefetch('directions', queryset=self.get_master_directions().only('id'), to_attr='aval_dir'),
             Prefetch('app_competence',
-                     queryset=ApplicationCompetencies.objects.filter(competence__directions=chosen_direction,
-                                                                     level=3).select_related('competence'),
-                     to_attr='lvl1_comps'),
-            Prefetch('app_competence',
-                     queryset=ApplicationCompetencies.objects.filter(competence__directions=chosen_direction,
-                                                                     level=2).select_related('competence'),
-                     to_attr='lvl2_comps'),
-            Prefetch('app_competence',
-                     queryset=ApplicationCompetencies.objects.filter(competence__directions=chosen_direction,
-                                                                     level=1).select_related('competence'),
-                     to_attr='lvl3_comps')
+                     queryset=ApplicationCompetencies.objects.filter(
+                         competence__directions=chosen_direction, level__in=[1, 2, 3]).select_related('competence')),
+            Prefetch('member__test_result',
+                     queryset=TestResult.objects.filter(test__directions=chosen_direction,
+                                                        status=TestResult.test_statuses[2][0]).select_related('test'),
+                     to_attr='test_results')
         ).only('id', 'member', 'directions', 'birth_day', 'birth_place', 'draft_year', 'draft_season',
-               'final_score',
+               'final_score', 'work_group',
                'fullness', 'member__user__id', 'member__user__first_name', 'member__user__last_name',
                'member__father_name')
-        apps = self.get_filtered_sorted_queryset(apps)
+        apps = self.get_filtered_sorted_queryset(apps, self.chosen_affiliation_id)
         apps = apps.annotate(
             is_booked=Count(
                 F('member__candidate'),
@@ -879,6 +875,7 @@ class WorkingListView(MasterDataMixin, ListView):
                                                affiliations__in=self.get_master_affiliations(),
                                                ).values('text')[:1]),
         )
+
         return apps
 
     def get_context_data(self, **kwargs):
@@ -892,8 +889,7 @@ class WorkingListView(MasterDataMixin, ListView):
         data = self.request.GET if self.request.GET else None
         affiliation_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
         filter_form = FilterWorkGroupForm(initial=initial, data=data, affiliation_set=affiliation_set)
-        chosen_affiliation_id = self.get_chosen_affiliation_id()
-        group_set = WorkGroup.objects.filter(affiliation__id=chosen_affiliation_id)
+        group_set = WorkGroup.objects.filter(affiliation__id=self.chosen_affiliation_id)
         work_group_select = ChooseWorkGroupForm(group_set=group_set)
         context['group_form'] = work_group_select
         context['form'] = filter_form
@@ -905,6 +901,11 @@ class WorkingListView(MasterDataMixin, ListView):
             item = [*old, affiliation] if old else [affiliation]
             master_directions_affiliations.update({affiliation.direction.id: item})
         context['master_directions_affiliations'] = master_directions_affiliations
+        chosen_affiliation = get_object_or_404(Affiliation.objects.select_related('direction'),
+                                               pk=self.chosen_affiliation_id)
+        context['chosen_company'] = chosen_affiliation.company
+        context['chosen_platoon'] = chosen_affiliation.platoon
+        context['direction_tests'] = Test.objects.filter(directions=chosen_affiliation.direction)
         return context
 
     def get_chosen_affiliation_id(self):
@@ -912,12 +913,14 @@ class WorkingListView(MasterDataMixin, ListView):
         chosen_competence = self.request.GET.get('affiliation', None)
         return chosen_competence if chosen_competence else self.get_first_master_affiliation_or_exception().id
 
-    def get_filtered_sorted_queryset(self, apps):
-        """Возвращает отфильтрованный и отсортированный список анкет.
-        Если в self.request.GET пусто, то фильтрует по первой принадлежности, забронированным участникам, текущему году,
-
+    def get_filtered_sorted_queryset(self, apps, chosen_affiliation_id):
         """
-        chosen_affiliation_id = self.get_first_master_affiliation_or_exception().id
+        Возвращает отфильтрованный и отсортированный список анкет.
+        Если в self.request.GET пусто, то фильтрует по первой принадлежности, забронированным участникам, текущему году.
+        :param apps: queryset заявок
+        :param chosen_affiliation_id: id выбранной принадлежности
+        :return: отфильтрованный queryset
+        """
         booked_members = Booking.objects.filter(affiliation__id=chosen_affiliation_id,
                                                 booking_type__name=const.BOOKED).values_list('slave', flat=True)
         if not self.request.GET:
