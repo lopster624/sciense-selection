@@ -13,7 +13,7 @@ from django.views.generic import DetailView
 from django.views.generic.list import ListView
 
 from application.models import Application, Direction
-from application.mixins import OnlyMasterAccessMixin, MasterDataMixin
+from application.mixins import OnlyMasterAccessMixin, MasterDataMixin, OnlySlaveAccessMixin
 from utils.calculations import get_current_draft_year
 from utils.exceptions import MasterHasNoDirectionsException
 
@@ -234,11 +234,11 @@ class EditTestView(TestAndQuestionMixin):
         return render(request, 'testing/test_edit.html', context=context)
 
 
-class AddTestResultView(LoginRequiredMixin, View):
+class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
     """ Сохранить результаты тестирования """
-    #TODO - только для операторов?
+
     def get(self, request, pk):
-        # TODO: ПРоверять был ли выполнен тест, проверять был ли выполнен тест + не закончен по времени + запросы в БД
+        # TODO: ПРоверять был ли выполнен тест, проверять был ли выполнен тест + не закончен по времени
         current_test = get_object_or_404(Test, pk=pk)
         member = request.user.member
         is_completed, user_test_result, is_new_test = self._test_is_completed(member, current_test)
@@ -277,7 +277,6 @@ class AddTestResultView(LoginRequiredMixin, View):
         return user_answers
 
     def post(self, request, pk):
-        # TODO запросы к БД - только для операторов?
         member = request.user.member
         test = get_object_or_404(Test, pk=pk)
         answers = self._get_answers_from_page(request.POST)
