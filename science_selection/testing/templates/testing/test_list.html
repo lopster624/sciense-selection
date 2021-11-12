@@ -11,7 +11,7 @@
     {% if user.member.is_master %}
         {% include 'testing/includes/test_master_template.html' %}
     {% elif user.member.is_slave %}
-        <h4 class="text-center mb-3">Тестирование</h4>
+        <h4 class="text-center mb-3">Тесты</h4>
         {% include 'testing/includes/test_slave_template.html' %}
     {% endif %}
 

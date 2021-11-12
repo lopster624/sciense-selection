@@ -59,8 +59,9 @@ class AnswerForm(forms.ModelForm):
         model = Answer
         fields = ('meaning',)
         widgets = {
-            'meaning': Input(attrs={'class': 'form-control'}),
+            'meaning': Input(attrs={'class': 'form-control rounded-0'}),
         }
 
 
-AnswerFormSet = forms.modelformset_factory(Answer, form=AnswerForm, extra=4, max_num=4)
+AnswerFormSetExtra5 = forms.modelformset_factory(Answer, form=AnswerForm, extra=5,)
+AnswerFormSetExtra1 = forms.modelformset_factory(Answer, form=AnswerForm, extra=1,)

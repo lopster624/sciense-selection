@@ -80,6 +80,16 @@
                     {% endif %}
                 </li>
             </ul>
+            {% if user.member.is_master %}
+                <h5 class="text-center mb-3">Список вопросов к тесту</h5>
+                <ul class="list-group-flush p-1">
+                    {% for question in questions %}
+                        <li class="list-group-item">
+                            <a href="{% url 'update_question' test.pk question.pk %}">{{ question.wording }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
         </div>
     </div>
 </div>

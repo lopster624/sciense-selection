@@ -25,17 +25,23 @@ class TestResultAdmin(admin.ModelAdmin):
     list_filter = ('member', 'test', 'result')
 
 
+@admin.register(models.UserAnswer)
+class UserAnswerAdmin(admin.ModelAdmin):
+    list_display = ('question', 'member', 'answer_option')
+
+
+class AnswerInlineAdmin(admin.TabularInline):
+    model = models.Answer
+    fields = ['id', 'meaning']
+
+
 @admin.register(models.Question)
 class QuestionAdmin(admin.ModelAdmin):
     list_display = ('test', 'wording')
     list_filter = ('wording', 'test')
+    inlines = [AnswerInlineAdmin]
 
 
 @admin.register(models.Answer)
 class AnswerAdmin(admin.ModelAdmin):
     list_display = ('pk', 'meaning',)
-
-
-@admin.register(models.UserAnswer)
-class UserAnswerAdmin(admin.ModelAdmin):
-    list_display = ('question', 'member', 'answer_option')

@@ -8,7 +8,6 @@ from django.forms.widgets import Input, SelectMultiple, Select, CheckboxInput, C
     NumberInput, Textarea, DateInput
 
 from account.models import Member, Affiliation, BookingType
-from utils.constants import BOOKED, IN_WISHLIST
 from .models import Application, Education, Direction, Competence, WorkGroup
 
 

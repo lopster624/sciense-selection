@@ -43,8 +43,8 @@
 {{ education_formset.management_form }}
 {% for ed_form in education_formset %}
     <div class="education-form border border-light rounded mb-1">
-        {% for e_f in ed_form %}
-            <div class="form-group row mb-2 {% if e_f.label == 'Id' %}visually-hidden{% endif %}">
+        {% for e_f in ed_form.visible_fields %}
+            <div class="form-group row mb-2">
                 {% if e_f == ed_form.DELETE %}
                     <label class="col-3 col-form-label"></label>
                     <div class="col-9 delete-form">
@@ -62,6 +62,9 @@
                     {{ e_f.errors }}
                 </div>
             {% endif %}
+        {% endfor %}
+        {% for hidden in ed_form.hidden_fields %}
+            {{ hidden }}
         {% endfor %}
     </div>
 {% endfor %}
