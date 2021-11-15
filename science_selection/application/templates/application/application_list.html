@@ -59,7 +59,9 @@
                         {{ app.birth_place }}
                     </td>
                     <td scope="row">
+                        {% if app.university %}
                         {{ app.university }}
+                        {% endif %}
                     </td>
                     <td scope="row">
                         {% get_education_type_name app.education_type %}
@@ -68,7 +70,9 @@
                         {{ app.birth_day }}
                     </td>
                     <td scope="row">
+                        {% if app.avg_score %}
                         {{ app.avg_score }}
+                        {% endif %}
                     </td>
                     <td scope="row">
                         {{ app.final_score }}

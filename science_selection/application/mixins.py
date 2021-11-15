@@ -51,7 +51,7 @@ class DataApplicationMixin:
         else:
             raise NoHTTPReferer('Вернитесь на предыдущую страницу и повторите действие.')
 
-    def check_master_has_work_group(self, affiliation_id, error_message):
+    def check_master_has_affiliation(self, affiliation_id, error_message):
         """Вызывает ошибку PermissionDenied с текстом error_message,
          если принадлежность с affiliation_id не принадлежит мастеру"""
         if isinstance(affiliation_id, int):
