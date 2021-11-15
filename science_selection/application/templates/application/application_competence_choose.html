@@ -9,10 +9,12 @@
 
 <div class="w-50 bg-white list-group-item" style="margin-left: 25%;">
     {% if msg %}
-        <div class="btn w-50" style="margin-left: 25%"> {{msg}}
-            <button type="button" class="btn btn-outline-primary">
-                <a href="{% url name pk %}">Выбрать</a>
-            </button>
+        <div class="btn w-50" style="margin-left: 25%"> {{ msg }}
+            {% if user.member.is_slave %}
+                <button type="button" class="btn btn-outline-primary">
+                    <a href="{% url name pk %}">Выбрать</a>
+                </button>
+            {% endif %}
         </div>
     {% else %}
         <div class="mb-2">

@@ -13,12 +13,11 @@ from django.views.generic import DetailView
 from django.views.generic.list import ListView
 
 from application.models import Application, Direction
-from application.mixins import OnlyMasterAccessMixin, MasterDataMixin
-from account.models import Member
+from application.mixins import OnlyMasterAccessMixin, MasterDataMixin, OnlySlaveAccessMixin
 from utils.calculations import get_current_draft_year
 from utils.exceptions import MasterHasNoDirectionsException
 
-from .forms import TestCreateForm, QuestionForm, AnswerFormSet
+from .forms import TestCreateForm, QuestionForm, AnswerFormSetExtra1, AnswerFormSetExtra5
 from .mixins import TestAndQuestionMixin
 from .models import Test, TestResult, Question, UserAnswer, Answer
 from .utils import get_master_directions
@@ -151,6 +150,7 @@ class DetailTestView(LoginRequiredMixin, DetailView):
             if user_test.status != TestResult.test_statuses[-1][0]:
                 TestResult.objects.filter(test=context['test'].pk, member=member)\
                     .update(status=TestResult.test_statuses[-1][0])
+        context['questions'] = Question.objects.filter(test=context['test']).only('wording')
         return context
 
 
@@ -159,9 +159,7 @@ class AddQuestionToTestView(TestAndQuestionMixin):
 
     def get(self, request, pk):
         test = self._get_and_check_test_permission(pk, request.user.member)
-        question_form = QuestionForm()
-        answer_formset = AnswerFormSet(queryset=Answer.objects.none())
-        context = {'question_form': question_form, 'answer_formset': answer_formset, 'pk': test.pk}
+        context = self._get_default_context(test)
         return render(request, 'testing/test_add_question.html', context=context)
 
     def post(self, request, pk):
@@ -169,8 +167,14 @@ class AddQuestionToTestView(TestAndQuestionMixin):
 
         saved, context = self._save_question_with_answers(request.POST, test, request.FILES)
         if saved:
-            return redirect('add_question_to_test', pk=test.pk)
+            context = self._get_default_context(test)
+            context['notification'] = True
         return render(request, 'testing/test_add_question.html', context=context)
+
+    def _get_default_context(self, test):
+        question_form = QuestionForm()
+        answer_formset = AnswerFormSetExtra5(queryset=Answer.objects.none())
+        return {'question_form': question_form, 'answer_formset': answer_formset, 'pk': test.pk}
 
 
 class UpdateQuestionView(TestAndQuestionMixin):
@@ -179,7 +183,7 @@ class UpdateQuestionView(TestAndQuestionMixin):
     def get(self, request, pk, question_id):
         question = get_object_or_404(Question, pk=question_id)
         answers = Answer.objects.filter(question=question)
-        question_form, answer_formset = QuestionForm(instance=question), AnswerFormSet(queryset=answers,)
+        question_form, answer_formset = QuestionForm(instance=question), AnswerFormSetExtra1(queryset=answers,)
         correct_answers = [ans.meaning for ans in answers if str(ans.id) in question.correct_answers]
         context = {'question_form': question_form, 'answer_formset': answer_formset, 'pk': pk,
                    'question_id': question_id, 'correct_answers': correct_answers}
@@ -192,6 +196,8 @@ class UpdateQuestionView(TestAndQuestionMixin):
 
         saved, context = self._save_question_with_answers(request.POST, test, request.FILES, question, answers)
         context.update({'question_id': question_id})
+        if saved:
+            return redirect('edit_test', pk=test.pk)
         return render(request, 'testing/test_edit_question.html', context=context)
 
 
@@ -228,11 +234,11 @@ class EditTestView(TestAndQuestionMixin):
         return render(request, 'testing/test_edit.html', context=context)
 
 
-class AddTestResultView(LoginRequiredMixin, View):
+class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
     """ Сохранить результаты тестирования """
-    #TODO - только для операторов?
+
     def get(self, request, pk):
-        # TODO: ПРоверять был ли выполнен тест, проверять был ли выполнен тест + не закончен по времени + запросы в БД
+        # TODO: ПРоверять был ли выполнен тест, проверять был ли выполнен тест + не закончен по времени
         current_test = get_object_or_404(Test, pk=pk)
         member = request.user.member
         is_completed, user_test_result, is_new_test = self._test_is_completed(member, current_test)
@@ -247,6 +253,7 @@ class AddTestResultView(LoginRequiredMixin, View):
         return render(request, 'testing/add_test_result.html', context=context)
 
     def _test_is_completed(self, member, current_test):
+        """ Создает или получает тест пользователя и обновляет его статус, если он изменился """
         user_test_result, is_new_test = TestResult.objects.get_or_create(test=current_test, member=member,
                                                             defaults={'result': 0,
                                                                       'status': TestResult.test_statuses[1][0],
@@ -262,6 +269,7 @@ class AddTestResultView(LoginRequiredMixin, View):
         return False, user_test_result, is_new_test
 
     def _get_user_answers(self, member, question_list, is_new_test):
+        """ Возвращает список ответов пользователя на вопросы """
         user_answers = []
         if not is_new_test:
             for _ in UserAnswer.objects.filter(question__in=question_list, member=member):
@@ -269,7 +277,6 @@ class AddTestResultView(LoginRequiredMixin, View):
         return user_answers
 
     def post(self, request, pk):
-        # TODO запросы к БД - только для операторов?
         member = request.user.member
         test = get_object_or_404(Test, pk=pk)
         answers = self._get_answers_from_page(request.POST)
@@ -277,6 +284,7 @@ class AddTestResultView(LoginRequiredMixin, View):
         return redirect('test_list')
 
     def _get_answers_from_page(self, params):
+        """ Генерирает словарь из вопросов и ответов пользователя на вопросы """
         result = defaultdict(lambda: defaultdict(list))
         for param in params:
             if 'answer' in param:
@@ -289,6 +297,7 @@ class AddTestResultView(LoginRequiredMixin, View):
         return result
 
     def _add_or_update_user_answers(self, member, answers, test):
+        """ Сохраняет ответы пользователя на вопросы и обновляет общий результат """
         user_test_res = TestResult.objects.filter(test=test, member=member).first()
         questions = Question.objects.filter(test=test)
         UserAnswer.objects.filter(member=member, question__in=questions).delete() # update_or_create -> delete + create

@@ -9,13 +9,20 @@
 <div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
     <div class="row">
         <h5 class="text-center mb-3">Создать новый вопрос</h5>
-        <form action="{% url 'add_question_to_test' pk %}" enctype="multipart/form-data" class="form-horizontal" method="post" id="form-container">
+        {% if notification %}
+            <div class="alert alert-success" role="alert">
+                Новый вопрос успешно создан!
+            </div>
+        {% endif %}
+        <form action="{% url 'add_question_to_test' pk %}" enctype="multipart/form-data" class="form-horizontal" method="post">
             {% include 'testing/includes/test_add_question_form_template.html' %}
-            <div class="mb-2 text-center">
-                <button type="submit" class="btn btn-primary">Создать</button>
+            <div class="row mb-2">
+                <div class="col-auto me-auto"><a class="btn btn-secondary" href="{% url 'test' pk %}">Вернуться к тесту</a></div>
+                <div class="col-auto"><button type="submit" class="btn btn-primary">Создать</button></div>
             </div>
         </form>
     </div>
 </div>
 
+<script src="{% static 'js/add_answer_to_question.js' %}" type="text/javascript"></script>
 {% endblock %}

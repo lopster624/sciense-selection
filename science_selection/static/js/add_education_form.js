@@ -8,7 +8,7 @@ searchSpecialization()
 searchEducation()
 searchMilitaryCommissariat()
 
-addButton.addEventListener('click', addForm)
+addButton.addEventListener('click', addEducationForm)
 addButton.addEventListener('click', searchEducation)
 addButton.addEventListener('click', searchSpecialization)
 addButton.addEventListener('click', searchMilitaryCommissariat)
@@ -19,10 +19,10 @@ edForm[edForm.length-1].style.display = 'none'
 function addActionToBtn(e){
     let btns = document.querySelectorAll('.delete-form')
     btns.forEach(function(btn) {
-        btn.addEventListener('click', deleteForm)})
+        btn.addEventListener('click', deleteEducationForm)})
 }
 
-function addForm(e){
+function addEducationForm(e){
     let educationForm = document.querySelectorAll(".education-form")
     let formNum = educationForm.length-1 //Get the number of the last form on the page with zero-based indexing
     educationForm[formNum].style.display = ''
@@ -60,8 +60,7 @@ function searchMilitaryCommissariat(){
 }
 
 
-function deleteForm(e){
-    let total_forms = document.querySelector("#id_form-TOTAL_FORMS")
+function deleteEducationForm(e){
     let initial_forms = document.querySelector("#id_form-INITIAL_FORMS")
     let educationForm = document.querySelectorAll(".education-form")
     let formNum = educationForm.length
