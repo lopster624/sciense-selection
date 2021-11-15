@@ -8,6 +8,7 @@ from django.urls import reverse
 from account.models import Affiliation, Booking, BookingType
 from account.models import Role, Member
 from application.models import Direction, Education, Application, Competence, WorkGroup
+from testing.models import Test, TypeOfTest
 from utils.calculations import get_current_draft_year
 from utils.constants import SLAVE_ROLE_NAME, MASTER_ROLE_NAME, BOOKED, IN_WISHLIST
 
@@ -1222,3 +1223,139 @@ class ChangeWorkGroupViewTest(TestCase):
         self.assertEqual(str(resp.context['error']),
                          'Невозможно назначить данному кандидату рабочую группу другого взвода!')
         self.assertEqual(Application.objects.get(pk=2).work_group, self.group)
+
+
+class WorkingListViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        Role.objects.create(role_name=MASTER_ROLE_NAME)
+
+    def setUp(self) -> None:
+        slave_role = Role.objects.create(role_name=SLAVE_ROLE_NAME)
+        slave = User.objects.create_user(username=f'slave', password='slave')
+        Member.objects.create(user=slave, role=slave_role, phone='89998887766')
+        master_role = Role.objects.get(role_name=MASTER_ROLE_NAME)
+        master_empty = User.objects.create_user(username=f'mastere', password='mastere')
+        Member.objects.create(user=master_empty, role=master_role, phone='89998887766')
+        master = User.objects.create_user(username=f'master', password='master')
+        master_member = Member.objects.create(user=master, role=master_role, phone='89998887766')
+        for i in range(4):
+            dir = Direction.objects.create(name=f'test{i}', description='description')
+            Affiliation.objects.create(direction=dir, company=i, platoon=i)
+        dir1 = Direction.objects.get(name='test1')
+        aff1 = Affiliation.objects.get(company=1, platoon=1)
+        aff2 = Affiliation.objects.get(company=2, platoon=2)
+        aff3 = Affiliation.objects.get(company=3, platoon=3)
+        master_member.affiliations.add(aff1, aff3)
+        self.master_member = master_member
+        self.aff1 = aff1
+        self.aff3 = aff3
+        for i in range(5):
+            WorkGroup.objects.create(name=f'group{i}', affiliation=aff1)
+        aff2_group = WorkGroup.objects.create(name='groupf', affiliation=aff2)
+        aff3_group = WorkGroup.objects.create(name='group3f', affiliation=aff3)
+        group2_aff1 = WorkGroup.objects.get(name='group2')
+        group3_aff1 = WorkGroup.objects.get(name='group3')
+        current_year, current_season = get_current_draft_year()
+        booked = BookingType.objects.create(name=BOOKED)
+        in_wishlist = BookingType.objects.create(name=IN_WISHLIST)
+        for i in range(6):
+            cur_user = User.objects.create_user(username=f'testuser{i}', last_name=f'testuser{i}', password='12345')
+            cur_member = Member.objects.create(user=cur_user, role=slave_role, phone='89998887766')
+            if i == 4:
+                Application.objects.create(member=cur_member,
+                                           birth_day=datetime.datetime.strptime('18/09/19', '%d/%m/%y'),
+                                           birth_place=f'Test{abs(i - 6)}', nationality='РФ',
+                                           military_commissariat='Йо',
+                                           group_of_health='А1', draft_year=current_year, draft_season=i % 2 + 1,
+                                           work_group=aff2_group)
+            else:
+                app = Application.objects.create(member=cur_member,
+                                                 birth_day=datetime.datetime.strptime('18/09/19', '%d/%m/%y'),
+                                                 birth_place=f'Test{abs(i - 6)}', nationality='РФ',
+                                                 military_commissariat='Йо',
+                                                 group_of_health='А1', draft_year=current_year, draft_season=i % 2 + 1,
+                                                 work_group=group2_aff1)
+                app.directions.set([dir1, aff3.direction])
+            if i == 1:
+                Booking.objects.create(booking_type=booked, master=master_member, slave=cur_member,
+                                       affiliation=aff1)
+                Booking.objects.create(booking_type=in_wishlist, master=master_member, slave=cur_member,
+                                       affiliation=aff3)
+            if i == 2:
+                Booking.objects.create(booking_type=booked, master=master_member, slave=cur_member,
+                                       affiliation=aff3)
+
+        self.group = group2_aff1
+        self.group3 = group3_aff1
+        self.group2 = WorkGroup.objects.get(name='groupf')
+        self.group_aff3 = aff3_group
+
+        type_of_test = TypeOfTest.objects.create(name='type')
+        for i in range(6):
+            test = Test.objects.create(name=f'test{i}', time_limit=10, creator=master_member, type=type_of_test)
+            test.directions.set([dir1])
+
+    def test_redirect_if_not_logged_in(self):
+        resp = self.client.get(reverse('work_list'))
+        self.assertRedirects(resp, f'/accounts/login/?next=/app/work-list/')
+
+    def test_slave_access(self):
+        """Проверяет, что у кандидата нет доступа к странице"""
+        self.client.login(username='slave', password='slave')
+        resp = self.client.get(reverse('work_list'))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_empty_master(self):
+        """Проверяет, что мастеру без направлений покажет ошибку"""
+        self.client.login(username='mastere', password='mastere')
+        resp = self.client.get(reverse('work_list'))
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(str(resp.context['error']), 'У вас нет направлений для отбора.')
+
+    def test_objects_list(self):
+        """Проверяет, что на начальном экране показываются анкеты только для первого направления"""
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('work_list'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(tuple(resp.context['object_list']),
+                         (Application.objects.get(member__user__username='testuser1'),))
+        self.assertEqual(resp.context['master_directions_affiliations'],
+                         {self.aff1.id: [self.aff1], self.aff3.id: [self.aff3]})
+        self.assertEqual(resp.context['chosen_company'], 1)
+        self.assertEqual(resp.context['chosen_platoon'], 1)
+        self.assertEqual(tuple(resp.context['direction_tests']), tuple(Test.objects.all()))
+
+    def test_second_affiliation_filter(self):
+        """Проверяет, что показываются анкеты только для второго направления"""
+        self.client.login(username='master', password='master')
+        resp = self.client.get(reverse('work_list') + f'?affiliation={self.aff3.id}&booking_type=1')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(tuple(resp.context['object_list']),
+                         (Application.objects.get(member__user__username='testuser2'),))
+        self.assertEqual(resp.context['chosen_company'], 3)
+        self.assertEqual(resp.context['chosen_platoon'], 3)
+        self.assertEqual(tuple(resp.context['direction_tests']), ())
+
+    def test_booking_type_filter(self):
+        """Проверяет, что показываются анкеты только для второго направления"""
+        self.client.login(username='master', password='master')
+        resp = self.client.get(
+            reverse('work_list') + f'?affiliation={self.aff3.id}&booking_type=1&booking_type=2&booking_type=all')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(tuple(resp.context['object_list']),
+                         tuple(Application.objects.filter(~Q(member__user__username='testuser4'))))
+        self.assertEqual(resp.context['chosen_company'], 3)
+        self.assertEqual(resp.context['chosen_platoon'], 3)
+
+    def test_booking_type_not_all_filter(self):
+        """Проверяет, что показываются анкеты только для второго направления"""
+        self.client.login(username='master', password='master')
+        resp = self.client.get(
+            reverse('work_list') + f'?affiliation={self.aff3.id}&booking_type=1&booking_type=2')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(tuple(resp.context['object_list']),
+                         tuple(Application.objects.filter(member__user__username__in=('testuser2', 'testuser1')), ))
+        self.assertEqual(resp.context['chosen_company'], 3)
+        self.assertEqual(resp.context['chosen_platoon'], 3)
