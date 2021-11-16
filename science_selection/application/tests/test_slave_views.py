@@ -208,7 +208,7 @@ class ApplicationViewTest(TestCase):
         """ Проверяет контекст просмотра созданной заявки """
         self.client.login(username='test_user', password='test_user')
         resp = self.client.get(reverse('application', kwargs={'pk': self.app.id}))
-        user_app = resp.context['user_app'].__dict__
+        user_app = resp.context['app'].__dict__
         for k, v in self.form_data.items():
             self.assertEqual(user_app[k], v)
         user_ed = resp.context['user_education'].values()[0]
@@ -289,7 +289,7 @@ class EditApplicationViewTest(TestCase):
         resp = self.client.post(reverse('edit_application', kwargs={'pk': self.app.id}), data=self.form_data)
         self.assertEqual(resp.status_code, 302)
         resp = self.client.get(reverse('application', kwargs={'pk': self.app.id}))
-        user_app = resp.context['user_app'].__dict__
+        user_app = resp.context['app'].__dict__
         for k, v in self.form_data.items():
             if k not in ['form-TOTAL_FORMS', 'form-INITIAL_FORMS']:
                 self.assertEqual(user_app[k], v)

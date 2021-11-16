@@ -11,7 +11,7 @@
             <form action="{% url 'un-book_member' app.id app.booked_id %}" method="post">
                 {% csrf_token %}
                 <div class="modal-body fw-normal">
-                    Вы действительно хотите удалить кандидата {{app.member}} из списка отбора {{app.affiliation}}?
+                    Вы действительно хотите удалить кандидата {{app.member}} из списка отбора в {{app.company}} роту, {{app.platoon}} взвода?
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>

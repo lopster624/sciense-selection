@@ -134,11 +134,19 @@ class WordTemplate:
 def check_booking_our_or_exception(pk, user):
     """Проверяет, что пользователь с айди анкеты pk был забронирован на направления пользователя user и
     рейзит ошибку, если не забронирован."""
+    if not is_booked_our(pk, user):
+        raise PermissionDenied('Данный пользователь не отобран на ваше направление.')
+
+
+def is_booked_our(pk, user):
+    """
+    Возвращает True, если пользователь с айди анкеты = pk забронирован на направления user,
+    в обратном случае - False
+    """
     app = get_object_or_404(Application, pk=pk)
     master_affiliations = Affiliation.objects.filter(member=user.member)
-    booking = Booking.objects.filter(slave=app.member, booking_type__name=BOOKED, affiliation__in=master_affiliations)
-    if not booking:
-        raise PermissionDenied('Данный пользователь не отобран на ваше направление.')
+    return Booking.objects.filter(slave=app.member, booking_type__name=BOOKED,
+                                  affiliation__in=master_affiliations).exists()
 
 
 def add_additional_fields(request, user_app):
