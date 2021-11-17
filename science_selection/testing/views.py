@@ -19,7 +19,7 @@ from utils.exceptions import MasterHasNoDirectionsException
 
 from .forms import TestCreateForm, QuestionForm, AnswerFormSetExtra1, AnswerFormSetExtra5
 from .mixins import TestAndQuestionMixin
-from .models import Test, TestResult, Question, UserAnswer, Answer
+from .models import Test, TestResult, Question, UserAnswer, Answer, CorrectAnswer
 from .utils import get_master_directions
 
 
@@ -54,8 +54,10 @@ class TestListView(LoginRequiredMixin, View):
                     Prefetch('test_res', queryset=TestResult.objects.filter(member=member))).distinct()
                 context['directions'] = directions
                 context['test_list'] = test_list
-            if not user_app or not user_app.directions.all().exists():
-                context['msg'] = 'Выберите направления в заявке'
+                if not user_app.directions.all().exists():
+                    context['msg'] = 'Выберите направления в заявке'
+            else:
+                context['msg'] = 'Создайте заявку'
         return context
 
     def get_chosen_direction(self):
@@ -63,10 +65,12 @@ class TestListView(LoginRequiredMixin, View):
         return Direction.objects.get(id=int(selected_direction_id)) if selected_direction_id else None
 
 
-class AddTestInDirectionView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+class AddTestInDirectionView(MasterDataMixin, View):
     """ Добавляет выбранные тесты в направление """
 
     def post(self, request, direction_id):
+        if direction_id not in self.get_master_directions_id():
+            raise PermissionDenied('Невозможно добавить тест в чужое направление')
         chosen_test = request.POST.getlist('chosen_test')
         for test in Test.objects.filter(pk__in=chosen_test).prefetch_related('directions'):
             test.directions.add(direction_id)
@@ -78,7 +82,7 @@ class ExcludeTestInDirectionView(MasterDataMixin, View):
 
     def get(self, request, test_id, direction_id):
         if direction_id not in self.get_master_directions_id():
-            raise PermissionDenied('Невозможно удалить компетенцию из чужого направления.')
+            raise PermissionDenied('Невозможно удалить тест из чужого направления')
         test = Test.objects.filter(pk=test_id).prefetch_related('directions').first()
         test.directions.remove(direction_id)
         return redirect(reverse('test_list') + f'?direction={direction_id}')
@@ -144,7 +148,7 @@ class DetailTestView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         member = self.request.user.member
         user_test = TestResult.objects.filter(test=context['test'].pk, member=member).first()
-        if user_test and timezone.now() > user_test.end_date:
+        if user_test and (timezone.now() > user_test.end_date or user_test.status == TestResult.test_statuses[-1][0]):
             context['msg'] = 'Тест завершен'
             context['blocked'] = True
             if user_test.status != TestResult.test_statuses[-1][0]:
@@ -181,10 +185,10 @@ class UpdateQuestionView(TestAndQuestionMixin):
     """ Получить обновить значения полей созданного вопроса """
 
     def get(self, request, pk, question_id):
-        question = get_object_or_404(Question, pk=question_id)
+        question = get_object_or_404(Question.objects.prefetch_related('correct_answer'), pk=question_id)
         answers = Answer.objects.filter(question=question)
+        correct_answers = [_.answer.meaning for _ in question.correct_answer.all()]
         question_form, answer_formset = QuestionForm(instance=question), AnswerFormSetExtra1(queryset=answers,)
-        correct_answers = [ans.meaning for ans in answers if str(ans.id) in question.correct_answers]
         context = {'question_form': question_form, 'answer_formset': answer_formset, 'pk': pk,
                    'question_id': question_id, 'correct_answers': correct_answers}
         return render(request, 'testing/test_edit_question.html', context=context)
@@ -198,7 +202,7 @@ class UpdateQuestionView(TestAndQuestionMixin):
         context.update({'question_id': question_id})
         if saved:
             return redirect('edit_test', pk=test.pk)
-        return render(request, 'testing/test_edit_question.html', context=context)
+        return render(request, 'testing/test_edit_question.html', context=context, status=400)
 
 
 class DeleteQuestionView(TestAndQuestionMixin):
@@ -231,85 +235,77 @@ class EditTestView(TestAndQuestionMixin):
             return redirect('test', pk=pk)
         questions = Question.objects.filter(test=test).only('wording')
         context = {'test_form': test_form, 'pk': pk, 'questions': questions}
-        return render(request, 'testing/test_edit.html', context=context)
+        return render(request, 'testing/test_edit.html', context=context, status=400)
 
 
 class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
     """ Сохранить результаты тестирования """
 
     def get(self, request, pk):
-        # TODO: ПРоверять был ли выполнен тест, проверять был ли выполнен тест + не закончен по времени
         current_test = get_object_or_404(Test, pk=pk)
         member = request.user.member
         is_completed, user_test_result, is_new_test = self._test_is_completed(member, current_test)
         if is_completed:
             return redirect('test_list')
 
-        question_list = Question.objects.filter(test=current_test)
-        user_answers = self._get_user_answers(member, question_list, is_new_test)
+        question_list = Question.objects.filter(test=current_test).prefetch_related('answer_options')
         context = {
-            'question_list': question_list, 'test': current_test, 'user_answers': user_answers,
+            'question_list': question_list, 'test': current_test,
         }
         return render(request, 'testing/add_test_result.html', context=context)
 
     def _test_is_completed(self, member, current_test):
         """ Создает или получает тест пользователя и обновляет его статус, если он изменился """
         user_test_result, is_new_test = TestResult.objects.get_or_create(test=current_test, member=member,
-                                                            defaults={'result': 0,
-                                                                      'status': TestResult.test_statuses[1][0],
-                                                                      'end_date': timezone.now() +
-                                                                                  timezone.timedelta(
-                                                                                      minutes=current_test.time_limit)})
+                                                                         defaults={'result': 0,
+                                                                                   'status': TestResult.test_statuses[1][0],
+                                                                                   'end_date': timezone.now() +
+                                                                                               timezone.timedelta(
+                                                                                                   minutes=current_test.time_limit)})
 
-        if not is_new_test and user_test_result.end_date < timezone.now():
+        if not is_new_test and (user_test_result.end_date < timezone.now() or user_test_result.status == TestResult.test_statuses[-1][0]):
             if user_test_result.status != TestResult.test_statuses[-1][0]:
                 TestResult.objects.filter(test=current_test, member=member) \
                     .update(status=TestResult.test_statuses[-1][0])
-                return True, user_test_result, is_new_test
+            return True, user_test_result, is_new_test
         return False, user_test_result, is_new_test
-
-    def _get_user_answers(self, member, question_list, is_new_test):
-        """ Возвращает список ответов пользователя на вопросы """
-        user_answers = []
-        if not is_new_test:
-            for _ in UserAnswer.objects.filter(question__in=question_list, member=member):
-                user_answers.extend(list(map(int, _.answer_option)))
-        return user_answers
 
     def post(self, request, pk):
         member = request.user.member
         test = get_object_or_404(Test, pk=pk)
+        is_completed, _, _ = self._test_is_completed(member, test)
+        if is_completed:
+            return redirect('test_list')
         answers = self._get_answers_from_page(request.POST)
         self._add_or_update_user_answers(member, answers, test)
         return redirect('test_list')
 
     def _get_answers_from_page(self, params):
         """ Генерирает словарь из вопросов и ответов пользователя на вопросы """
-        result = defaultdict(lambda: defaultdict(list))
+        params_from_page = defaultdict(lambda: defaultdict(list))
         for param in params:
             if 'answer' in param:
                 _, question_id, answer_id = param.split('_')
                 answer_id = params[param] if not answer_id else answer_id
-                question = get_object_or_404(Question, pk=question_id)
-                result[question_id]['correct_answer'] = question.correct_answers
-                result[question_id]['question'] = question
-                result[question_id]['user_answer'].append(answer_id)
-        return result
+                question = get_object_or_404(Question.objects.prefetch_related('correct_answer'), pk=question_id)
+                params_from_page[question_id]['correct_answer'] = [_.answer.pk for _ in question.correct_answer.all()]
+                params_from_page[question_id]['question'] = question
+                params_from_page[question_id]['user_answer'].append(int(answer_id))
+        return params_from_page
 
     def _add_or_update_user_answers(self, member, answers, test):
         """ Сохраняет ответы пользователя на вопросы и обновляет общий результат """
-        user_test_res = TestResult.objects.filter(test=test, member=member).first()
         questions = Question.objects.filter(test=test)
-        UserAnswer.objects.filter(member=member, question__in=questions).delete() # update_or_create -> delete + create
+        UserAnswer.objects.filter(member=member, question__in=questions).delete()
         for question_id, val in answers.items():
             UserAnswer.objects.create(question=val['question'], member=member, answer_option=val['user_answer'])
+
         final_value = 0
         if not test.type.is_psychological() and answers:
             total = sum([1 for k, v in answers.items() if v['correct_answer'] == v['user_answer']])
             final_value = int((total / len(answers)) * 100)
 
-        test_status = TestResult.test_statuses[1][0] if timezone.now() < user_test_res.end_date else TestResult.test_statuses[-1][0]
-        TestResult.objects.filter(test=test, member=member).update(status=test_status, result=final_value)
+        TestResult.objects.filter(test=test, member=member).update(status=TestResult.test_statuses[-1][0], result=final_value)
 
 
 class TestResultView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
@@ -319,11 +315,13 @@ class TestResultView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         user_test_result = get_object_or_404(TestResult, pk=result_id)
         question_list = Question.objects.filter(test=user_test_result.test).prefetch_related('answer_options')
         user_answers = []
+        correct_answers = [_.answer.pk for _ in CorrectAnswer.objects.filter(question__in=question_list).prefetch_related('answer')]
         for _ in UserAnswer.objects.filter(question__in=question_list, member=user_test_result.member):
             user_answers.extend(list(map(int, _.answer_option)))
         is_psychological = user_test_result.test.type.is_psychological()
         context = {
-            'user_answers': user_answers, 'question_list': question_list, 'is_psychological': is_psychological
+            'user_answers': user_answers, 'question_list': question_list, 'is_psychological': is_psychological,
+            'correct_answers': correct_answers,
         }
         return render(request, 'testing/test_result.html', context=context)
 

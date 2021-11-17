@@ -101,7 +101,7 @@ class AnswerFormTest(TestCase):
         member = Member.objects.get(user=master)
         test = Test.objects.create(name='Test1', time_limit=10, description='Help text', type=type1, creator=member)
         test.directions.set([direction1, direction2])
-        Question.objects.create(test=test, wording='Test1', correct_answers=[], question_type=Question.type_of_question[0][0])
+        Question.objects.create(test=test, wording='Test1', question_type=Question.type_of_question[0][0])
         self.form_data = {
             'meaning': 'bla bla bla',
         }

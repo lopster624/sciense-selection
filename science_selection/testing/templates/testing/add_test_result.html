@@ -23,12 +23,11 @@
                         <div class="row row-cols-2">
                         {% for answer in question.answer_options.all %}
                             <div class="col-4 offset-2">
-                                {% if question.question_type == 2 %}
-                                    <input class="form-check-input" type="checkbox" name="answer_{{question.id}}_{{ answer.pk }}"
-                                           {% if answer.pk in user_answers %} checked {% endif %}>
-                                {% elif question.question_type == 1 %}
+                                {% if question.question_type == 1 %}
                                     <input class="form-check-input" type="radio" name="answer_{{ question.id }}_"
-                                           value="{{ answer.pk }}" {% if answer.pk in user_answers %} checked {% endif %}>
+                                           value="{{ answer.pk }}">
+                                {% else %}
+                                    <input class="form-check-input" type="checkbox" name="answer_{{question.id}}_{{ answer.pk }}">
                                 {%endif%}
                                 {{ answer }}
                             </div>

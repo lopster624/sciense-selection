@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load testing_extras %}
 {% block title %}
 Результат теста
 {% endblock %}
@@ -27,7 +26,7 @@
                         <div class="row row-cols-2 mb-2">
                             {% for answer in question.answer_options.all %}
                                 <div class="col mb-2 text-center
-                                    {% if is_psychological and answer.pk in user_answers or answer.pk in user_answers and answer.pk|to_str in question.correct_answers %}
+                                    {% if is_psychological and answer.pk in user_answers or answer.pk in user_answers and answer.pk in correct_answers %}
                                         text-success
                                     {% elif answer.pk in user_answers %}
                                         text-danger

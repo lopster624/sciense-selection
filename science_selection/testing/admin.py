@@ -45,3 +45,8 @@ class QuestionAdmin(admin.ModelAdmin):
 @admin.register(models.Answer)
 class AnswerAdmin(admin.ModelAdmin):
     list_display = ('pk', 'meaning',)
+
+
+@admin.register(models.CorrectAnswer)
+class CorrectAnswerAdmin(admin.ModelAdmin):
+    list_display = ('pk', 'question', 'answer')

@@ -6,7 +6,7 @@ from django.views import View
 from application.mixins import OnlyMasterAccessMixin
 
 from .forms import QuestionForm, AnswerFormSetExtra1
-from .models import Test, Question, Answer
+from .models import Test, Question, Answer, CorrectAnswer
 
 
 class TestAndQuestionMixin(LoginRequiredMixin, OnlyMasterAccessMixin, View):
@@ -20,7 +20,7 @@ class TestAndQuestionMixin(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
     def _save_question_with_answers(self, params, test, files=None, question=None, answers=None):
         """ Сохраняет вопрос в БД с его вариантами ответов """
-        correct_answers_to_question_in_json = []
+        correct_answer_ids = []
         correct_answers = self._get_correct_answers(params) if not test.type.is_psychological() else []
         question_form, answer_formset = QuestionForm(params, files, instance=question), AnswerFormSetExtra1(params, queryset=answers)
         context = {'question_form': question_form, 'answer_formset': answer_formset, 'pk': test.pk,
@@ -29,7 +29,6 @@ class TestAndQuestionMixin(LoginRequiredMixin, OnlyMasterAccessMixin, View):
             if test.type.is_psychological() or self._validate_question_type(question_form.cleaned_data['question_type'], correct_answers):
                 new_question = question_form.save(commit=False)
                 new_question.test = test
-                new_question.correct_answers = correct_answers
                 new_question.save()
                 Answer.objects.filter(question=new_question).delete()
                 for ans_form in answer_formset:
@@ -38,9 +37,8 @@ class TestAndQuestionMixin(LoginRequiredMixin, OnlyMasterAccessMixin, View):
                         new_answer.question = new_question
                         new_answer.save()
                         if new_answer.meaning in correct_answers:
-                            correct_answers_to_question_in_json.append(str(new_answer.pk))
-                new_question.correct_answers = correct_answers_to_question_in_json
-                new_question.save()
+                            correct_answer_ids.append(new_answer)
+                CorrectAnswer.objects.bulk_create([CorrectAnswer(question=new_question, answer=c_a) for c_a in correct_answer_ids])
                 return True, context
             else:
                 context['msg'] = 'Выбрано неправильное количество правильных ответов'
@@ -57,6 +55,6 @@ class TestAndQuestionMixin(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         """ Проверяет, что у создаваемого вопроса правильно отмеченно количество вариантов ответа """
         num_resp = len(correct_answers)
         if num_resp == 0 or (question_type == Question.type_of_question[0][0] and num_resp != 1) or \
-                (question_type == Question.type_of_question[1][0] and num_resp < 2):
+                (question_type == Question.type_of_question[1][0] and num_resp < 2) or question_type == Question.type_of_question[-1][0]:
             return False
         return True
