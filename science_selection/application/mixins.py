@@ -34,6 +34,9 @@ class DataApplicationMixin:
     def get_master_affiliations(self):
         return Affiliation.objects.filter(member=self.request.user.member)
 
+    def get_master_affiliations_id(self):
+        return Affiliation.objects.filter(member=self.request.user.member).values_list('direction__id', flat=True)
+
     def get_all_directions(self):
         return Direction.objects.all()
 
@@ -51,7 +54,7 @@ class DataApplicationMixin:
         else:
             raise NoHTTPReferer('Вернитесь на предыдущую страницу и повторите действие.')
 
-    def check_master_has_work_group(self, affiliation_id, error_message):
+    def check_master_has_affiliation(self, affiliation_id, error_message):
         """Вызывает ошибку PermissionDenied с текстом error_message,
          если принадлежность с affiliation_id не принадлежит мастеру"""
         if isinstance(affiliation_id, int):
@@ -72,6 +75,20 @@ class DataApplicationMixin:
         if not chosen_affiliation:
             raise MasterHasNoDirectionsException('У вас нет направлений для отбора.')
         return chosen_affiliation
+
+    def get_master_direction_affiliations(self, master_affiliations):
+        """
+        Создает и возвращает словарь, в который помещает в качестве ключей направления, доступные мастеру, а в качестве
+        значения - список принадлежностей, привязанные к данным направлениям
+        :param master_affiliations: queryset принадлежностей мастера
+        :return: словарь {id направления: [список всех принадлежностей данного направления]}
+        """
+        master_directions_affiliations = {}
+        for affiliation in master_affiliations:
+            old = master_directions_affiliations.pop(affiliation.direction.id, None)
+            item = [*old, affiliation] if old else [affiliation]
+            master_directions_affiliations.update({affiliation.direction.id: item})
+        return master_directions_affiliations
 
 
 class MasterDataMixin(LoginRequiredMixin, OnlyMasterAccessMixin, DataApplicationMixin):

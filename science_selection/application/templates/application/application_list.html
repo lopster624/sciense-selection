@@ -59,7 +59,9 @@
                         {{ app.birth_place }}
                     </td>
                     <td scope="row">
+                        {% if app.university %}
                         {{ app.university }}
+                        {% endif %}
                     </td>
                     <td scope="row">
                         {% get_education_type_name app.education_type %}
@@ -68,7 +70,9 @@
                         {{ app.birth_day }}
                     </td>
                     <td scope="row">
+                        {% if app.avg_score %}
                         {{ app.avg_score }}
+                        {% endif %}
                     </td>
                     <td scope="row">
                         {{ app.final_score }}
@@ -77,46 +81,11 @@
                         {{ app.fullness }}
                     </td>
                     <td scope="row">
-                        {% if app.can_unbook or app.our_direction and not app.is_booked %}
-                        <button type="button" class="btn btn-white ps-0" data-bs-toggle="modal"
-                                data-bs-target="#staticBackdrop{{ app.id }}" aria-label="book">
-                            {% endif%}
-                            <span class="text-nowrap">
-                            {% if app.is_booked%}
-                            <img src="{% static 'images/lock-fill.svg' %}" alt="download file" width="20"
-                                 height="20">
-                            {{app.company}} рота, {{app.platoon}} взвод
-                            {% else %}
-                            <img src="{% static 'images/lock.svg' %}" alt="download file" width="20" height="20">
-                            {% endif%}
-                            </span>
-                            {% if app.can_unbook or app.our_direction and not app.is_booked %}
-                        </button>
-                        {% endif %}
-
-                        {% if app.can_unbook %}
-                        {% include 'application/includes/unbook_member_template.html' %}
-                        {% endif %}
-                        {% if not app.is_booked and app.our_direction %}
-                        {% include 'application/includes/book_member_template.html' %}
-                        {% endif %}
+                       {% include 'application/includes/book_button_template.html' %}
                     </td>
 
                     <td scope="row">
-                        <button type="button" class="btn btn-white" data-bs-toggle="modal"
-                                data-bs-target="#staticBackdropwish{{ app.id }}" aria-label="book">
-                            {% if app.is_in_wishlist %}
-                            <img src="{% static 'images/star-fill.svg' %}" alt="download file" width="20"
-                                 height="20">
-                            {% else %}
-                            <img src="{% static 'images/star.svg' %}" alt="download file" width="20" height="20">
-                            {% endif %} {{app.wishlist_len}}
-                        </button>
-                        {% if app.is_in_wishlist %}
-                        {% include 'application/includes/delete_from_wishlist_template.html' %}
-                        {% else %}
-                        {% include 'application/includes/add_in_wishlist_template.html' %}
-                        {% endif %}
+                        {% include 'application/includes/wishlist_button_template.html' %}
                     </td>
                     <td scope="row">
                         {% if app.author_note %}

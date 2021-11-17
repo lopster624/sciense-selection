@@ -27,8 +27,8 @@ from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterFor
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities, AdditionFieldApp, AdditionField, Specialization, MilitaryCommissariat, WorkGroup
-from .utils import check_permission_decorator, WordTemplate, check_booking_our, check_final_decorator, \
-    add_additional_fields
+from .utils import check_permission_decorator, WordTemplate, check_booking_our_or_exception, check_final_decorator, \
+    add_additional_fields, is_booked_our
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
@@ -104,17 +104,71 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
             return redirect('application', pk=Application.objects.filter(member=request.user.member).first().id)
 
 
-class ApplicationView(LoginRequiredMixin, DetailView):
+class ApplicationView(LoginRequiredMixin, DataApplicationMixin, View):
     """ Показывает заявку пользователя в режиме просмотра """
-    model = Application
-    template_name = 'application/application_detail.html'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user_app = context['application']
-        user_education = user_app.education.order_by('end_year').all()
-        context.update({'user_app': user_app, 'pk': user_app.id, 'user_education': user_education, 'app_active': True})
-        return context
+    def get(self, request, pk):
+        context = {}
+        user_application = self.get_user_application(pk)
+        user_education = user_application.education.order_by('end_year').all()
+        context['master_directions_affiliations'] = self.get_master_direction_affiliations(
+            self.get_master_affiliations())
+        context['master_affiliations'] = self.get_master_affiliations()
+        context.update(
+            {'app': user_application, 'pk': user_application.id, 'user_education': user_education, 'app_active': True})
+        return render(request, 'application/application_detail.html', context=context)
+
+    def get_user_application(self, pk):
+        wishlist_affiliations = Booking.objects.filter(affiliation__in=self.get_master_affiliations(),
+                                                       booking_type__name=const.IN_WISHLIST).select_related(
+            'affiliation').only('affiliation', 'slave')
+
+        booked_member_affiliation = Booking.objects.filter(slave=OuterRef('member'), booking_type__name=const.BOOKED)
+        app = Application.objects.filter(pk=pk).select_related('member', 'member__user').prefetch_related(
+            Prefetch('member__candidate', queryset=wishlist_affiliations),
+            Prefetch('directions', queryset=self.get_master_directions().only('id'), to_attr='aval_dir'),
+        ).only('id', 'member', 'directions', 'birth_day', 'birth_place', 'draft_year', 'draft_season', 'final_score',
+               'fullness', 'member__user__id', 'member__user__first_name', 'member__user__last_name',
+               'member__father_name').annotate(
+            is_booked=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.BOOKED),
+                distinct=True
+            ),
+            company=Subquery(booked_member_affiliation.values('affiliation__company')),
+            platoon=Subquery(booked_member_affiliation.values('affiliation__platoon')),
+            booked_id=Subquery(booked_member_affiliation.values('affiliation__id')),
+            is_booked_our=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.BOOKED,
+                         member__candidate__affiliation__in=self.get_master_affiliations()),
+                distinct=True
+            ),
+            can_unbook=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.BOOKED,
+                         member__candidate__affiliation__in=self.get_master_affiliations(),
+                         member__candidate__master=self.request.user.member),
+                distinct=True
+            ),
+            wishlist_len=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.IN_WISHLIST),
+                distinct=True
+            ),
+            is_in_wishlist=Count(
+                F('member__candidate'),
+                filter=Q(member__candidate__booking_type__name=const.IN_WISHLIST,
+                         member__candidate__affiliation__in=self.get_master_affiliations()),
+                distinct=True
+            ),
+            our_direction=Count(
+                F('directions'),
+                filter=Q(directions__id__in=self.get_master_directions_id()),
+                distinct=True
+            ),
+        ).first()
+        return app
 
 
 class EditApplicationView(LoginRequiredMixin, View):
@@ -459,12 +513,7 @@ class ApplicationListView(MasterDataMixin, ListView):
         context['reset_filters'] = True if self.request.GET else False
         context['application_active'] = True
         context['master_affiliations'] = master_affiliations
-        master_directions_affiliations = {}
-        for affiliation in master_affiliations:
-            old = master_directions_affiliations.pop(affiliation.direction.id, None)
-            item = [*old, affiliation] if old else [affiliation]
-            master_directions_affiliations.update({affiliation.direction.id: item})
-        context['master_directions_affiliations'] = master_directions_affiliations
+        context['master_directions_affiliations'] = self.get_master_direction_affiliations(master_affiliations)
         return context
 
     def get_filtered_sorted_queryset(self, apps):
@@ -610,8 +659,8 @@ class AddInWishlistView(MasterDataMixin, View):
 
     def post(self, request, pk):
         affiliations_id = list(map(int, request.POST.getlist('affiliations', None)))
-        self.check_master_has_work_group(affiliations_id,
-                                         "Невозможно добавить заявку в избранное на чужое направление.")
+        self.check_master_has_affiliation(affiliations_id,
+                                          "Невозможно добавить заявку в избранное на чужое направление.")
         slave_member = Member.objects.get(application__id=pk)
         booking_type = BookingType.objects.get(name=const.IN_WISHLIST)
         for affiliation_id in affiliations_id:
@@ -696,12 +745,11 @@ class ChangeAppFinishedView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
     def post(self, request, pk):
         is_final = True if request.POST.get('is_final', None) == 'on' else False
-        if check_booking_our(pk=pk, user=request.user):
-            application = get_object_or_404(Application, pk=pk)
-            application.is_final = is_final
-            application.save()
-            return redirect('application', pk=pk)
-        raise PermissionDenied('Данный пользователь не отобран на ваше направление.')
+        check_booking_our_or_exception(pk=pk, user=request.user)
+        application = get_object_or_404(Application, pk=pk)
+        application.is_final = is_final
+        application.save()
+        return redirect('application', pk=pk)
 
 
 class CreateServiceDocumentView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
@@ -753,12 +801,12 @@ class WorkGroupsListView(MasterDataMixin, CreateView):
 
 
 class DeleteWorkGroupView(MasterDataMixin, View):
-    """Рекурсивно удаляет рабочую группу с group_id"""
+    """Удаляет рабочую группу с group_id"""
 
     def get(self, request, group_id):
-        if group_id not in self.get_master_affiliations().values_list('work_group', flat=True):
-            return PermissionDenied('Невозможно удалить чужую рабочую группу.')
         group = get_object_or_404(WorkGroup, pk=group_id)
+        self.check_master_has_affiliation(group.affiliation.id,
+                                          'Невозможно удалить чужую рабочую группу.')
         group.delete()
         return redirect('work_group_list')
 
@@ -775,8 +823,8 @@ class WorkGroupView(MasterDataMixin, DetailView):
             Prefetch('application', queryset=Application.objects.filter(draft_year=current_year,
                                                                         draft_season=current_season[0]))),
             pk=pk)
-        self.check_master_has_work_group(group.affiliation.id,
-                                         'Данная рабочая группа не принадлежит вашим направлениям!')
+        self.check_master_has_affiliation(group.affiliation.id,
+                                          'Данная рабочая группа не принадлежит вашим направлениям!')
         return group
 
 
@@ -786,8 +834,8 @@ class RemoveApplicationWorkGroupView(MasterDataMixin, View):
     def get(self, request, app_id, group_id):
         group = get_object_or_404(WorkGroup, pk=group_id)
         application = get_object_or_404(Application, pk=app_id)
-        self.check_master_has_work_group(group.affiliation.id,
-                                         'Данная рабочая группа не принадлежит вашим направлениям!')
+        self.check_master_has_affiliation(group.affiliation.id,
+                                          'Данная рабочая группа не принадлежит вашим направлениям!')
         if application.work_group:
             application.work_group = None
             application.save(update_fields=['work_group'])
@@ -896,12 +944,7 @@ class WorkingListView(MasterDataMixin, ListView):
         context['form'] = filter_form
         context['reset_filters'] = True if self.request.GET else False
         context['work_list_active'] = True
-        master_directions_affiliations = {}
-        for affiliation in master_affiliations:
-            old = master_directions_affiliations.pop(affiliation.direction.id, None)
-            item = [*old, affiliation] if old else [affiliation]
-            master_directions_affiliations.update({affiliation.direction.id: item})
-        context['master_directions_affiliations'] = master_directions_affiliations
+        context['master_directions_affiliations'] = self.get_master_direction_affiliations(master_affiliations)
         chosen_affiliation = get_object_or_404(Affiliation.objects.select_related('direction'),
                                                pk=self.chosen_affiliation_id)
         context['chosen_company'] = chosen_affiliation.company
@@ -943,8 +986,22 @@ class WorkingListView(MasterDataMixin, ListView):
 
 
 class ChangeWorkGroupView(MasterDataMixin, View):
+    """Используется для смены рабочей группы у заявки."""
+
     def post(self, request, app_id):
+        """Меняет рабочую группу в заявке с id=app_id на отправленную в форме. Редиректит на предыдущую страницу"""
+        check_booking_our_or_exception(app_id, request.user)
         application = get_object_or_404(Application, pk=app_id)
+        group_id = request.POST.get('work_group', None)
+        if group_id:
+            group = get_object_or_404(WorkGroup, pk=group_id)
+            self.check_master_has_affiliation(group.affiliation.id,
+                                              'Данная рабочая группа не принадлежит вашим направлениям!')
+
+            booking_type_booked = BookingType.objects.only('id').get(name=const.BOOKED)
+            if not Booking.objects.filter(booking_type=booking_type_booked, slave=application.member,
+                                          affiliation=group.affiliation).exists():
+                raise PermissionDenied('Невозможно назначить данному кандидату рабочую группу другого взвода!')
         work_group_select = ChooseWorkGroupForm(data=request.POST, instance=application)
         if work_group_select.is_valid():
             work_group_select.save()

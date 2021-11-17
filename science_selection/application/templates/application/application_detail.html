@@ -15,7 +15,7 @@
                 <h4 class=""> Анкета оператора</h4>
             </div>
             <div class="d-flex flex-row">
-                {% if not user_app.is_final or user.member.is_master %}
+                {% if not app.is_final or user.member.is_master %}
                 <button class="btn btn-outline-secondary m-2"><a
                         href="{%url 'edit_application' pk %}">Редактировать</a></button>
                 {% endif %}
@@ -23,7 +23,9 @@
                         href="{%url 'create_word_app' pk %}">
                     <img src="{% static 'images/word.svg' %}" alt="download file" width="20" height="20"></a>
                 </button>
-                {% get_is_final_switch application=user_app user=user%}
+                {% get_is_final_switch application=app user=user%}
+                {% include 'application/includes/book_button_template.html' %}
+                {% include 'application/includes/wishlist_button_template.html' %}
             </div>
             <ul class="list-group">
                 <li class="list-group-item">
@@ -33,7 +35,7 @@
                             ФИО:
                         </div>
                         <div class="col">
-                            {{ user_app.member }}
+                            {{ app.member }}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -41,7 +43,7 @@
                             Телефон:
                         </div>
                         <div class="col">
-                            {{ user_app.member.phone }}
+                            {{ app.member.phone }}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -49,7 +51,7 @@
                             Email:
                         </div>
                         <div class="col">
-                            {{ user_app.member.user.email }}
+                            {{ app.member.user.email }}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -57,7 +59,7 @@
                             Дата рождения:
                         </div>
                         <div class="col">
-                            {{ user_app.birth_day }}
+                            {{ app.birth_day }}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -65,7 +67,7 @@
                             Место рождения:
                         </div>
                         <div class="col">
-                            {{ user_app.birth_place }}
+                            {{ app.birth_place }}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -73,7 +75,7 @@
                             Национальность:
                         </div>
                         <div class="col">
-                            {{ user_app.nationality }}
+                            {{ app.nationality }}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -81,7 +83,7 @@
                             Военный комиссариат:
                         </div>
                         <div class="col">
-                            {{ user_app.military_commissariat }}
+                            {{ app.military_commissariat }}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -89,7 +91,7 @@
                             Группа здоровья:
                         </div>
                         <div class="col">
-                            {{ user_app.group_of_health }}
+                            {{ app.group_of_health }}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -97,7 +99,7 @@
                             Год призыва:
                         </div>
                         <div class="col">
-                            {{ user_app.draft_year }}
+                            {{ app.draft_year }}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -105,7 +107,7 @@
                             Сезон призыва:
                         </div>
                         <div class="col">
-                            {{ user_app.get_draft_season_display }}
+                            {{ app.get_draft_season_display }}
                         </div>
                     </div>
                 </li>
@@ -135,7 +137,7 @@
                             Достижения:
                         </div>
                         <div class="col">
-                            {% if user_app.scientific_achievements %}{{ user_app.scientific_achievements }}
+                            {% if app.scientific_achievements %}{{ app.scientific_achievements }}
                             {% else %}Отсутсвует{% endif %}
                         </div>
                     </div>
@@ -144,7 +146,7 @@
                             Стипендии:
                         </div>
                         <div class="col">
-                            {% if user_app.scholarships %}{{ user_app.scholarships }}{% else %}Отсутсвует{% endif %}
+                            {% if app.scholarships %}{{ app.scholarships }}{% else %}Отсутсвует{% endif %}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -152,7 +154,7 @@
                             Готовность к секретности:
                         </div>
                         <div class="col">
-                            {% if user_app.scholarships %}Готов{% else %}Не готов{% endif %}
+                            {% if app.scholarships %}Готов{% else %}Не готов{% endif %}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -160,7 +162,7 @@
                             Кандидатские экзамены:
                         </div>
                         <div class="col">
-                            {% if user_app.candidate_exams %}{{ user_app.candidate_exams }}
+                            {% if app.candidate_exams %}{{ app.candidate_exams }}
                             {% else %}Отсутсвует{% endif %}
                         </div>
                     </div>
@@ -169,7 +171,7 @@
                             Спортивные достижения:
                         </div>
                         <div class="col">
-                            {% if user_app.sporting_achievements %}{{ user_app.sporting_achievements }}
+                            {% if app.sporting_achievements %}{{ app.sporting_achievements }}
                             {% else %}Отсутсвует{% endif %}
                         </div>
                     </div>
@@ -178,7 +180,7 @@
                             Хобби:
                         </div>
                         <div class="col">
-                            {% if user_app.hobby %}{{ user_app.hobby }}{% else %}Отсутсвует{% endif %}
+                            {% if app.hobby %}{{ app.hobby }}{% else %}Отсутсвует{% endif %}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -186,7 +188,7 @@
                             Дополнительная Информация:
                         </div>
                         <div class="col">
-                            {% if user_app.other_information %}{{ user_app.other_information }}
+                            {% if app.other_information %}{{ app.other_information }}
                             {% else %}Отсутсвует{% endif %}
                         </div>
                     </div>
@@ -195,7 +197,7 @@
         </div>
         <div class="col-3">
             {% if user.member.is_master %}
-                {% get_application_note application=user_app user=user %}
+            {% get_application_note application=app user=user %}
             {% endif %}
         </div>
     </div>
