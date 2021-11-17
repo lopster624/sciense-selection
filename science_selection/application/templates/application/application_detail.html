@@ -24,8 +24,10 @@
                     <img src="{% static 'images/word.svg' %}" alt="download file" width="20" height="20"></a>
                 </button>
                 {% get_is_final_switch application=app user=user%}
+                {% if user.member.is_master %}
                 {% include 'application/includes/book_button_template.html' %}
                 {% include 'application/includes/wishlist_button_template.html' %}
+                {% endif %}
             </div>
             <ul class="list-group">
                 <li class="list-group-item">
