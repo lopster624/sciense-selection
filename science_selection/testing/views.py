@@ -110,7 +110,7 @@ class TestResultsView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
         current_year, current_season = get_current_draft_year()
         current_apps = Application.objects.filter(draft_year=current_year, draft_season=current_season[0]).select_related('member').only('member')
         members = [app.member for app in current_apps]
-        return TestResult.objects.filter(member__in=members).prefetch_related('test', 'member')
+        return TestResult.objects.filter(member__in=members).prefetch_related('test', 'member', 'test__type')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
