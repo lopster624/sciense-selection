@@ -58,7 +58,7 @@ class ApplicationMasterForm(forms.ModelForm):
     class Meta:
         model = Application
         exclude = ('create_date', 'update_date', 'fullness', 'final_score', 'member',
-                   'competencies', 'directions', 'id', 'is_final')
+                   'competencies', 'directions', 'id', 'is_final', 'work_group')
         widgets = {
             'birth_place': Input(attrs={'class': 'form-control'}),
             'nationality': Input(attrs={'class': 'form-control'}),

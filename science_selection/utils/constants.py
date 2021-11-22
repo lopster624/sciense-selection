@@ -64,6 +64,9 @@ PATH_TO_INTERVIEW_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx\
 PATH_TO_CANDIDATES_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\list_of_candidates.docx')
 PATH_TO_RATING_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\rating_list.docx')
 PATH_TO_EVALUATION_STATEMENT = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\evaluation_statement.docx')
+PATH_TO_PSYCHOLOGICAL_TESTS = {
+    'Псих1 алл': os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\psychological_test.docx')
+}
 
 TYPE_SERVICE_DOCUMENT = {
     'candidates': (PATH_TO_CANDIDATES_LIST, "Итоговый список кандидатов.docx"),

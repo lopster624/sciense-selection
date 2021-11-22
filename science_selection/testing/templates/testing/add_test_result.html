@@ -8,7 +8,8 @@
 
 <div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
     <div class="row">
-        <h5 class="text-center">Вопросы к тесту - {{ test.name }}</h5>
+        <h4 class="text-center">Вопросы к тесту - {{ test.name }}</h4>
+        <h6 class="offset-1 mb-2 col-10">Описание: {{ test.description }}</h6>
         <form action="{% url 'add_test_result' test.pk %}" class="form-horizontal" method="post" id="form-container">
             {% csrf_token %}
             {% for question in question_list %}
@@ -23,7 +24,7 @@
                         <div class="row row-cols-2">
                         {% for answer in question.answer_options.all %}
                             <div class="col-4 offset-2">
-                                {% if question.question_type == 1 %}
+                                {% if question.question_type == 1 or test.type.is_psychological %}
                                     <input class="form-check-input" type="radio" name="answer_{{ question.id }}_"
                                            value="{{ answer.pk }}">
                                 {% else %}

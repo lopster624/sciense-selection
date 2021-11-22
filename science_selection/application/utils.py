@@ -1,3 +1,4 @@
+import datetime
 import re
 from io import BytesIO
 
@@ -50,8 +51,8 @@ def check_final_decorator(func):
 
 class WordTemplate:
     def __init__(self, request, path_to_template):
-        self.path = path_to_template
         self.request = request
+        self.path = path_to_template
 
     def create_word_in_buffer(self, context):
         template = DocxTemplate(self.path)
@@ -105,6 +106,24 @@ class WordTemplate:
                 platoon_data['members'].append({**additional_info, **general_info})
             if platoon_data['members']:
                 context['directions'].append(platoon_data)
+        return context
+
+    def create_context_to_psychological_test(self, user_test_result, questions, user_answers):
+        user_app = Application.objects.get(member=user_test_result.member).only('birth_day')
+        member = user_test_result.member
+        context = {
+            'full_name': f'{member.user.last_name} {member.user.first_name} {member.father_name}',
+            'b_day': user_app.birth_day.strftime('%d %m %Y'),
+            'now': datetime.datetime.now().strftime('%d %m %Y'),
+            'position': 'гражданин',
+            'questions': []
+        }
+        for i, question in enumerate(questions, 1):
+            context['questions'].append({
+                'num': i,
+                'answers': [ans.id for ans in question.answer_options.all()],
+                'response': user_answers.get(question.id)
+            })
         return context
 
     def _get_evaluation_st_info(self, user_app):

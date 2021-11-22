@@ -3,19 +3,22 @@ from itertools import groupby
 from operator import attrgetter
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, BadRequest
 from django.db.models import Prefetch
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.encoding import escape_uri_path
 from django.views import View
 from django.views.generic import DetailView
 from django.views.generic.list import ListView
 
 from application.models import Application, Direction
 from application.mixins import OnlyMasterAccessMixin, MasterDataMixin, OnlySlaveAccessMixin
+from application.utils import WordTemplate
 from utils.calculations import get_current_draft_year
 from utils.exceptions import MasterHasNoDirectionsException
+from utils.constants import PATH_TO_PSYCHOLOGICAL_TESTS
 
 from .forms import TestCreateForm, QuestionForm, AnswerFormSetExtra1, AnswerFormSetExtra5
 from .mixins import TestAndQuestionMixin
@@ -313,17 +316,46 @@ class TestResultView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
 
     def get(self, request, pk, result_id):
         user_test_result = get_object_or_404(TestResult, pk=result_id)
-        question_list = Question.objects.filter(test=user_test_result.test).prefetch_related('answer_options')
-        user_answers = []
-        correct_answers = [_.answer.pk for _ in CorrectAnswer.objects.filter(question__in=question_list).prefetch_related('answer')]
-        for _ in UserAnswer.objects.filter(question__in=question_list, member=user_test_result.member):
-            user_answers.extend(list(map(int, _.answer_option)))
+        question_list, user_answers, correct_answers = self._get_user_questions_and_answers(user_test_result)
         is_psychological = user_test_result.test.type.is_psychological()
         context = {
             'user_answers': user_answers, 'question_list': question_list, 'is_psychological': is_psychological,
-            'correct_answers': correct_answers,
+            'correct_answers': correct_answers, 'pk': pk, 'result_id': result_id
         }
         return render(request, 'testing/test_result.html', context=context)
+
+    def _get_user_questions_and_answers(self, user_test_result):
+        user_answers = []
+        question_list = Question.objects.filter(test=user_test_result.test).prefetch_related('answer_options')
+        correct_answers = [_.answer.pk for _ in CorrectAnswer.objects.filter(question__in=question_list).prefetch_related('answer')]
+        for _ in UserAnswer.objects.filter(question__in=question_list, member=user_test_result.member):
+            user_answers.extend(list(map(int, _.answer_option)))
+        return question_list, user_answers, correct_answers
+
+
+class TestResultInWordView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
+    """ Преобразовать результаты психологического тестирования в ворд анкету """
+
+    def get(self, request, pk, result_id):
+        user_test_result = get_object_or_404(TestResult, pk=result_id)
+        if not user_test_result.test.type.is_psychological():
+            return HttpResponse('Это не психологический тест')
+        filename = f"{user_test_result.test.name}_{user_test_result.member.user.last_name}.docx"
+        path_to_test = PATH_TO_PSYCHOLOGICAL_TESTS.get(user_test_result.test.name)
+        if not path_to_test:
+            raise BadRequest('Нет такого шаблона теста')
+        user_docx = self._create_word(user_test_result, path_to_test)
+        response = HttpResponse(user_docx, content_type='application/docx')
+        response['Content-Disposition'] = 'attachment; filename="' + escape_uri_path(filename) + '"'
+        return response
+
+    def _create_word(self, user_test_result, path_to_file):
+        word_template = WordTemplate(self.request, path_to_file)
+        questions = Question.objects.filter(test=user_test_result.test).prefetch_related('answer_options')
+        user_answers = {ans.question_id: ans.answer_option[0] for ans in
+                        UserAnswer.objects.filter(question__in=questions, member=user_test_result.member)}
+        context = word_template.create_context_to_psychological_test(user_test_result, questions, user_answers)
+        return word_template.create_word_in_buffer(context)
 
 
 # TODO:
