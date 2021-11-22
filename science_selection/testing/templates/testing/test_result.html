@@ -12,6 +12,7 @@
             <div class="text-center">
                 <h4 class="">Ответы пользователя</h4>
             </div>
+            <h6 class="offset-1 mb-2 col-10">Описание: {{ test.description }}</h6>
             {% if is_psychological %}
                 <div class="d-flex justify-content-end">
                     <button class="btn btn-outline-secondary mb-2"><a href="{% url 'test_result_in_word' pk result_id %}">

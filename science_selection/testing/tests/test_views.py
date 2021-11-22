@@ -786,7 +786,7 @@ class AddTestResultViewTest(TestCase):
         self.assertEqual(test_res.result, 0)
 
 
-class TestResultView(TestCase):
+class TestResultViewTest(TestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -864,3 +864,54 @@ class TestResultView(TestCase):
         self.assertEqual(resp.context['user_answers'], self.user_answers)
         self.assertEqual(list(resp.context['question_list']), self.questions)
         self.assertEqual(resp.context['correct_answers'], self.correct_answers)
+
+
+class TestResultInWordViewTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        default_db_users()
+        TypeOfTest.objects.create(name='Психологический')
+        TypeOfTest.objects.create(name='Обычный')
+
+    def setUp(self) -> None:
+        master_member1 = Member.objects.get(user=User.objects.get(username='master1'))
+        slave_member1 = Member.objects.get(user=User.objects.get(username='slave1'))
+        type1 = TypeOfTest.objects.get(name='Психологический')
+        type2 = TypeOfTest.objects.get(name='Обычный')
+
+        test1 = Test.objects.create(name='psycho1', time_limit=10, creator=master_member1, type=type1)
+        TestResult.objects.create(test=test1, member=slave_member1, result=0, status=3, end_date=datetime.datetime.now())
+        test2 = Test.objects.create(name='Обычный2', time_limit=10, creator=master_member1, type=type2)
+        TestResult.objects.create(test=test2, member=slave_member1, result=40, status=3, end_date=datetime.datetime.now())
+
+        Application.objects.create(member=slave_member1, birth_day=datetime.datetime.strptime('18/09/19', '%d/%m/%y'),
+                                   birth_place=f'Test1', nationality='РФ', military_commissariat='Йо1',
+                                   group_of_health='А1', draft_year='2021', draft_season=1)
+
+    def test_delete_test_without_permission(self):
+        """ Проверяет ошибку при скачивании файла для пользователя без прав мастера """
+        self.client.login(username='slave1', password='slave1')
+        resp = self.client.get(reverse('test_result_in_word', kwargs={'pk': 1, 'result_id': 1}))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_get_not_psychological_test(self):
+        """ Проверяет ошибку при скачивании ворда не для психологического теста """
+        self.client.login(username='master1', password='master1')
+        resp = self.client.get(reverse('test_result_in_word', kwargs={'pk': 2, 'result_id': 1}))
+        self.assertEqual(resp.status_code, 400)
+
+    def test_get_test_without_word_template(self):
+        """ Проверяет ошибку отсутсвия шаблона для психологического теста """
+        self.client.login(username='master1', password='master1')
+        resp = self.client.get(reverse('test_result_in_word', kwargs={'pk': 1, 'result_id': 1}))
+        self.assertEqual(resp.status_code, 400)
+
+    def test_create_word(self):
+        """ Проверяет метод создания ворд файла по психологическому тесту """
+        Test.objects.filter(name='psycho1').update(name='Псих1 алл')
+        self.client.login(username='master1', password='master1')
+        resp = self.client.get(reverse('test_result_in_word', kwargs={'pk': 1, 'result_id': 1}))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNotNone(resp._container)
+        self.assertIsNotNone(resp.headers['Content-Disposition'])

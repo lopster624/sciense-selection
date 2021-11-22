@@ -337,7 +337,7 @@ class TestResultView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         is_psychological = user_test_result.test.type.is_psychological()
         context = {
             'user_answers': user_answers, 'question_list': question_list, 'is_psychological': is_psychological,
-            'correct_answers': correct_answers, 'pk': pk, 'result_id': result_id
+            'correct_answers': correct_answers, 'pk': pk, 'result_id': result_id, 'test': user_test_result.test
         }
         return render(request, 'testing/test_result.html', context=context)
 
@@ -358,7 +358,7 @@ class TestResultInWordView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         """ Проверяет, что тест является психологическим и есть в базе, после чего генерирует шаблон ворд документа с результатами пользователя """
         user_test_result = get_object_or_404(TestResult, pk=result_id)
         if not user_test_result.test.type.is_psychological():
-            return HttpResponse('Это не психологический тест')
+            raise BadRequest('Это не психологический тест')
         filename = f"{user_test_result.test.name}_{user_test_result.member.user.last_name}.docx"
         path_to_test = PATH_TO_PSYCHOLOGICAL_TESTS.get(user_test_result.test.name)
         if not path_to_test:
