@@ -107,6 +107,7 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
 class ApplicationView(LoginRequiredMixin, DataApplicationMixin, View):
     """ Показывает заявку пользователя в режиме просмотра """
 
+    @check_permission_decorator(const.MASTER_ROLE_NAME)
     def get(self, request, pk):
         context = {}
         user_application = self.get_user_application(pk)
