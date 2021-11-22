@@ -34,6 +34,7 @@ class TestListView(LoginRequiredMixin, View):
         return render(request, 'testing/test_list.html', context=context)
 
     def get_user_context(self, member):
+        """ Создает контекст для шаблона страницы в зависимости от роли пользователя master/slave """
         context = {}
         if member.is_master():
             master_directions = [aff.direction for aff in member.affiliations.prefetch_related('direction').all()]
@@ -64,6 +65,10 @@ class TestListView(LoginRequiredMixin, View):
         return context
 
     def get_chosen_direction(self):
+        """
+        Получает выбранное направление по его Id из query параметра
+        query: direction - int - id выбранного направления пользователя
+        """
         selected_direction_id = self.request.GET.get('direction')
         return Direction.objects.get(id=int(selected_direction_id)) if selected_direction_id else None
 
@@ -72,6 +77,10 @@ class AddTestInDirectionView(MasterDataMixin, View):
     """ Добавляет выбранные тесты в направление """
 
     def post(self, request, direction_id):
+        """
+        Получает выбранные тесты из query параметра и закрепляет их за выбранным направлением
+        query: chosen_test - list[int] - ids выбранных тестов
+        """
         if direction_id not in self.get_master_directions_id():
             raise PermissionDenied('Невозможно добавить тест в чужое направление')
         chosen_test = request.POST.getlist('chosen_test')
@@ -84,6 +93,7 @@ class ExcludeTestInDirectionView(MasterDataMixin, View):
     """ Удалить тест из выбранного направления """
 
     def get(self, request, test_id, direction_id):
+        """ Получает тест по его Id и открепляет его из выбранного направления """
         if direction_id not in self.get_master_directions_id():
             raise PermissionDenied('Невозможно удалить тест из чужого направления')
         test = Test.objects.filter(pk=test_id).prefetch_related('directions').first()
@@ -119,6 +129,7 @@ class CreateTestView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         return render(request, 'testing/test_create.html', context=context)
 
     def post(self, request):
+        """ Получает и проверяет данные формы для создания теста, после чего сохраняет ее """
         directions = get_master_directions(self.request.user)
         test_form = TestCreateForm(directions, request.POST)
         if test_form.is_valid():
@@ -170,6 +181,7 @@ class AddQuestionToTestView(TestAndQuestionMixin):
         return render(request, 'testing/test_add_question.html', context=context)
 
     def post(self, request, pk):
+        """ Получает и проверяет данные формы для создания вопроса, после чего сохраняет его """
         test = self._get_and_check_test_permission(pk, request.user.member)
 
         saved, context = self._save_question_with_answers(request.POST, test, request.FILES)
@@ -197,6 +209,7 @@ class UpdateQuestionView(TestAndQuestionMixin):
         return render(request, 'testing/test_edit_question.html', context=context)
 
     def post(self, request, pk, question_id):
+        """ Получает и проверяет данные формы для обновления вопроса, после чего сохраняет его """
         test = self._get_and_check_test_permission(pk, request.user.member)
         question = get_object_or_404(Question, pk=question_id)
         answers = Answer.objects.filter(question=question)
@@ -230,6 +243,7 @@ class EditTestView(TestAndQuestionMixin):
         return render(request, 'testing/test_edit.html', context=context)
 
     def post(self, request, pk):
+        """ Получает и проверяет данные формы для редактирования теста, после чего сохраняет его """
         user = self.request.user
         test, directions = self._get_and_check_test_permission(pk, user.member), get_master_directions(user)
         test_form = TestCreateForm(directions, request.POST, instance=test)
@@ -245,6 +259,7 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
     """ Сохранить результаты тестирования """
 
     def get(self, request, pk):
+        """ Проверяет результаты теста пользователя, если он еще не был прорешен, то выводит страницу с вопросами """
         current_test = get_object_or_404(Test, pk=pk)
         member = request.user.member
         is_completed, user_test_result, is_new_test = self._test_is_completed(member, current_test)
@@ -274,6 +289,7 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
         return False, user_test_result, is_new_test
 
     def post(self, request, pk):
+        """ Проверяет результаты теста пользователя, если он еще не был прорешен, то сохраняет результаты теста пользователя """
         member = request.user.member
         test = get_object_or_404(Test, pk=pk)
         is_completed, _, _ = self._test_is_completed(member, test)
@@ -315,6 +331,7 @@ class TestResultView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     """ Посмотреть ответы пользователя по выбранному тесту """
 
     def get(self, request, pk, result_id):
+        """ Получает результаты теста пользователя и генерирует страницу просмотра результатов """
         user_test_result = get_object_or_404(TestResult, pk=result_id)
         question_list, user_answers, correct_answers = self._get_user_questions_and_answers(user_test_result)
         is_psychological = user_test_result.test.type.is_psychological()
@@ -325,6 +342,7 @@ class TestResultView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         return render(request, 'testing/test_result.html', context=context)
 
     def _get_user_questions_and_answers(self, user_test_result):
+        """ Собирает данные по результатам теста пользователя: список вопросов, ответы пользователя и правильные ответы """
         user_answers = []
         question_list = Question.objects.filter(test=user_test_result.test).prefetch_related('answer_options')
         correct_answers = [_.answer.pk for _ in CorrectAnswer.objects.filter(question__in=question_list).prefetch_related('answer')]
@@ -337,6 +355,7 @@ class TestResultInWordView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     """ Преобразовать результаты психологического тестирования в ворд анкету """
 
     def get(self, request, pk, result_id):
+        """ Проверяет, что тест является психологическим и есть в базе, после чего генерирует шаблон ворд документа с результатами пользователя """
         user_test_result = get_object_or_404(TestResult, pk=result_id)
         if not user_test_result.test.type.is_psychological():
             return HttpResponse('Это не психологический тест')
@@ -350,6 +369,7 @@ class TestResultInWordView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         return response
 
     def _create_word(self, user_test_result, path_to_file):
+        """ Генерирует шаблон ворд документа по файлу и загруженному контексту """
         word_template = WordTemplate(self.request, path_to_file)
         questions = Question.objects.filter(test=user_test_result.test).prefetch_related('answer_options')
         user_answers = {ans.question_id: ans.answer_option[0] for ans in

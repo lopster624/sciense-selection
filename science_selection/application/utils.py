@@ -15,6 +15,7 @@ from .models import Application, AdditionField, AdditionFieldApp, MilitaryCommis
 
 
 def check_role(user, role_name):
+    """ Проверяет, совпадает ли роль пользователя с заданной через параметр role_name """
     member = Member.objects.select_related('role').get(user=user)
     if member.role.role_name == role_name:
         return True
@@ -22,6 +23,7 @@ def check_role(user, role_name):
 
 
 def check_permission_decorator(role_name=None):
+    """ Декоратор, который проверяет роль пользователя с заданной через параметр role_name """
     def decorator(func):
         def wrapper(self, request, pk, *args, **kwargs):
             if request.user.member.role.role_name == role_name:
@@ -50,11 +52,14 @@ def check_final_decorator(func):
 
 
 class WordTemplate:
+    """ Класс для создания шаблона ворд документа по файлу, который через путь - path_to_template """
+
     def __init__(self, request, path_to_template):
         self.request = request
         self.path = path_to_template
 
     def create_word_in_buffer(self, context):
+        """ Создает ворд документ и добавлет в него данные и сохраняет в буфер """
         template = DocxTemplate(self.path)
         user_docx = BytesIO()
         template.render(context=context)
@@ -63,6 +68,7 @@ class WordTemplate:
         return user_docx
 
     def create_context_to_interview_list(self, pk):
+        """ Создает контекст для шаблона - 'Лист собеседования' """
         user_app = Application.objects.select_related('member').prefetch_related('education').defer('id').get(pk=pk)
         user_education = user_app.education.order_by('-end_year').values()
         user_education = user_education[0] if user_education else {}
@@ -72,6 +78,7 @@ class WordTemplate:
         return context
 
     def create_context_to_word_files(self, document_type, all_directions=None):
+        """ Создает контексты для шаблонов итоговых документов """
         current_year, current_season = get_current_draft_year()
         fixed_directions = self.request.user.member.affiliations.select_related('direction').all() \
             if not all_directions else Affiliation.objects.select_related('direction').all()
@@ -109,7 +116,8 @@ class WordTemplate:
         return context
 
     def create_context_to_psychological_test(self, user_test_result, questions, user_answers):
-        user_app = Application.objects.get(member=user_test_result.member).only('birth_day')
+        """ Создает контекст для шаблона - 'Психологического теста ОПВС - 2' """
+        user_app = Application.objects.only('birth_day').get(member=user_test_result.member)
         member = user_test_result.member
         context = {
             'full_name': f'{member.user.last_name} {member.user.first_name} {member.father_name}',

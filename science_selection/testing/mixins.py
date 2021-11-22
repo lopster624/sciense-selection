@@ -19,7 +19,7 @@ class TestAndQuestionMixin(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         return [params.get(ans) for ans in answers]
 
     def _save_question_with_answers(self, params, test, files=None, question=None, answers=None):
-        """ Сохраняет вопрос в БД с его вариантами ответов """
+        """ Сохраняет вопрос в БД с его вариантами ответа """
         correct_answer_ids = []
         correct_answers = self._get_correct_answers(params) if not test.type.is_psychological() else []
         question_form, answer_formset = QuestionForm(params, files, instance=question), AnswerFormSetExtra1(params, queryset=answers)
