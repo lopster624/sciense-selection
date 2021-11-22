@@ -1,15 +1,17 @@
 {% load static %}
-<button type="button" class="btn btn-white pt-0" data-bs-toggle="modal"
-        data-bs-target="#staticBackdropwish{{ app.id }}" aria-label="book">
+<span class="mt-3">
+    <button type="button" class="btn btn-white mt-0 pt-0" data-bs-toggle="modal"
+            data-bs-target="#staticBackdropwish{{ app.id }}" aria-label="book">
+        {% if app.is_in_wishlist %}
+        <img src="{% static 'images/star-fill.svg' %}" alt="download file" width="20"
+             height="20">
+        {% else %}
+        <img src="{% static 'images/star.svg' %}" alt="download file" width="20" height="20">
+        {% endif %} {{app.wishlist_len}}
+    </button>
     {% if app.is_in_wishlist %}
-    <img src="{% static 'images/star-fill.svg' %}" alt="download file" width="20"
-         height="20">
+    {% include 'application/includes/delete_from_wishlist_template.html' %}
     {% else %}
-    <img src="{% static 'images/star.svg' %}" alt="download file" width="20" height="20">
-    {% endif %} {{app.wishlist_len}}
-</button>
-{% if app.is_in_wishlist %}
-{% include 'application/includes/delete_from_wishlist_template.html' %}
-{% else %}
-{% include 'application/includes/add_in_wishlist_template.html' %}
-{% endif %}
+    {% include 'application/includes/add_in_wishlist_template.html' %}
+    {% endif %}
+</span>
