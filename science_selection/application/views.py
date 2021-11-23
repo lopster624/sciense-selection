@@ -402,11 +402,11 @@ class DownloadFileView(LoginRequiredMixin, View):
     def get(self, request, file_id):
         file = get_object_or_404(File, pk=file_id)
         member = request.user.member
-        if member.is_master() or file.is_template or (member.is_slave() and member == file.member):
-            file_path = os.path.join(MEDIA_DIR, str(file.file_path))
-            response = FileResponse(open(file_path, 'rb'), filename=file.file_name, as_attachment=True)
-            return response
-        raise PermissionDenied('Недостаточно прав для скачивания файла')
+        if member.is_slave() and member != file.member and not file.is_template:
+            raise PermissionDenied('Недостаточно прав для скачивания файла')
+        file_path = os.path.join(MEDIA_DIR, str(file.file_path))
+        response = FileResponse(open(file_path, 'rb'), filename=file.file_name, as_attachment=True)
+        return response
 
 
 class ApplicationListView(MasterDataMixin, ListView):
