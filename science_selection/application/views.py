@@ -266,9 +266,9 @@ class AddCompetencesView(MasterDataMixin, View):
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
-class DeleteCompetenceView(DataApplicationMixin, View):
+class DeleteCompetenceView(MasterDataMixin, View):
     """Рекурсивно удаляет компетенцию с competence_id и все ее дочерние из направления с direction_id"""
-    #TODO: ТОЛЬКО МАСТЕР?
+
     def get(self, request, competence_id, direction_id):
         if direction_id not in self.get_master_directions_id():
             raise PermissionDenied('Невозможно удалить компетенцию из чужого направления.')
