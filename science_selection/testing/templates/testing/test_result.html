@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load testing_extras %}
 {% block title %}
 Результат теста
 {% endblock %}
@@ -11,11 +10,20 @@
     <div class="row justify-content-center">
         <div class="col-6 bg-white list-group-item list-group-item-light">
             <div class="text-center">
-                <h4 class="">Ответы пользователя</h4>
+                <h4 class="">Ответы к тесту - {{ test_res.test.name }}</h4>
             </div>
-            <ul class="list-group">
+            <p class="fs-5 offset-1 mb-0 col-10"><b class="text-primary text-opacity-75">Пользователь:</b> {{ test_res.member }}</p>
+            <p class="fs-5 offset-1 mb-0 col-10"><b class="text-primary text-opacity-75">Описание:</b> {{ test_res.test.description }}</p>
+            {% if is_psychological %}
+                <div class="d-flex justify-content-end">
+                    <button class="btn btn-outline-secondary mb-2"><a href="{% url 'test_result_in_word' pk result_id %}">
+                        <img src="{% static 'images/word.svg' %}" alt="download file" width="20" height="20"></a>
+                    </button>
+                </div>
+            {% endif %}
+            <ul class="list-group list-group-flush">
                 {% for question in question_list %}
-                    <li class="list-group-item mb-2">
+                    <li class="list-group-item mb-1">
                         <div class="text-center fw-bold">
                             {{ question.wording }}
                         </div>
@@ -27,7 +35,7 @@
                         <div class="row row-cols-2 mb-2">
                             {% for answer in question.answer_options.all %}
                                 <div class="col mb-2 text-center
-                                    {% if is_psychological and answer.pk in user_answers or answer.pk in user_answers and answer.pk|to_str in question.correct_answers %}
+                                    {% if is_psychological and answer.pk in user_answers or answer.pk in user_answers and answer.pk in correct_answers %}
                                         text-success
                                     {% elif answer.pk in user_answers %}
                                         text-danger

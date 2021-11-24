@@ -107,6 +107,7 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
 class ApplicationView(LoginRequiredMixin, DataApplicationMixin, View):
     """ Показывает заявку пользователя в режиме просмотра """
 
+    @check_permission_decorator(const.MASTER_ROLE_NAME)
     def get(self, request, pk):
         context = {}
         user_application = self.get_user_application(pk)
@@ -265,7 +266,7 @@ class AddCompetencesView(MasterDataMixin, View):
         return redirect(reverse('competence_list') + f'?direction={direction_id}')
 
 
-class DeleteCompetenceView(DataApplicationMixin, View):
+class DeleteCompetenceView(MasterDataMixin, View):
     """Рекурсивно удаляет компетенцию с competence_id и все ее дочерние из направления с direction_id"""
 
     def get(self, request, competence_id, direction_id):
@@ -401,6 +402,9 @@ class DownloadFileView(LoginRequiredMixin, View):
 
     def get(self, request, file_id):
         file = get_object_or_404(File, pk=file_id)
+        member = request.user.member
+        if member.is_slave() and member != file.member and not file.is_template:
+            raise PermissionDenied('Недостаточно прав для скачивания файла')
         file_path = os.path.join(MEDIA_DIR, str(file.file_path))
         response = FileResponse(open(file_path, 'rb'), filename=file.file_name, as_attachment=True)
         return response

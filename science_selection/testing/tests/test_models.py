@@ -84,7 +84,7 @@ class QuestionTest(TestCase):
         dir1 = Direction.objects.create(name='Тест', description='нет')
         test1 = Test.objects.create(name='Обычный', time_limit=20, description='Тест', type=type1, creator=member1, )
         test1.directions.set([dir1])
-        Question.objects.create(test=test1, wording='Описание вопроса', correct_answers=['Ответ1'], question_type=1,)
+        Question.objects.create(test=test1, wording='Описание вопроса', question_type=1,)
 
     def test_wording_max_length(self):
         q = Question.objects.get(id=1)
@@ -101,8 +101,7 @@ class AnswerTest(TestCase):
         member1 = Member.objects.create(user=test_user, role=test_role, father_name='Тестович', phone='89998887711')
         type1 = TypeOfTest.objects.create(name='Обычный')
         test1 = Test.objects.create(name='Обычный', time_limit=20, description='Тест', type=type1, creator=member1, )
-        question1 = Question.objects.create(test=test1, wording='Описание вопроса', correct_answers=['Ответ1'],
-                                            question_type=1,)
+        question1 = Question.objects.create(test=test1, wording='Описание вопроса', question_type=1,)
         Answer.objects.create(meaning='Ответ1', question=question1)
 
     def test_meaning_max_length(self):
@@ -120,8 +119,7 @@ class UserAnswerTest(TestCase):
         member1 = Member.objects.create(user=test_user, role=test_role, father_name='Тестович', phone='89998887711')
         type1 = TypeOfTest.objects.create(name='Обычный')
         test1 = Test.objects.create(name='Обычный', time_limit=20, description='Тест', type=type1, creator=member1, )
-        question1 = Question.objects.create(test=test1, wording='Описание вопроса', correct_answers=['Ответ1'],
-                                            question_type=1,)
+        question1 = Question.objects.create(test=test1, wording='Описание вопроса', question_type=1,)
         UserAnswer.objects.create(member=member1, question=question1, answer_option=['1', '2'])
 
     def test_answer_option_type(self):

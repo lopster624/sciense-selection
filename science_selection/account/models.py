@@ -8,6 +8,8 @@ from django.dispatch import receiver
 from engine.settings import DEFAULT_FROM_EMAIL
 from utils.constants import ACTIVATION_LINK, MASTER_ROLE_NAME, SLAVE_ROLE_NAME
 
+from .tasks import send_verification_email
+
 
 class Role(models.Model):
     role_name = models.CharField(max_length=32, verbose_name="Название роли")
@@ -68,6 +70,7 @@ def send_link_to_mail(sender, instance, created, **kwargs):
     if created:
         token = uuid4()
         ActivationLink.objects.create(user=instance, token=token)
+        # send_verification_email(instance.pk, token)  # когда будет Celery + Redis
         send_mail('Проверка', f'{ACTIVATION_LINK}{token}', DEFAULT_FROM_EMAIL, [instance.email])
 
 

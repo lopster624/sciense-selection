@@ -46,7 +46,7 @@ class QuestionForm(forms.ModelForm):
 
     class Meta:
         model = Question
-        exclude = ('test', 'id', 'correct_answers')
+        exclude = ('test', 'id',)
         widgets = {
             'wording': Input(attrs={'class': 'form-control'}),
             'question_type': Select(attrs={'class': 'form-control'}),

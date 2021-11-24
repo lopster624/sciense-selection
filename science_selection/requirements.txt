@@ -2,3 +2,4 @@ django
 docxtpl
 Pillow
 django-autocomplete-light
+celery[redis]

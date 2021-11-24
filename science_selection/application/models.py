@@ -299,7 +299,7 @@ class AdditionFieldApp(models.Model):
     """Значение заполненного дополнительного поля в заявке"""
     addition_field = models.ForeignKey(AdditionField, on_delete=models.CASCADE, verbose_name='Название доп поля', )
     application = models.ForeignKey(Application, on_delete=models.CASCADE, verbose_name='Заявка')
-    value = models.TextField(verbose_name='Название дополнительного поля')
+    value = models.TextField(verbose_name='Значение дополнительного поля')
 
     class Meta:
         verbose_name = "Значение кастомного поля"

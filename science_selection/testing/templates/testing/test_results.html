@@ -18,7 +18,8 @@
                         <th scope="col">#</th>
                         <td scope="col">ФИО</td>
                         <td scope="col">Название теста</td>
-                        <td scope="col">Результат теста</td>
+                        <td scope="col">Тип теста</td>
+                        <td scope="col">Результат теста, %</td>
                         <td scope="col">Статус теста</td>
                         <td scope="col">Отчет</td>
                     </tr>
@@ -39,6 +40,9 @@
                                             {{ test.test.name }}
                                         </td>
                                         <td scope="row" class="text-nowrap">
+                                            {{ test.test.type }}
+                                        </td>
+                                        <td scope="row" class="text-nowrap">
                                             {{ test.result }}
                                         </td>
                                         <td scope="row" class="text-nowrap">
@@ -52,6 +56,9 @@
                                         <tr>
                                             <td scope="row" class="text-nowrap">
                                                 {{ test.test.name }}
+                                            </td>
+                                            <td scope="row" class="text-nowrap">
+                                                {{ test.test.type }}
                                             </td>
                                             <td scope="row" class="text-nowrap">
                                                 {{ test.result }}
@@ -76,6 +83,9 @@
                                 {% for test in res %}
                                     <td scope="row" class="text-nowrap">
                                         {{ test.test.name }}
+                                    </td>
+                                    <td scope="row" class="text-nowrap">
+                                        {{ test.test.type }}
                                     </td>
                                     <td scope="row" class="text-nowrap">
                                         {{ test.result }}

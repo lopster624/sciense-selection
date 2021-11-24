@@ -15,4 +15,5 @@ urlpatterns = [
     path('<int:pk>/delete/', views.DeleteTestView.as_view(), name='delete_test'),
     path('<int:pk>/result/', views.AddTestResultView.as_view(), name='add_test_result'),
     path('<int:pk>/result/<int:result_id>/', views.TestResultView.as_view(), name='test_result'),
+    path('<int:pk>/result/<int:result_id>/word/', views.TestResultInWordView.as_view(), name='test_result_in_word'),
 ]
