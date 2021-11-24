@@ -268,7 +268,7 @@ class AddCompetencesView(MasterDataMixin, View):
 
 class DeleteCompetenceView(DataApplicationMixin, View):
     """Рекурсивно удаляет компетенцию с competence_id и все ее дочерние из направления с direction_id"""
-
+    #TODO: ТОЛЬКО МАСТЕР?
     def get(self, request, competence_id, direction_id):
         if direction_id not in self.get_master_directions_id():
             raise PermissionDenied('Невозможно удалить компетенцию из чужого направления.')
@@ -399,7 +399,7 @@ class DeleteFileView(LoginRequiredMixin, View):
 
 class DownloadFileView(LoginRequiredMixin, View):
     """ Скачивает файлы по file_id """
-
+    #TODO могу скачать чужой файл!!! НУЖЕН ФИКС!!!
     def get(self, request, file_id):
         file = get_object_or_404(File, pk=file_id)
         file_path = os.path.join(MEDIA_DIR, str(file.file_path))

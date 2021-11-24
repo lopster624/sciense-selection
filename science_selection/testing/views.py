@@ -42,7 +42,8 @@ class TestListView(LoginRequiredMixin, View):
                 raise MasterHasNoDirectionsException(
                     f'У вас нет ни одного направления, по которому вы можете добавлять тесты')
 
-            selected_direction = master_directions[0] if not (selected_direction := self.get_chosen_direction()) and master_directions else selected_direction
+            selected_direction = master_directions[0] if not (
+                selected_direction := self.get_chosen_direction()) and master_directions else selected_direction
             direction_tests = Test.objects.filter(directions=selected_direction).prefetch_related('creator').distinct()
             test_list = Test.objects.exclude(pk__in=direction_tests).prefetch_related('creator')
             context.update({
@@ -108,7 +109,9 @@ class TestResultsView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
 
     def get_queryset(self):
         current_year, current_season = get_current_draft_year()
-        current_apps = Application.objects.filter(draft_year=current_year, draft_season=current_season[0]).select_related('member').only('member')
+        current_apps = Application.objects.filter(draft_year=current_year,
+                                                  draft_season=current_season[0]).select_related('member')\
+            .only('member')
         members = [app.member for app in current_apps]
         return TestResult.objects.filter(member__in=members).prefetch_related('test', 'member', 'test__type')
 
@@ -166,7 +169,7 @@ class DetailTestView(LoginRequiredMixin, DetailView):
             context['msg'] = 'Тест завершен'
             context['blocked'] = True
             if user_test.status != TestResult.test_statuses[-1][0]:
-                TestResult.objects.filter(test=context['test'].pk, member=member)\
+                TestResult.objects.filter(test=context['test'].pk, member=member) \
                     .update(status=TestResult.test_statuses[-1][0])
         context['questions'] = Question.objects.filter(test=context['test']).only('wording')
         return context
@@ -203,7 +206,7 @@ class UpdateQuestionView(TestAndQuestionMixin):
         question = get_object_or_404(Question.objects.prefetch_related('correct_answer'), pk=question_id)
         answers = Answer.objects.filter(question=question)
         correct_answers = [_.answer.meaning for _ in question.correct_answer.all()]
-        question_form, answer_formset = QuestionForm(instance=question), AnswerFormSetExtra1(queryset=answers,)
+        question_form, answer_formset = QuestionForm(instance=question), AnswerFormSetExtra1(queryset=answers, )
         context = {'question_form': question_form, 'answer_formset': answer_formset, 'pk': pk,
                    'question_id': question_id, 'correct_answers': correct_answers}
         return render(request, 'testing/test_edit_question.html', context=context)
@@ -278,8 +281,7 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
                                                                          defaults={'result': 0,
                                                                                    'status': TestResult.test_statuses[1][0],
                                                                                    'end_date': timezone.now() +
-                                                                                               timezone.timedelta(
-                                                                                                   minutes=current_test.time_limit)})
+                                                                                               timezone.timedelta(minutes=current_test.time_limit)})
 
         if not is_new_test and (user_test_result.end_date < timezone.now() or user_test_result.status == TestResult.test_statuses[-1][0]):
             if user_test_result.status != TestResult.test_statuses[-1][0]:
@@ -324,7 +326,8 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
             total = sum([1 for k, v in answers.items() if v['correct_answer'] == v['user_answer']])
             final_value = int((total / len(answers)) * 100)
 
-        TestResult.objects.filter(test=test, member=member).update(status=TestResult.test_statuses[-1][0], result=final_value)
+        TestResult.objects.filter(test=test, member=member).update(status=TestResult.test_statuses[-1][0],
+                                                                   result=final_value)
 
 
 class TestResultView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
@@ -376,7 +379,6 @@ class TestResultInWordView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
                         UserAnswer.objects.filter(question__in=questions, member=user_test_result.member)}
         context = word_template.create_context_to_psychological_test(user_test_result, questions, user_answers)
         return word_template.create_word_in_buffer(context)
-
 
 # TODO:
 # Celery - добавлять задачу при начале выполнения нового теста и после истечения времени изменять статут, если не пришел запрос??
