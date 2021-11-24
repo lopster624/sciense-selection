@@ -38,7 +38,7 @@ class Test(models.Model):
         verbose_name_plural = "Тесты"
 
     def __str__(self):
-        return f'{self.name} {self.creator}'
+        return f'{self.name}-{self.creator}'
 
 
 def validate_result(value):
@@ -90,7 +90,7 @@ class Question(models.Model):
         verbose_name_plural = "Вопросы"
 
     def __str__(self):
-        return f'{self.test} {self.wording}'
+        return f'{self.test}-{self.wording}'
 
 
 class Answer(models.Model):
@@ -119,7 +119,7 @@ class CorrectAnswer(models.Model):
         verbose_name_plural = "Правильные ответы"
 
     def __str__(self):
-        return f'{self.question} {self.answer}'
+        return f'{self.question}-{self.answer}'
 
 
 class UserAnswer(models.Model):
