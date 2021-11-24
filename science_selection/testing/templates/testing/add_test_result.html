@@ -9,12 +9,13 @@
 <div class="w-50 bg-white list-group-item list-group-item-light" style="margin-left: 25%;">
     <div class="row">
         <h4 class="text-center">Вопросы к тесту - {{ test.name }}</h4>
-        <h6 class="offset-1 mb-2 col-10">Описание: {{ test.description }}</h6>
+        <p class="fs-5 offset-1 mb-1 col-10"><b class="text-primary text-opacity-75">Описание:</b> {{ test.description }}</p>
         <form action="{% url 'add_test_result' test.pk %}" class="form-horizontal" method="post" id="form-container">
             {% csrf_token %}
+            <ul class="list-group list-group-flush list-group-numbered">
             {% for question in question_list %}
-                <li class="mb-2">
-                    <span class="pr-4">{{ question.wording }}</span>
+                <li class="mb-1 list-group-item">
+                    <span class="fs-5 text-primary text-opacity-75">{{ question.wording }}</span>
                     {% if question.image %}
                         <div class="col-6 offset-3">
                             <img src="{{ question.image.url }}" class="card-img-top">
@@ -35,9 +36,9 @@
                         {% endfor %}
                         </div>
                     </div>
-                    <hr>
                 </li>
             {% endfor %}
+            </ul>
             <div class="mb-2 text-center">
                 <button type="submit" class="btn btn-primary">Сохранить</button>
             </div>

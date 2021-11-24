@@ -10,9 +10,10 @@
     <div class="row justify-content-center">
         <div class="col-6 bg-white list-group-item list-group-item-light">
             <div class="text-center">
-                <h4 class="">Ответы пользователя</h4>
+                <h4 class="">Ответы к тесту - {{ test_res.test.name }}</h4>
             </div>
-            <h6 class="offset-1 mb-2 col-10">Описание: {{ test.description }}</h6>
+            <p class="fs-5 offset-1 mb-0 col-10"><b class="text-primary text-opacity-75">Пользователь:</b> {{ test_res.member }}</p>
+            <p class="fs-5 offset-1 mb-0 col-10"><b class="text-primary text-opacity-75">Описание:</b> {{ test_res.test.description }}</p>
             {% if is_psychological %}
                 <div class="d-flex justify-content-end">
                     <button class="btn btn-outline-secondary mb-2"><a href="{% url 'test_result_in_word' pk result_id %}">
@@ -20,9 +21,9 @@
                     </button>
                 </div>
             {% endif %}
-            <ul class="list-group">
+            <ul class="list-group list-group-flush">
                 {% for question in question_list %}
-                    <li class="list-group-item mb-2">
+                    <li class="list-group-item mb-1">
                         <div class="text-center fw-bold">
                             {{ question.wording }}
                         </div>

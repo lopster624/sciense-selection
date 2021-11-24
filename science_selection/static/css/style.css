@@ -25,3 +25,7 @@ span.select2-selection.select2-selection--single {
 span.select2-selection__placeholder {
     font-size: 14px;
 }
+.list-group-numbered > li::before {
+    font-size: 1.25rem !important;
+    color: #6c757d !important;
+}

@@ -340,7 +340,7 @@ class TestResultView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         is_psychological = user_test_result.test.type.is_psychological()
         context = {
             'user_answers': user_answers, 'question_list': question_list, 'is_psychological': is_psychological,
-            'correct_answers': correct_answers, 'pk': pk, 'result_id': result_id, 'test': user_test_result.test
+            'correct_answers': correct_answers, 'pk': pk, 'result_id': result_id, 'test_res': user_test_result
         }
         return render(request, 'testing/test_result.html', context=context)
 
