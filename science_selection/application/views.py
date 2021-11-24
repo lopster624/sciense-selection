@@ -22,13 +22,13 @@ from engine.settings import MEDIA_DIR
 from testing.models import TestResult, Test
 from utils import constants as const
 from utils.calculations import get_current_draft_year
-from utils.exceptions import MasterHasNoDirectionsException, NoHTTPReferer
+from utils.exceptions import MasterHasNoDirectionsException
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities, AdditionFieldApp, AdditionField, Specialization, MilitaryCommissariat, WorkGroup
 from .utils import check_permission_decorator, WordTemplate, check_booking_our_or_exception, check_final_decorator, \
-    add_additional_fields, is_booked_our
+    add_additional_fields
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
@@ -561,13 +561,12 @@ class ApplicationListView(MasterDataMixin, ListView):
 
 
 class CompetenceListView(MasterDataMixin, View):
-    """Показывает список выбранных компетенций и невыбранных компетенций для данного направления"""
-
     def get(self, request):
+        """Показывает список выбранных компетенций и невыбранных компетенций для данного направления"""
         chosen_direction = self.get_chosen_direction()
         if chosen_direction is None:
             raise MasterHasNoDirectionsException(
-                f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.')
+                'У вас нет ни одного направления, по которому вы можете осуществлять отбор.')
         competences_list, picking_competences = self.get_competences_lists(self.get_root_competences(),
                                                                            chosen_direction)
         picked_competences = Competence.objects.alias(
@@ -703,12 +702,12 @@ def ajax_search_info_in_db_tables(request):
 
 
 class EditApplicationNote(MasterDataMixin, View):
-    """
-    Редактирует существующую заметку и добавляет к ней список взводов автора.
-    Удаляет заметку, если она пустая и создает новую, если заметка отсутствует
-    """
 
     def post(self, request, pk):
+        """
+        Редактирует существующую заметку и добавляет к ней список взводов автора.
+        Удаляет заметку, если она пустая и создает новую, если заметка отсутствует
+        """
         text = request.POST.get('note_text', '')
         master_affiliations = self.get_master_affiliations()
         app_note = ApplicationNote.objects.filter(application=pk, affiliations__in=master_affiliations,
@@ -744,7 +743,8 @@ class ChangeAppFinishedView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     """ Обработка post запроса на блокирование редактирования анкеты пользователя"""
 
     def post(self, request, pk):
-        is_final = True if request.POST.get('is_final', None) == 'on' else False
+        """Меняет поле is_final анкеты с id=pk в зависимости от переключателя is_final"""
+        is_final = request.POST.get('is_final', None) == 'on'
         check_booking_our_or_exception(pk=pk, user=request.user)
         application = get_object_or_404(Application, pk=pk)
         application.is_final = is_final
@@ -765,7 +765,7 @@ class CreateServiceDocumentView(LoginRequiredMixin, OnlyMasterAccessMixin, View)
 
     def get(self, request):
         service_document = request.GET.get('doc', '')
-        all_directions = True if request.GET.get('directions', None) else False
+        all_directions = bool(request.GET.get('directions', None))
         path_to_file, filename = const.TYPE_SERVICE_DOCUMENT.get(service_document, (None, None))
         if path_to_file:
             word_template = WordTemplate(request, path_to_file)
@@ -795,15 +795,15 @@ class WorkGroupsListView(MasterDataMixin, CreateView):
         master_affiliations = self.get_master_affiliations()
         if not master_affiliations:
             raise MasterHasNoDirectionsException(
-                f'У вас нет ни одного направления, по которому вы можете осуществлять отбор.')
+                'У вас нет ни одного направления, по которому вы можете осуществлять отбор.')
         kwargs.update({'master_affiliations': master_affiliations})
         return kwargs
 
 
 class DeleteWorkGroupView(MasterDataMixin, View):
-    """Удаляет рабочую группу с group_id"""
 
     def get(self, request, group_id):
+        """Удаляет рабочую группу с group_id"""
         group = get_object_or_404(WorkGroup, pk=group_id)
         self.check_master_has_affiliation(group.affiliation.id,
                                           'Невозможно удалить чужую рабочую группу.')
@@ -829,9 +829,8 @@ class WorkGroupView(MasterDataMixin, DetailView):
 
 
 class RemoveApplicationWorkGroupView(MasterDataMixin, View):
-    """Удаляет заявку с app_id из рабочей группы с group_id"""
-
     def get(self, request, app_id, group_id):
+        """Удаляет заявку с app_id из рабочей группы с group_id"""
         group = get_object_or_404(WorkGroup, pk=group_id)
         application = get_object_or_404(Application, pk=app_id)
         self.check_master_has_affiliation(group.affiliation.id,
@@ -942,7 +941,7 @@ class WorkingListView(MasterDataMixin, ListView):
         work_group_select = ChooseWorkGroupForm(group_set=group_set)
         context['group_form'] = work_group_select
         context['form'] = filter_form
-        context['reset_filters'] = True if self.request.GET else False
+        context['reset_filters'] = bool(self.request.GET)
         context['work_list_active'] = True
         context['master_directions_affiliations'] = self.get_master_direction_affiliations(master_affiliations)
         chosen_affiliation = get_object_or_404(Affiliation.objects.select_related('direction'),
