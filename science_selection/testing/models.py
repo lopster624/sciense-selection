@@ -99,6 +99,7 @@ class Answer(models.Model):
     meaning = models.CharField(max_length=256, verbose_name='Ответ')
     question = models.ForeignKey(Question, on_delete=models.CASCADE, verbose_name='Вопрос',
                                  related_name='answer_options')
+    is_correct = models.BooleanField(default=False, verbose_name='Правильный ответ')
 
     class Meta:
         verbose_name = "Ответ"
@@ -106,20 +107,6 @@ class Answer(models.Model):
 
     def __str__(self):
         return f'{self.meaning}'
-
-
-class CorrectAnswer(models.Model):
-    """ Таблица с правильными вариантами ответов к вопросам """
-
-    question = models.ForeignKey(Question, on_delete=models.CASCADE, verbose_name='Вопрос', related_name='correct_answer')
-    answer = models.ForeignKey(Answer, on_delete=models.CASCADE, verbose_name='Ответ')
-
-    class Meta:
-        verbose_name = "Правильный ответ"
-        verbose_name_plural = "Правильные ответы"
-
-    def __str__(self):
-        return f'{self.question}-{self.answer}'
 
 
 class UserAnswer(models.Model):

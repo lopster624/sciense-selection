@@ -22,7 +22,7 @@ from utils.constants import PATH_TO_PSYCHOLOGICAL_TESTS
 
 from .forms import TestCreateForm, QuestionForm, AnswerFormSetExtra1, AnswerFormSetExtra5
 from .mixins import TestAndQuestionMixin
-from .models import Test, TestResult, Question, UserAnswer, Answer, CorrectAnswer
+from .models import Test, TestResult, Question, UserAnswer, Answer
 from .utils import get_master_directions
 
 
@@ -113,7 +113,7 @@ class TestResultsView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
                                                   draft_season=current_season[0]).select_related('member')\
             .only('member')
         members = [app.member for app in current_apps]
-        return TestResult.objects.filter(member__in=members).prefetch_related('test', 'member', 'test__type')
+        return TestResult.objects.filter(member__in=members).prefetch_related('test', 'member', 'test__type').order_by('member')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -203,9 +203,9 @@ class UpdateQuestionView(TestAndQuestionMixin):
     """ Получить обновить значения полей созданного вопроса """
 
     def get(self, request, pk, question_id):
-        question = get_object_or_404(Question.objects.prefetch_related('correct_answer'), pk=question_id)
+        question = get_object_or_404(Question, pk=question_id)
         answers = Answer.objects.filter(question=question)
-        correct_answers = [_.answer.meaning for _ in question.correct_answer.all()]
+        correct_answers = [_.meaning for _ in answers if _.is_correct]
         question_form, answer_formset = QuestionForm(instance=question), AnswerFormSetExtra1(queryset=answers, )
         context = {'question_form': question_form, 'answer_formset': answer_formset, 'pk': pk,
                    'question_id': question_id, 'correct_answers': correct_answers}
@@ -214,10 +214,9 @@ class UpdateQuestionView(TestAndQuestionMixin):
     def post(self, request, pk, question_id):
         """ Получает и проверяет данные формы для обновления вопроса, после чего сохраняет его """
         test = self._get_and_check_test_permission(pk, request.user.member)
-        question = get_object_or_404(Question, pk=question_id)
-        answers = Answer.objects.filter(question=question)
+        question = get_object_or_404(Question.objects.prefetch_related('answer_options'), pk=question_id)
 
-        saved, context = self._save_question_with_answers(request.POST, test, request.FILES, question, answers)
+        saved, context = self._save_question_with_answers(request.POST, test, request.FILES, question)
         context.update({'question_id': question_id})
         if saved:
             return redirect('edit_test', pk=test.pk)
@@ -308,8 +307,8 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
             if 'answer' in param:
                 _, question_id, answer_id = param.split('_')
                 answer_id = params[param] if not answer_id else answer_id
-                question = get_object_or_404(Question.objects.prefetch_related('correct_answer'), pk=question_id)
-                params_from_page[question_id]['correct_answer'] = [_.answer.pk for _ in question.correct_answer.all()]
+                question = get_object_or_404(Question.objects.prefetch_related('answer_options'), pk=question_id)
+                params_from_page[question_id]['correct_answer'] = [_.pk for _ in question.answer_options.all() if _.is_correct]
                 params_from_page[question_id]['question'] = question
                 params_from_page[question_id]['user_answer'].append(int(answer_id))
         return params_from_page
@@ -336,11 +335,11 @@ class TestResultView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def get(self, request, pk, result_id):
         """ Получает результаты теста пользователя и генерирует страницу просмотра результатов """
         user_test_result = get_object_or_404(TestResult, pk=result_id)
-        question_list, user_answers, correct_answers = self._get_user_questions_and_answers(user_test_result)
+        question_list, user_answers = self._get_user_questions_and_answers(user_test_result)
         is_psychological = user_test_result.test.type.is_psychological()
         context = {
             'user_answers': user_answers, 'question_list': question_list, 'is_psychological': is_psychological,
-            'correct_answers': correct_answers, 'pk': pk, 'result_id': result_id, 'test_res': user_test_result
+            'pk': pk, 'result_id': result_id, 'test_res': user_test_result
         }
         return render(request, 'testing/test_result.html', context=context)
 
@@ -348,10 +347,9 @@ class TestResultView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         """ Собирает данные по результатам теста пользователя: список вопросов, ответы пользователя и правильные ответы """
         user_answers = []
         question_list = Question.objects.filter(test=user_test_result.test).prefetch_related('answer_options')
-        correct_answers = [_.answer.pk for _ in CorrectAnswer.objects.filter(question__in=question_list).prefetch_related('answer')]
         for _ in UserAnswer.objects.filter(question__in=question_list, member=user_test_result.member):
             user_answers.extend(list(map(int, _.answer_option)))
-        return question_list, user_answers, correct_answers
+        return question_list, user_answers
 
 
 class TestResultInWordView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
