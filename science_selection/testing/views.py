@@ -1,3 +1,5 @@
+import datetime
+
 from collections import defaultdict
 from itertools import groupby
 from operator import attrgetter
@@ -268,19 +270,23 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
         if is_completed:
             return redirect('test_list')
 
-        question_list = Question.objects.filter(test=current_test).prefetch_related('answer_options')
-        context = {
-            'question_list': question_list, 'test': current_test,
-        }
+        context = self._get_default_context(current_test, user_test_result)
         return render(request, 'testing/add_test_result.html', context=context)
+
+    def _get_default_context(self, test, user_result):
+        return {
+            'question_list': Question.objects.filter(test=test).prefetch_related('answer_options'),
+            'test': test,
+            'end_date': datetime.datetime.strftime(timezone.localtime(user_result.end_date), "%Y-%m-%d %H:%M:%S")
+        }
 
     def _test_is_completed(self, member, current_test):
         """ Создает или получает тест пользователя и обновляет его статус, если он изменился """
+        end_date = timezone.now() + timezone.timedelta(minutes=current_test.time_limit)  # current_test.type.is_psychological()
         user_test_result, is_new_test = TestResult.objects.get_or_create(test=current_test, member=member,
                                                                          defaults={'result': 0,
                                                                                    'status': TestResult.test_statuses[1][0],
-                                                                                   'end_date': timezone.now() +
-                                                                                               timezone.timedelta(minutes=current_test.time_limit)})
+                                                                                   'end_date': end_date})
 
         if not is_new_test and (user_test_result.end_date < timezone.now() or user_test_result.status == TestResult.test_statuses[-1][0]):
             if user_test_result.status != TestResult.test_statuses[-1][0]:
@@ -293,10 +299,21 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
         """ Проверяет результаты теста пользователя, если он еще не был прорешен, то сохраняет результаты теста пользователя """
         member = request.user.member
         test = get_object_or_404(Test, pk=pk)
-        is_completed, _, _ = self._test_is_completed(member, test)
+        is_completed, user_test_result, _ = self._test_is_completed(member, test)
         if is_completed:
             return redirect('test_list')
         answers = self._get_answers_from_page(request.POST)
+        question_ids = [str(_.pk) for _ in Question.objects.filter(test=test).only('pk')]
+        if test.type.is_psychological() and list(answers.keys()) != question_ids:
+            user_answers = []
+            for _ in answers.values():
+                user_answers.extend(_['user_answer'])
+
+            context = self._get_default_context(test, user_test_result)
+            context.update({
+                'user_answers': user_answers, 'msg': 'Необходимо ответить на все вопросы'
+            })
+            return render(request, 'testing/add_test_result.html', context=context)
         self._add_or_update_user_answers(member, answers, test)
         return redirect('test_list')
 
