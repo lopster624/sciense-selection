@@ -96,8 +96,8 @@ class EducationCreateForm(forms.ModelForm):
         widgets = {
             'university': Input(attrs={'class': 'form-control university'}),
             'specialization': Input(attrs={'class': 'form-control specialization'}),
-            'avg_score': NumberInput(attrs={'class': 'form-control'}),
-            'end_year': NumberInput(attrs={'class': 'form-control'}),
+            'avg_score': NumberInput(attrs={'class': 'form-control', 'min': '2', 'max': '5', 'step': '0.1'}),
+            'end_year': NumberInput(attrs={'class': 'form-control', 'min': '0'}),
             'theme_of_diploma': Input(attrs={'class': 'form-control'}),
             'name_of_education_doc': Input(attrs={'class': 'form-control'}),
             'is_ended': CheckboxInput(attrs={'class': 'form-check-input'}),

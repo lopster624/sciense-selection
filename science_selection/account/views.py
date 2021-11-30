@@ -9,7 +9,7 @@ from utils.calculations import get_current_draft_year
 from utils.constants import SLAVE_ROLE_NAME, BOOKED, DEFAULT_FILED_BLOCKS
 from utils.exceptions import IncorrectActivationLinkException, ActivationFailedException
 from .forms import RegisterForm
-from .models import Member, ActivationLink, Role, Booking
+from .models import Member, ActivationLink, Role, Booking, create_activation_link
 
 
 class RegistrationView(View):
@@ -25,7 +25,8 @@ class RegistrationView(View):
             new_user.save()
             Member.objects.create(user=new_user, father_name=form.cleaned_data.get('father_name'),
                                   phone=form.cleaned_data.get('phone'), role=None)
-            msg = 'Пользователь успешно зарегистрирован, подтвердите регистрацию на почте'
+            activation_link = create_activation_link(new_user)
+            msg = f'Пользователь успешно зарегистрирован, подтвердите регистрацию по ссылке: {activation_link}'
             return render(request, "register.html", {"form": form, "msg": msg, "success": True}, status=201)
         else:
             msg = 'Некорректные данные в форме'

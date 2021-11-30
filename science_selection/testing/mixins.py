@@ -6,7 +6,7 @@ from django.views import View
 from application.mixins import OnlyMasterAccessMixin
 
 from .forms import QuestionForm, AnswerFormSetExtra1
-from .models import Test, Question, Answer, CorrectAnswer
+from .models import Test, Question, Answer
 
 
 class TestAndQuestionMixin(LoginRequiredMixin, OnlyMasterAccessMixin, View):
@@ -18,10 +18,10 @@ class TestAndQuestionMixin(LoginRequiredMixin, OnlyMasterAccessMixin, View):
             raise BadRequest('Выберите правильные варианты ответов')
         return [params.get(ans) for ans in answers]
 
-    def _save_question_with_answers(self, params, test, files=None, question=None, answers=None):
+    def _save_question_with_answers(self, params, test, files=None, question=None):
         """ Сохраняет вопрос в БД с его вариантами ответа """
-        correct_answer_ids = []
         correct_answers = self._get_correct_answers(params) if not test.type.is_psychological() else []
+        answers = question.answer_options.all() if question else None
         question_form, answer_formset = QuestionForm(params, files, instance=question), AnswerFormSetExtra1(params, queryset=answers)
         context = {'question_form': question_form, 'answer_formset': answer_formset, 'pk': test.pk,
                    'correct_answers': correct_answers}
@@ -35,10 +35,8 @@ class TestAndQuestionMixin(LoginRequiredMixin, OnlyMasterAccessMixin, View):
                     if ans_form.cleaned_data:
                         new_answer = ans_form.save(commit=False)
                         new_answer.question = new_question
+                        new_answer.is_correct = new_answer.meaning in correct_answers
                         new_answer.save()
-                        if new_answer.meaning in correct_answers:
-                            correct_answer_ids.append(new_answer)
-                CorrectAnswer.objects.bulk_create([CorrectAnswer(question=new_question, answer=c_a) for c_a in correct_answer_ids])
                 return True, context
             else:
                 context['msg'] = 'Выбрано неправильное количество правильных ответов'
