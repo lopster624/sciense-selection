@@ -1244,6 +1244,7 @@ class WorkingListViewTest(TestCase):
             dir = Direction.objects.create(name=f'test{i}', description='description')
             Affiliation.objects.create(direction=dir, company=i, platoon=i)
         dir1 = Direction.objects.get(name='test1')
+        self.main_dir = dir1
         aff1 = Affiliation.objects.get(company=1, platoon=1)
         aff2 = Affiliation.objects.get(company=2, platoon=2)
         aff3 = Affiliation.objects.get(company=3, platoon=3)
@@ -1296,6 +1297,7 @@ class WorkingListViewTest(TestCase):
         for i in range(6):
             test = Test.objects.create(name=f'test{i}', time_limit=10, creator=master_member, type=type_of_test)
             test.directions.set([dir1])
+        Test.objects.create(name=f'testtest', time_limit=10, creator=master_member, type=type_of_test)
 
     def test_redirect_if_not_logged_in(self):
         resp = self.client.get(reverse('work_list'))
@@ -1325,7 +1327,7 @@ class WorkingListViewTest(TestCase):
                          {self.aff1.id: [self.aff1], self.aff3.id: [self.aff3]})
         self.assertEqual(resp.context['chosen_company'], 1)
         self.assertEqual(resp.context['chosen_platoon'], 1)
-        self.assertEqual(tuple(resp.context['direction_tests']), tuple(Test.objects.all()))
+        self.assertEqual(tuple(resp.context['direction_tests']), tuple(Test.objects.filter(directions=self.main_dir)))
 
     def test_second_affiliation_filter(self):
         """Проверяет, что показываются анкеты только для второго направления"""
