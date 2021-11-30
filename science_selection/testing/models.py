@@ -1,6 +1,5 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
 from django.utils.translation import gettext_lazy as _
 from utils.constants import PSYCHOLOGICAL_TYPE_OF_TEST
 
@@ -25,7 +24,7 @@ class Test(models.Model):
     """ Таблица с тестами """
 
     name = models.CharField(max_length=128, verbose_name='Название теста')
-    time_limit = models.IntegerField(verbose_name='Ограничение по времени (в мин.)', validators=[MinValueValidator(1)])
+    time_limit = models.IntegerField(verbose_name='Ограничение по времени (в мин.)')
     description = models.CharField(max_length=256, verbose_name='Описание теста', blank=True)
     directions = models.ManyToManyField('application.Direction', verbose_name='Направления тестов', blank=True)
     creator = models.ForeignKey('account.Member', on_delete=models.CASCADE, verbose_name='Создатель теста')

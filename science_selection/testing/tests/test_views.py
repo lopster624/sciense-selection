@@ -147,6 +147,7 @@ class CreateTestViewTest(TestCase):
     def setUp(self) -> None:
         master_member1 = Member.objects.get(user=User.objects.get(username='master1'))
         aff1 = Affiliation.objects.get(company=1, platoon=1)
+        self.direct_test = Direction.objects.create(name='direct1', description=2)
         test_type1 = TypeOfTest.objects.first()
         self.data = {
             'name': 'Test1',
@@ -183,15 +184,15 @@ class CreateTestViewTest(TestCase):
         self.data['time_limit'] = -1
         resp = self.client.post(reverse('create_test'), data=self.data)
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.context['msg'], 'Некорректные данные при создании теста')
+        self.assertEqual(resp.context['msg'], 'Значение времени не может быть меньше 1 минуты')
 
     def test_create_test_with_invalid_directions(self):
         """ Проверяет ошибку при создании теста с незакрепленными направлениями за пользователем """
         self.client.login(username='master1', password='master1')
-        self.data['directions'] = 99
+        self.data['directions'] = [self.direct_test.pk]
         resp = self.client.post(reverse('create_test'), data=self.data)
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.context['msg'], 'Некорректные данные при создании теста')
+        self.assertEqual(resp.context['msg'], 'Выберите корректный вариант. %(value)s нет среди допустимых значений.')
 
     def test_create_test_with_incorrect_type(self):
         """ Проверяет ошибку при создании теста с несуществующим типом """
@@ -199,7 +200,7 @@ class CreateTestViewTest(TestCase):
         self.data['type'] = 99
         resp = self.client.post(reverse('create_test'), data=self.data)
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.context['msg'], 'Некорректные данные при создании теста')
+        self.assertEqual(resp.context['msg'], 'Выберите корректный вариант. Вашего варианта нет среди допустимых значений.')
 
     def test_create_test_without_permission(self):
         """ Проверяет ошибку при создании теста для пользователя без прав мастера """

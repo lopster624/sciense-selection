@@ -144,7 +144,8 @@ class CreateTestView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
             test_form.save_m2m()
             return redirect('test', pk=new_test.pk)
         else:
-            context = {'msg': 'Некорректные данные при создании теста', 'test_form': test_form}
+            errors = [str(v[0].message) for _, v in test_form.errors.as_data().items()]
+            context = {'msg': '; '.join(errors), 'test_form': test_form}
             return render(request, 'testing/test_create.html', context=context, status=400)
 
 
@@ -254,8 +255,9 @@ class EditTestView(TestAndQuestionMixin):
         if test_form.is_valid():
             test_form.save()
             return redirect('test', pk=pk)
+        errors = [str(v[0].message) for _, v in test_form.errors.as_data().items()]
         questions = Question.objects.filter(test=test).only('wording')
-        context = {'test_form': test_form, 'pk': pk, 'questions': questions}
+        context = {'test_form': test_form, 'pk': pk, 'questions': questions, 'msg': '; '.join(errors)}
         return render(request, 'testing/test_edit.html', context=context, status=400)
 
 
@@ -282,7 +284,7 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
 
     def _test_is_completed(self, member, current_test):
         """ Создает или получает тест пользователя и обновляет его статус, если он изменился """
-        end_date = timezone.now() + timezone.timedelta(minutes=current_test.time_limit)  # current_test.type.is_psychological()
+        end_date = timezone.now() + timezone.timedelta(minutes=current_test.time_limit) if current_test.time_limit or not current_test.type.is_psychological() else timezone.now() + timezone.timedelta(days=3650)
         user_test_result, is_new_test = TestResult.objects.get_or_create(test=current_test, member=member,
                                                                          defaults={'result': 0,
                                                                                    'status': TestResult.test_statuses[1][0],

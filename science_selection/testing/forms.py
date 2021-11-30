@@ -8,7 +8,7 @@ from .models import Test, Question, Answer
 
 
 class TestCreateForm(forms.ModelForm):
-    time_limit = forms.IntegerField(min_value=1,
+    time_limit = forms.IntegerField(min_value=1, required=False,
                                     validators=[MinValueValidator(1)], label='Ограничение по времени (в мин.)',
                                     error_messages={'min_value': "Значение времени не может быть меньше 1 минуты"},
                                     widget=NumberInput(attrs={'class': 'form-control'}))
@@ -34,12 +34,18 @@ class TestCreateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['directions'].queryset = Direction.objects.filter(pk__in=directions).only('pk', 'name')
 
-    def clean_directions(self):
-        directions = self.cleaned_data['directions']
+    def clean(self):
+        cleaned_data = super().clean()
+        directions = cleaned_data.get('directions', [])
+        test_type = cleaned_data.get('type')
+        time_limit = cleaned_data.get('time_limit')
+
         loose_directions = list(set(directions) - set(self.fields['directions'].queryset))
         if loose_directions:
-            raise forms.ValidationError("Выбраны незакрепленые направления")
-        return directions
+            self.add_error('directions', 'Выбраны незакрепленые направления')
+
+        if test_type and not test_type.is_psychological() and not time_limit:
+            self.add_error('time_limit', 'Необходимо указать "Ограничение по времени"')
 
 
 class QuestionForm(forms.ModelForm):

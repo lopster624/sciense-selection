@@ -10,11 +10,15 @@
     <div class="row">
         <h4 class="text-center">Вопросы к тесту - {{ test.name }}</h4>
         <p class="fs-5 offset-1 mb-1 col-10"><b class="text-primary text-opacity-75">Описание:</b> {{ test.description }}</p>
-        <div id="countdown" class="countdown fs-5 fst-italic">
-            <div class="text-end">Оставшееся время:
-                <span class="hours"></span>:<span class="minutes"></span>:<span class="seconds "></span>
+
+        {% if not test.type.is_psychological or test.time_limit %}
+            <div id="countdown" class="countdown fs-5 fst-italic">
+                <div class="text-end">Оставшееся время:
+                    <span class="hours"></span>:<span class="minutes"></span>:<span class="seconds "></span>
+                </div>
             </div>
-        </div>
+        {% endif %}
+
         {% if msg %}
             <div class="alert alert-danger">{{ msg }}</div>
         {% endif %}
@@ -55,6 +59,8 @@
     </div>
 </div>
 
-{{ end_date|json_script:"end_time" }}
-<script src="{% static 'js/add_form_timer.js' %}" type="text/javascript"></script>
+{% if not test.type.is_psychological or test.time_limit %}
+    {{ end_date|json_script:"end_time" }}
+    <script src="{% static 'js/add_form_timer.js' %}" type="text/javascript"></script>
+{% endif %}
 {% endblock %}

@@ -24,10 +24,10 @@
                     </div>
                     <div class="row col-12 mb-2">
                         <div class="col">
-                            Ограничение по времени:
+                            Ограничение по времени (мин.):
                         </div>
                         <div class="col">
-                            {{ test.time_limit }} минут
+                            {{ test.time_limit|default:"Нет" }}
                         </div>
                     </div>
                     {% if user.member.is_master %}
