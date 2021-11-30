@@ -219,7 +219,7 @@ class Education(models.Model):
     education_type = models.CharField(choices=education_program, max_length=1, verbose_name='Программа')
     university = models.CharField(max_length=256, verbose_name='Университет')
     specialization = models.CharField(max_length=256, verbose_name='Специальность')
-    avg_score = models.FloatField(verbose_name='Средний балл', validators=[validate_avg_score], blank=True)
+    avg_score = models.FloatField(verbose_name='Средний балл', validators=[validate_avg_score])
     end_year = models.IntegerField(verbose_name='Год окончания')
     is_ended = models.BooleanField(default=False, verbose_name='Окончено')
     name_of_education_doc = models.CharField(max_length=256, verbose_name='Наименование документа об образовании',
