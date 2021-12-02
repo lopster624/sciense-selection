@@ -62,16 +62,22 @@ class Member(models.Model):
         return self.role.role_name == MASTER_ROLE_NAME
 
 
-@receiver(models.signals.post_save, sender=User)
-def send_link_to_mail(sender, instance, created, **kwargs):
-    """
-    Отправка письма после регистрации на почту для активации пользователя
-    """
-    if created:
-        token = uuid4()
-        ActivationLink.objects.create(user=instance, token=token)
-        # send_verification_email(instance.pk, token)  # когда будет Celery + Redis
-        send_mail('Проверка', f'{ACTIVATION_LINK}{token}', DEFAULT_FROM_EMAIL, [instance.email])
+def create_activation_link(user):
+    token = uuid4()
+    ActivationLink.objects.create(user=user, token=token)
+    return f'{ACTIVATION_LINK}{token}'
+
+
+# @receiver(models.signals.post_save, sender=User)
+# def send_link_to_mail(sender, instance, created, **kwargs):
+#     """
+#     Отправка письма после регистрации на почту для активации пользователя
+#     """
+#     if created:
+#         token = uuid4()
+#         ActivationLink.objects.create(user=instance, token=token)
+#         # send_verification_email(instance.pk, token)  # когда будет Celery + Redis
+#         send_mail('Проверка', f'{ACTIVATION_LINK}{token}', DEFAULT_FROM_EMAIL, [instance.email])
 
 
 class BookingType(models.Model):
