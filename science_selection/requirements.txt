@@ -3,3 +3,5 @@ docxtpl
 Pillow
 django-autocomplete-light
 celery[redis]
+psycopg2-binary
+python-dotenv

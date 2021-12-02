@@ -8,7 +8,7 @@ IN_WISHLIST = 'В избранном'
 MASTER_ROLE_NAME = 'Отбирающий'
 SLAVE_ROLE_NAME = 'Оператор'
 PSYCHOLOGICAL_TYPE_OF_TEST = 'Психологический'
-ACTIVATION_LINK = '127.0.0.1:8000/accounts/activation/'  # в переменные окружения
+ACTIVATION_LINK = os.environ.get("APP_ACTIVATION_LINK", "127.0.0.1:8000/accounts/activation/")
 MIDDLE_RECRUITING_DATE = {'day': 15, 'month': 7}
 
 MEANING_COEFFICIENTS = {'k1': 0.25, 'k2': 0.15, 'k3': 0.3, 'k4': 0.2, 'k5': 0.5, 'k6': 0.25, 'k7': 0.1}

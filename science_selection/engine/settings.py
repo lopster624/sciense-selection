@@ -9,8 +9,11 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
+import dotenv
 import os
 from pathlib import Path
+
+dotenv.load_dotenv('../.env')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,10 +22,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-taz$&%yz_ay+9l_xod=lljge^6n&v@q%!(j%%&f$um5fojsos&'
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+if os.environ.get('DJANGO_DEBUG') in ['True', 'true', '1', True]:
+    DEBUG = True
+else:
+    DEBUG = False
+
 INTERNAL_IPS = [
     '127.0.0.1',
 ]
@@ -84,9 +91,13 @@ WSGI_APPLICATION = 'engine.wsgi.application'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": os.environ.get("SQL_ENGINE", "django.db.backends.sqlite3"),
+        "NAME": os.environ.get("SQL_DATABASE", os.path.join(BASE_DIR, "db.sqlite3")),
+        "USER": os.environ.get("SQL_USER", "user"),
+        "PASSWORD": os.environ.get("SQL_PASSWORD", "password"),
+        "HOST": os.environ.get("SQL_HOST", "localhost"),
+        "PORT": os.environ.get("SQL_PORT", "5432"),
     }
 }
 
@@ -141,24 +152,24 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # EMAIL BACKEND
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-EMAIL_HOST = 'localhost'
-EMAIL_PORT = 1025
-DEFAULT_FROM_EMAIL = 'admin@test.com'
+EMAIL_HOST = os.getenv('DJANGO_EMAIL_HOST', 'localhost')
+EMAIL_PORT = os.getenv('DJANGO_EMAIL_PORT', 1025)
+DEFAULT_FROM_EMAIL = os.getenv('DJANGO_DEFAULT_FROM_EMAIL', 'test@test.ru')
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 
 # REDIS related settings
-REDIS_HOST = 'localhost'
-REDIS_PORT = '6379'
-BROKER_URL = 'redis://' + REDIS_HOST + ':' + REDIS_PORT + '/0'
+REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+REDIS_PORT = os.getenv('REDIS_PORT', '6379')
+BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}'
 BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600}
-CELERY_RESULT_BACKEND = 'redis://' + REDIS_HOST + ':' + REDIS_PORT + '/0'
+CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}'
 
 
 if DEBUG:
     import mimetypes
-
     mimetypes.add_type("application/javascript", ".js", True)
+
 
 LOGGING = {
     'version': 1,
@@ -180,7 +191,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'formatter': 'file',
-            'filename': 'debug.log'
+            'filename': os.getenv('DJANGO_DEBUG_FILENAME', 'debug.log'),
         }
     },
     'loggers': {
