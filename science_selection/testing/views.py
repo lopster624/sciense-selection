@@ -279,7 +279,7 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
         return {
             'question_list': Question.objects.filter(test=test).prefetch_related('answer_options'),
             'test': test,
-            'end_date': datetime.datetime.strftime(timezone.localtime(user_result.end_date), "%Y-%m-%d %H:%M:%S")
+            'end_date': datetime.datetime.strftime(timezone.localtime(user_result.end_date) - timezone.timedelta(seconds=3), "%Y-%m-%d %H:%M:%S")
         }
 
     def _test_is_completed(self, member, current_test):
