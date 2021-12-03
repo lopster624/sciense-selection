@@ -22,8 +22,9 @@ ACTIVATION_LINK = os.environ.get("APP_ACTIVATION_LINK", "127.0.0.1:8000/accounts
 MIDDLE_RECRUITING_DATE = {'day': 15, 'month': 7}
 
 # коэффициенты для расчета итогового  балла оператора
-MEANING_COEFFICIENTS = {'k1': 0.25, 'k2': 0.15, 'k3': 0.3, 'k4': 0.2, 'k5': 0.5, 'k6': 0.25, 'k7': 0.1}
+MEANING_COEFFICIENTS = {'k1': 0.25, 'k2': 0.15, 'k3': 0.3, 'k4': 0.2, 'k5': 0.5, 'k6': 0.25, 'k7': 0.1}  # задавать через переменные окружения?
 
+# задавать через переменные окружения? для все коэф ниже - или через файл -> в перемен окр
 # баллы, начисляемые в критерии a1
 INTERNATIONAL_ARTICLES_SCORE = 5
 PATENTS_SCORE = 4
@@ -78,7 +79,7 @@ PATH_TO_CANDIDATES_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx
 PATH_TO_RATING_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\rating_list.docx')
 PATH_TO_EVALUATION_STATEMENT = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\evaluation_statement.docx')
 PATH_TO_PSYCHOLOGICAL_TESTS = {
-    'Псих1 алл': os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\psychological_test.docx')
+    'Псих1 алл': os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\psychological_test.docx') # задавать название теста через переменные окружения?
 }
 TYPE_SERVICE_DOCUMENT = {
     'candidates': (PATH_TO_CANDIDATES_LIST, "Итоговый список кандидатов.docx"),
@@ -87,7 +88,7 @@ TYPE_SERVICE_DOCUMENT = {
 }
 
 # Ограничение на максимальное количество выбираемых направлений
-MAX_APP_DIRECTIONS = 4
+MAX_APP_DIRECTIONS = 4  # задавать через переменные окружения?
 
 # шаблон для именования полей в форме html в тестах пользователей
 NAME_ADDITIONAL_FIELD_TEMPLATE = 'additional_field_'
