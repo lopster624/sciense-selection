@@ -428,7 +428,7 @@ class ApplicationListView(MasterDataMixin, ListView):
     Забронированные на направление отбирающего показываются зеленым цветом.
     """
     model = Application
-
+    paginate_by = 2
     def get_queryset(self):
         wishlist_affiliations = Booking.objects.filter(affiliation__in=self.get_master_affiliations(),
                                                        booking_type__name=const.IN_WISHLIST).select_related(
