@@ -24,6 +24,7 @@ def check_role(user, role_name):
 
 def check_permission_decorator(role_name=None):
     """ Декоратор, который проверяет роль пользователя с заданной через параметр role_name """
+
     def decorator(func):
         def wrapper(self, request, pk, *args, **kwargs):
             if request.user.member.role.role_name == role_name:
@@ -185,3 +186,9 @@ def add_additional_fields(request, user_app):
             AdditionFieldApp.objects.update_or_create(addition_field=field, application=user_app,
                                                       defaults={'value': request.POST.get(
                                                           f"{NAME_ADDITIONAL_FIELD_TEMPLATE}{field.id}")})
+
+
+def get_cleared_query_string_of_page(query_string):
+    if not query_string:
+        return ''
+    return '&'.join(param for param in query_string.split('&') if 'page=' not in param) + '&'

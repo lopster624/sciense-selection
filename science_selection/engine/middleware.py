@@ -24,6 +24,7 @@ class ExceptionProcessorMiddleware:
                           f'{exception} {traceback.format_exc()}'
         if status >= 500:
             logger.error(additional_info)
+            return render(request, 'access_error.html', context={'error': "Ошибка на сервере"}, status=status)
         else:
             logger.warning(additional_info)
         return render(request, 'access_error.html', context={'error': exception}, status=status)

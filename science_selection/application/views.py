@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, BadRequest
 from django.db import transaction
-from django.db.models import F, Q, Count, OuterRef, Subquery, Prefetch
+from django.db.models import F, Q, Count, OuterRef, Subquery, Prefetch, Exists, Case, When, Value
 from django.http import FileResponse
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse, reverse_lazy
@@ -28,7 +28,7 @@ from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities, AdditionFieldApp, AdditionField, Specialization, MilitaryCommissariat, WorkGroup
 from .utils import check_permission_decorator, WordTemplate, check_booking_our_or_exception, check_final_decorator, \
-    add_additional_fields
+    add_additional_fields, get_cleared_query_string_of_page
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
@@ -163,10 +163,14 @@ class ApplicationView(LoginRequiredMixin, DataApplicationMixin, View):
                          member__candidate__affiliation__in=self.get_master_affiliations()),
                 distinct=True
             ),
-            our_direction=Count(
+            our_direction_count=Count(
                 F('directions'),
                 filter=Q(directions__id__in=self.get_master_directions_id()),
                 distinct=True
+            ),
+            our_direction=Case(
+                When(our_direction_count__gt=0, then=Value(True)),
+                default=Value(False),
             ),
         ).first()
         return app
@@ -428,7 +432,8 @@ class ApplicationListView(MasterDataMixin, ListView):
     Забронированные на направление отбирающего показываются зеленым цветом.
     """
     model = Application
-    paginate_by = 2
+    paginate_by = 50
+
     def get_queryset(self):
         wishlist_affiliations = Booking.objects.filter(affiliation__in=self.get_master_affiliations(),
                                                        booking_type__name=const.IN_WISHLIST).select_related(
@@ -481,10 +486,14 @@ class ApplicationListView(MasterDataMixin, ListView):
                 'avg_score')[:1]),
             education_type=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
                 'education_type')[:1]),
-            our_direction=Count(
+            our_direction_count=Count(
                 F('directions'),
                 filter=Q(directions__id__in=self.get_master_directions_id()),
                 distinct=True
+            ),
+            our_direction=Case(
+                When(our_direction_count__gt=0, then=Value(True)),
+                default=Value(False),
             ),
             author_note=Subquery(
                 ApplicationNote.objects.filter(application=OuterRef('pk'), author=self.request.user.member,
@@ -495,35 +504,37 @@ class ApplicationListView(MasterDataMixin, ListView):
                                                affiliations__in=self.get_master_affiliations(),
                                                ).values('text')[:1]),
         )
+        # сортировка
+        ordering = self.request.GET.get('ordering', None)
+        if ordering:
+            apps = apps.order_by('-our_direction', ordering)
+
         return apps
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         master_affiliations = self.get_master_affiliations().select_related('direction').defer('direction__description',
                                                                                                'direction__image')
-        directions_set = set([(aff.direction.id, aff.direction.name) for aff in master_affiliations])
-        in_wishlist_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
-        draft_year_set = Application.objects.order_by('draft_year').distinct().values_list('draft_year', 'draft_year')
         current_year, current_season = get_current_draft_year()
         initial = {'draft_year': current_year,
                    'draft_season': current_season,
                    }
         data = self.request.GET if self.request.GET else None
-        filter_form = FilterAppListForm(initial=initial, data=data,
-                                        directions_set=directions_set,
-                                        in_wishlist_set=in_wishlist_set,
-                                        draft_year_set=draft_year_set, chosen_affiliation_set=in_wishlist_set)
-        context['form'] = filter_form
-        context['reset_filters'] = True if self.request.GET else False
+        context['form'] = FilterAppListForm(initial=initial, data=data, master_affiliations=master_affiliations)
+        context['reset_filters'] = bool(self.request.GET)
         context['application_active'] = True
         context['master_affiliations'] = master_affiliations
         context['master_directions_affiliations'] = self.get_master_direction_affiliations(master_affiliations)
+        context['cleaned_query_string'] = get_cleared_query_string_of_page(self.request.META['QUERY_STRING'])
         return context
 
     def get_filtered_sorted_queryset(self, apps):
-        """Возвращает отфильтрованный и отсортированный список анкет. Если в self.request.GET пусто, то
+        """Возвращает отфильтрованный  список анкет. Если в self.request.GET пусто, то
         фильтрует по текущему году и сезону призыва"""
-        if not self.request.GET:
+        args = dict(self.request.GET)
+        if args:
+            args.pop('page', None)
+        if not args:
             current_year, current_season = get_current_draft_year()
             return apps.filter(draft_year=current_year, draft_season=current_season[0]).distinct()
         # тут производится вся сортировка и фильтрация
@@ -556,11 +567,6 @@ class ApplicationListView(MasterDataMixin, ListView):
         draft_year = self.request.GET.getlist('draft_year', None)
         if draft_year:
             apps = apps.filter(draft_year__in=draft_year).distinct()
-
-        # сортировка
-        ordering = self.request.GET.get('ordering', None)
-        if ordering:
-            apps = apps.order_by(ordering)
         return apps
 
 
@@ -907,10 +913,14 @@ class WorkingListView(MasterDataMixin, ListView):
                 filter=Q(member__candidate__booking_type__name=const.IN_WISHLIST),
                 distinct=True
             ),
-            our_direction=Count(
+            our_direction_count=Count(
                 F('directions'),
                 filter=Q(directions__id__in=self.get_master_directions_id()),
                 distinct=True
+            ),
+            our_direction=Case(
+                When(our_direction_count__gt=0, then=Value(True)),
+                default=Value(False),
             ),
             is_in_wishlist=Count(
                 F('member__candidate'),
