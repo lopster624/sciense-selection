@@ -219,7 +219,8 @@ class AddQuestionToTestView(TestAndQuestionMixin):
         if saved:
             context = self._get_default_context(test)
             context['notification'] = True
-        return render(request, 'testing/test_add_question.html', context=context)
+            return render(request, 'testing/test_add_question.html', context=context)
+        return render(request, 'testing/test_add_question.html', context=context, status=400)
 
     def _get_default_context(self, test):
         question_form = QuestionForm()
@@ -340,7 +341,7 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
             context.update({
                 'user_answers': user_answers, 'msg': 'Необходимо ответить на все вопросы'
             })
-            return render(request, 'testing/add_test_result.html', context=context)
+            return render(request, 'testing/add_test_result.html', context=context, status=400)
         self._add_or_update_user_answers(member, answers, test)
         return redirect('test_list')
 

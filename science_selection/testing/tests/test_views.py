@@ -543,19 +543,19 @@ class AddQuestionToTestViewTest(TestCase):
         self.data['correct_answers'] = ['form-1-meaning']
         self.data['question_type'] = 2
         resp = self.client.post(reverse('add_question_to_test', kwargs={'pk': 1}), data=self.data)
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.context.get('msg'), 'Выбрано неправильное количество правильных ответов')
 
         self.data['correct_answers'] = ['form-1-meaning', 'form-2-meaning']
         self.data['question_type'] = 1
         resp = self.client.post(reverse('add_question_to_test', kwargs={'pk': 1}), data=self.data)
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.context.get('msg'), 'Выбрано неправильное количество правильных ответов')
 
         self.data['correct_answers'] = ['form-1-meaning', 'form-2-meaning']
         self.data['question_type'] = 3
         resp = self.client.post(reverse('add_question_to_test', kwargs={'pk': 1}), data=self.data)
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.context.get('msg'), 'Выбрано неправильное количество правильных ответов')
 
 
