@@ -4,7 +4,7 @@
 <div class="container">
     <ul class="nav nav-pills  justify-content-end">
         <li class="nav-item me-2">
-            <a class="nav-link text-white bg-secondary" href="{% url 'create_test' %}">Добавить новый тест</a>
+            <a class="nav-link text-white bg-secondary" href="{% url 'create_test' %}">Создать новый тест</a>
         </li>
         <li class="nav-item">
             <a class="nav-link text-white bg-secondary" href="{% url 'test_results' %}">Результаты тестирования</a>
@@ -31,7 +31,7 @@
 
 <div class="row">
     <div class="col">
-        <h3>Созданные тесты:</h3>
+        <h3>Прикрепить тесты:</h3>
         <form enctype="multipart/form-data" action="{% url 'add_test' selected_direction.id %}" method="post">
             {% csrf_token %}
             {% for test in test_list %}
@@ -49,7 +49,7 @@
                     {% endif %}
                 </li>
             {% endfor %}
-            <input type="submit" class="btn btn-outline-dark mt-2 mb-2" value="Добавить тесты"/>
+            <input type="submit" class="btn btn-outline-dark mt-2 mb-2" value="Прикрепить тесты"/>
         </form>
     </div>
 
