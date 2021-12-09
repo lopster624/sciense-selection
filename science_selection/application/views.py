@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, BadRequest
 from django.db import transaction
-from django.db.models import F, Q, Count, OuterRef, Subquery, Prefetch, Exists, Case, When, Value
+from django.db.models import F, Q, Count, OuterRef, Subquery, Prefetch, Case, When, Value
 from django.http import FileResponse
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse, reverse_lazy
@@ -28,7 +28,7 @@ from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities, AdditionFieldApp, AdditionField, Specialization, MilitaryCommissariat, WorkGroup
 from .utils import check_permission_decorator, WordTemplate, check_booking_our_or_exception, check_final_decorator, \
-    add_additional_fields, get_cleared_query_string_of_page
+    add_additional_fields, get_cleared_query_string_of_page, get_sorted_queryset
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
@@ -504,11 +504,7 @@ class ApplicationListView(MasterDataMixin, ListView):
                                                affiliations__in=self.get_master_affiliations(),
                                                ).values('text')[:1]),
         )
-        # сортировка
-        ordering = self.request.GET.get('ordering', None)
-        if ordering:
-            apps = apps.order_by('-our_direction', ordering)
-
+        apps = get_sorted_queryset(apps, self.request.GET.get('ordering', None))
         return apps
 
     def get_context_data(self, **kwargs):

@@ -189,6 +189,14 @@ def add_additional_fields(request, user_app):
 
 
 def get_cleared_query_string_of_page(query_string):
+    """Возвращает строку query-параметров без параметра page"""
     if not query_string:
         return ''
     return '&'.join(param for param in query_string.split('&') if 'page=' not in param) + '&'
+
+
+def get_sorted_queryset(apps, ordering):
+    """Возвращает отсортированый queryset по our_direction и ordering(если есть)"""
+    if ordering:
+        return apps.order_by('-our_direction', ordering)
+    return apps.order_by('-our_direction')
