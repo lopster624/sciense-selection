@@ -205,22 +205,11 @@ class FilterWorkGroupForm(forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
-        affiliation_set = kwargs.pop('affiliation_set')
+        master_affiliations = kwargs.pop('master_affiliations')
+        affiliation_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
         super(FilterWorkGroupForm, self).__init__(*args, **kwargs)
         self.fields['affiliation'].choices = affiliation_set
 
-
-# class ChooseWorkGroupForm(forms.Form):
-#     affiliation = forms.ChoiceField(
-#         required=False,
-#         widget=Select(attrs={'class': 'form-select'}),
-#         blank=True,
-#     )
-#
-#     def __init__(self, *args, **kwargs):
-#         group_set = kwargs.pop('group_set')
-#         super(ChooseWorkGroupForm, self).__init__(*args, **kwargs)
-#         self.fields['affiliation'].choices = group_set
 
 class ChooseWorkGroupForm(forms.ModelForm):
     class Meta:
