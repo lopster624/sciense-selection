@@ -858,6 +858,7 @@ class WorkingListView(MasterDataMixin, ListView):
     model = Application
     template_name = 'application/working_list.html'
     paginate_by = 50
+
     def get_queryset(self):
         self.chosen_affiliation_id = self.get_chosen_affiliation_id()
         chosen_direction = Direction.objects.get(affiliation__id=self.chosen_affiliation_id)
