@@ -28,7 +28,7 @@ from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities, AdditionFieldApp, AdditionField, Specialization, MilitaryCommissariat, WorkGroup
 from .utils import check_permission_decorator, WordTemplate, check_booking_our_or_exception, check_final_decorator, \
-    add_additional_fields, get_cleared_query_string_of_page, get_sorted_queryset
+    add_additional_fields, get_cleared_query_string_of_page, get_sorted_queryset, get_form_data
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
@@ -515,9 +515,10 @@ class ApplicationListView(MasterDataMixin, ListView):
         initial = {'draft_year': current_year,
                    'draft_season': current_season,
                    }
-        data = self.request.GET if self.request.GET else None
-        context['form'] = FilterAppListForm(initial=initial, data=data, master_affiliations=master_affiliations)
-        context['reset_filters'] = bool(self.request.GET)
+        context['form'] = FilterAppListForm(initial=initial,
+                                            data=get_form_data(self.request.GET),
+                                            master_affiliations=master_affiliations)
+        context['reset_filters'] = bool(get_form_data(self.request.GET))
         context['application_active'] = True
         context['master_affiliations'] = master_affiliations
         context['master_directions_affiliations'] = self.get_master_direction_affiliations(master_affiliations)
@@ -944,13 +945,13 @@ class WorkingListView(MasterDataMixin, ListView):
         initial = {'affiliation': self.get_first_master_affiliation_or_exception(),
                    'booking_type': booked_type_id.id,
                    }
-        data = self.request.GET if self.request.GET else None
-        filter_form = FilterWorkGroupForm(initial=initial, data=data, master_affiliations=master_affiliations)
+        filter_form = FilterWorkGroupForm(initial=initial, data=get_form_data(self.request.GET),
+                                          master_affiliations=master_affiliations)
         group_set = WorkGroup.objects.filter(affiliation__id=self.chosen_affiliation_id)
         work_group_select = ChooseWorkGroupForm(group_set=group_set)
         context['group_form'] = work_group_select
         context['form'] = filter_form
-        context['reset_filters'] = bool(self.request.GET)
+        context['reset_filters'] = bool(get_form_data(self.request.GET))
         context['work_list_active'] = True
         context['master_directions_affiliations'] = self.get_master_direction_affiliations(master_affiliations)
         chosen_affiliation = get_object_or_404(Affiliation.objects.select_related('direction'),

@@ -200,3 +200,12 @@ def get_sorted_queryset(apps, ordering):
     if ordering:
         return apps.order_by('-our_direction', ordering)
     return apps.order_by('-our_direction')
+
+
+def get_form_data(get_dict):
+    """Если в словаре get_dict содержится что-то кроме page, то возвращает его. В противном случае возвращает None"""
+    orig_dict = dict(get_dict)
+    orig_dict.pop('page', None)
+    if not bool(orig_dict):
+        return None
+    return get_dict

@@ -194,12 +194,12 @@ class FilterWorkGroupForm(forms.Form):
     book.append(('all', 'Не отобраны'))
     affiliation = forms.ChoiceField(
         label='Направления заявки',
-        required=True,
+        required=False,
         widget=Select(attrs={'class': 'form-select'}),
     )
     booking_type = forms.MultipleChoiceField(
         label='Состояние бронирования',
-        required=True,
+        required=False,
         widget=CheckboxSelectMultiple(),
         choices=book
     )
