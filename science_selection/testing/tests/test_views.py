@@ -6,8 +6,8 @@ from django.urls import reverse
 
 from account.models import Role, Member, Affiliation
 from application.models import Direction, Application
-from testing.models import Test, TypeOfTest, TestResult, Question, UserAnswer, CorrectAnswer, Answer
-from utils.constants import MASTER_ROLE_NAME, SLAVE_ROLE_NAME
+from testing.models import Test, TypeOfTest, TestResult, Question, UserAnswer, Answer
+from utils.constants import MASTER_ROLE_NAME, SLAVE_ROLE_NAME, PATH_TO_PSYCHOLOGICAL_TESTS
 from utils.calculations import get_current_draft_year
 
 
@@ -147,6 +147,7 @@ class CreateTestViewTest(TestCase):
     def setUp(self) -> None:
         master_member1 = Member.objects.get(user=User.objects.get(username='master1'))
         aff1 = Affiliation.objects.get(company=1, platoon=1)
+        self.direct_test = Direction.objects.create(name='direct1', description=2)
         test_type1 = TypeOfTest.objects.first()
         self.data = {
             'name': 'Test1',
@@ -183,15 +184,15 @@ class CreateTestViewTest(TestCase):
         self.data['time_limit'] = -1
         resp = self.client.post(reverse('create_test'), data=self.data)
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.context['msg'], 'Некорректные данные при создании теста')
+        self.assertEqual(resp.context['msg'], 'Значение времени не может быть меньше 1 минуты')
 
     def test_create_test_with_invalid_directions(self):
         """ Проверяет ошибку при создании теста с незакрепленными направлениями за пользователем """
         self.client.login(username='master1', password='master1')
-        self.data['directions'] = 99
+        self.data['directions'] = [self.direct_test.pk]
         resp = self.client.post(reverse('create_test'), data=self.data)
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.context['msg'], 'Некорректные данные при создании теста')
+        self.assertEqual(resp.context['msg'], 'Выберите корректный вариант. %(value)s нет среди допустимых значений.')
 
     def test_create_test_with_incorrect_type(self):
         """ Проверяет ошибку при создании теста с несуществующим типом """
@@ -199,7 +200,7 @@ class CreateTestViewTest(TestCase):
         self.data['type'] = 99
         resp = self.client.post(reverse('create_test'), data=self.data)
         self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.context['msg'], 'Некорректные данные при создании теста')
+        self.assertEqual(resp.context['msg'], 'Выберите корректный вариант. Вашего варианта нет среди допустимых значений.')
 
     def test_create_test_without_permission(self):
         """ Проверяет ошибку при создании теста для пользователя без прав мастера """
@@ -542,19 +543,19 @@ class AddQuestionToTestViewTest(TestCase):
         self.data['correct_answers'] = ['form-1-meaning']
         self.data['question_type'] = 2
         resp = self.client.post(reverse('add_question_to_test', kwargs={'pk': 1}), data=self.data)
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.context.get('msg'), 'Выбрано неправильное количество правильных ответов')
 
         self.data['correct_answers'] = ['form-1-meaning', 'form-2-meaning']
         self.data['question_type'] = 1
         resp = self.client.post(reverse('add_question_to_test', kwargs={'pk': 1}), data=self.data)
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.context.get('msg'), 'Выбрано неправильное количество правильных ответов')
 
         self.data['correct_answers'] = ['form-1-meaning', 'form-2-meaning']
         self.data['question_type'] = 3
         resp = self.client.post(reverse('add_question_to_test', kwargs={'pk': 1}), data=self.data)
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.context.get('msg'), 'Выбрано неправильное количество правильных ответов')
 
 
@@ -664,28 +665,22 @@ class AddTestResultViewTest(TestCase):
                                   end_date=datetime.datetime.now() + datetime.timedelta(minutes=10), status=3)
 
         q1 = Question.objects.create(test=cls.test1, wording='Вопрс1', question_type=1)
-        ans1 = Answer.objects.create(meaning='Отв1', question=q1)
+        ans1 = Answer.objects.create(meaning='Отв1', question=q1, is_correct=True)
         Answer.objects.create(meaning='Отв2', question=q1)
         Answer.objects.create(meaning='Отв3', question=q1)
-        CorrectAnswer.objects.create(question=q1, answer=ans1)
 
         q2 = Question.objects.create(test=cls.test1, wording='Вопрс2', question_type=2)
-        ans11 = Answer.objects.create(meaning='Отв11', question=q2)
-        ans22 = Answer.objects.create(meaning='Отв22', question=q2)
+        ans11 = Answer.objects.create(meaning='Отв11', question=q2, is_correct=True)
+        ans22 = Answer.objects.create(meaning='Отв22', question=q2, is_correct=True)
         Answer.objects.create(meaning='Отв33', question=q2)
         Answer.objects.create(meaning='Отв44', question=q2)
-        CorrectAnswer.objects.create(question=q2, answer=ans11)
-        CorrectAnswer.objects.create(question=q2, answer=ans22)
 
         q3 = Question.objects.create(test=cls.test1, wording='Вопрс3', question_type=2)
-        ans111 = Answer.objects.create(meaning='Отв111', question=q3)
+        ans111 = Answer.objects.create(meaning='Отв111', question=q3, is_correct=True)
         Answer.objects.create(meaning='Отв222', question=q3)
-        ans333 = Answer.objects.create(meaning='Отв333', question=q3)
+        ans333 = Answer.objects.create(meaning='Отв333', question=q3, is_correct=True)
         Answer.objects.create(meaning='Отв444', question=q3)
-        ans555 = Answer.objects.create(meaning='Отв555', question=q3)
-        CorrectAnswer.objects.create(question=q3, answer=ans111)
-        CorrectAnswer.objects.create(question=q3, answer=ans333)
-        CorrectAnswer.objects.create(question=q3, answer=ans555)
+        ans555 = Answer.objects.create(meaning='Отв555', question=q3, is_correct=True)
 
         cls.questions = [q1, q2, q3]
         cls.data = {
@@ -798,30 +793,24 @@ class TestResultViewTest(TestCase):
         TestResult.objects.create(test=test1, member=slave_member1, result=66, status=3, end_date=datetime.datetime.now())
 
         q1 = Question.objects.create(test=test1, wording='Вопрс1', question_type=1)
-        ans1 = Answer.objects.create(meaning='Отв1', question=q1)
+        ans1 = Answer.objects.create(meaning='Отв1', question=q1, is_correct=True)
         Answer.objects.create(meaning='Отв2', question=q1)
         Answer.objects.create(meaning='Отв3', question=q1)
-        CorrectAnswer.objects.create(question=q1, answer=ans1)
         UserAnswer.objects.create(question=q1, member=slave_member1, answer_option=[ans1.id])
 
         q2 = Question.objects.create(test=test1, wording='Вопрс2', question_type=2)
-        ans11 = Answer.objects.create(meaning='Отв11', question=q2)
-        ans22 = Answer.objects.create(meaning='Отв22', question=q2)
+        ans11 = Answer.objects.create(meaning='Отв11', question=q2, is_correct=True)
+        ans22 = Answer.objects.create(meaning='Отв22', question=q2, is_correct=True)
         ans33 = Answer.objects.create(meaning='Отв33', question=q2)
         Answer.objects.create(meaning='Отв44', question=q2)
-        CorrectAnswer.objects.create(question=q2, answer=ans11)
-        CorrectAnswer.objects.create(question=q2, answer=ans22)
         UserAnswer.objects.create(question=q2, member=slave_member1, answer_option=[ans11.id, ans33.id])
 
         q3 = Question.objects.create(test=test1, wording='Вопрс3', question_type=2)
-        ans111 = Answer.objects.create(meaning='Отв111', question=q3)
+        ans111 = Answer.objects.create(meaning='Отв111', question=q3, is_correct=True)
         Answer.objects.create(meaning='Отв222', question=q3)
-        ans333 = Answer.objects.create(meaning='Отв333', question=q3)
+        ans333 = Answer.objects.create(meaning='Отв333', question=q3, is_correct=True)
         Answer.objects.create(meaning='Отв444', question=q3)
-        ans555 = Answer.objects.create(meaning='Отв555', question=q3)
-        CorrectAnswer.objects.create(question=q3, answer=ans111)
-        CorrectAnswer.objects.create(question=q3, answer=ans333)
-        CorrectAnswer.objects.create(question=q3, answer=ans555)
+        ans555 = Answer.objects.create(meaning='Отв555', question=q3, is_correct=True)
         UserAnswer.objects.create(question=q3, member=slave_member1, answer_option=[ans111.id, ans333.id, ans555.id])
 
         cls.questions = [q1, q2, q3]
@@ -863,7 +852,6 @@ class TestResultViewTest(TestCase):
         self.assertFalse(resp.context['is_psychological'])
         self.assertEqual(resp.context['user_answers'], self.user_answers)
         self.assertEqual(list(resp.context['question_list']), self.questions)
-        self.assertEqual(resp.context['correct_answers'], self.correct_answers)
 
 
 class TestResultInWordViewTest(TestCase):
@@ -909,7 +897,7 @@ class TestResultInWordViewTest(TestCase):
 
     def test_create_word(self):
         """ Проверяет метод создания ворд файла по психологическому тесту """
-        Test.objects.filter(name='psycho1').update(name='Псих1 алл')
+        Test.objects.filter(name='psycho1').update(name=list(PATH_TO_PSYCHOLOGICAL_TESTS.keys())[0])
         self.client.login(username='master1', password='master1')
         resp = self.client.get(reverse('test_result_in_word', kwargs={'pk': 1, 'result_id': 1}))
         self.assertEqual(resp.status_code, 200)

@@ -74,11 +74,11 @@ class ActivationLinkModelTest(TestCase):
     def setUpTestData(cls):
         User.objects.create(username='test')
 
-    def test_token_max_length(self):
-        link = ActivationLink.objects.get(id=1)
-        max_length = link._meta.get_field('token').max_length
-        self.assertEquals(max_length, 64)
-
-    def test_link_to_email(self):
-        link = ActivationLink.objects.get(id=1)
-        self.assertIsNotNone(link.token)
+    # def test_token_max_length(self):
+    #     link = ActivationLink.objects.get(id=1)
+    #     max_length = link._meta.get_field('token').max_length
+    #     self.assertEquals(max_length, 64)
+    #
+    # def test_link_to_email(self):
+    #     link = ActivationLink.objects.get(id=1)
+    #     self.assertIsNotNone(link.token)

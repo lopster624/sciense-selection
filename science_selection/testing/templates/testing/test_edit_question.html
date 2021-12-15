@@ -11,8 +11,9 @@
         <h5 class="text-center mb-3">Редактировать вопрос</h5>
         <form action="{% url 'update_question' pk question_id %}" enctype="multipart/form-data" class="form-horizontal" method="post">
             {% include 'testing/includes/test_add_question_form_template.html' %}
-            <div class="mb-2 text-center">
-                <button type="submit" class="btn btn-primary">Обновить</button>
+            <div class="row mb-2">
+                <div class="col-auto me-auto"><a class="btn btn-secondary" href="{% url 'test' pk %}">Вернуться к тесту</a></div>
+                <div class="col-auto"><button type="submit" class="btn btn-primary">Обновить</button></div>
             </div>
         </form>
     </div>

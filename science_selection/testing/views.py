@@ -1,3 +1,5 @@
+import datetime
+
 from collections import defaultdict
 from itertools import groupby
 from operator import attrgetter
@@ -15,14 +17,14 @@ from django.views.generic.list import ListView
 
 from application.models import Application, Direction
 from application.mixins import OnlyMasterAccessMixin, MasterDataMixin, OnlySlaveAccessMixin
-from application.utils import WordTemplate
+from application.utils import WordTemplate, get_cleared_query_string_of_page, get_form_data
 from utils.calculations import get_current_draft_year
 from utils.exceptions import MasterHasNoDirectionsException
 from utils.constants import PATH_TO_PSYCHOLOGICAL_TESTS
 
-from .forms import TestCreateForm, QuestionForm, AnswerFormSetExtra1, AnswerFormSetExtra5
+from .forms import TestCreateForm, QuestionForm, AnswerFormSetExtra1, AnswerFormSetExtra5, FilterTestResultForm
 from .mixins import TestAndQuestionMixin
-from .models import Test, TestResult, Question, UserAnswer, Answer, CorrectAnswer
+from .models import Test, TestResult, Question, UserAnswer, Answer
 from .utils import get_master_directions
 
 
@@ -106,19 +108,47 @@ class TestResultsView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
     """ Получить список результатов тестирования операторов """
     model = TestResult
     template_name = 'testing/test_results.html'
+    paginate_by = 50
 
     def get_queryset(self):
-        current_year, current_season = get_current_draft_year()
-        current_apps = Application.objects.filter(draft_year=current_year,
-                                                  draft_season=current_season[0]).select_related('member')\
-            .only('member')
+        apps = Application.objects.select_related('member').only('member')
+        current_apps = self._get_filtered_queryset(apps)
         members = [app.member for app in current_apps]
-        return TestResult.objects.filter(member__in=members).prefetch_related('test', 'member', 'test__type')
+        return TestResult.objects.filter(member__in=members).prefetch_related('test', 'member', 'test__type').order_by('member')
+
+    def _get_filtered_queryset(self, apps):
+        """Фильтруует список анкет по году и сезону призыва. Если приходят пустые параметры, то текущий год и призыв"""
+        if not get_form_data(self.request.GET):
+            current_year, current_season = get_current_draft_year()
+            return apps.filter(draft_year=current_year, draft_season=current_season[0])
+
+        draft_season = self.request.GET.getlist('draft_season', None)
+        if draft_season:
+            apps = apps.filter(draft_season__in=draft_season).distinct()
+
+        # фильтрация по году призыва
+        draft_year = self.request.GET.getlist('draft_year', None)
+        if draft_year:
+            apps = apps.filter(draft_year__in=draft_year).distinct()
+        return apps
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        args = get_form_data(self.request.GET)
+
         results = {member: list(tests) for member, tests in groupby(context['testresult_list'], attrgetter('member'))}
         context['results'] = results
+
+        current_year, current_season = get_current_draft_year()
+        initial = {
+            'draft_year': current_year,
+            'draft_season': current_season,
+        }
+        draft_year_set = Application.objects.order_by('draft_year').distinct().values_list('draft_year', 'draft_year')
+        filter_form = FilterTestResultForm(initial=initial, data=args, draft_year_set=draft_year_set,)
+        context['form'] = filter_form
+        context['reset_filters'] = True if args else False
+        context['cleaned_query_string'] = get_cleared_query_string_of_page(self.request.META['QUERY_STRING'])
         return context
 
 
@@ -142,7 +172,8 @@ class CreateTestView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
             test_form.save_m2m()
             return redirect('test', pk=new_test.pk)
         else:
-            context = {'msg': 'Некорректные данные при создании теста', 'test_form': test_form}
+            errors = [str(v[0].message) for _, v in test_form.errors.as_data().items()]
+            context = {'msg': '; '.join(errors), 'test_form': test_form}
             return render(request, 'testing/test_create.html', context=context, status=400)
 
 
@@ -191,7 +222,8 @@ class AddQuestionToTestView(TestAndQuestionMixin):
         if saved:
             context = self._get_default_context(test)
             context['notification'] = True
-        return render(request, 'testing/test_add_question.html', context=context)
+            return render(request, 'testing/test_add_question.html', context=context)
+        return render(request, 'testing/test_add_question.html', context=context, status=400)
 
     def _get_default_context(self, test):
         question_form = QuestionForm()
@@ -203,9 +235,9 @@ class UpdateQuestionView(TestAndQuestionMixin):
     """ Получить обновить значения полей созданного вопроса """
 
     def get(self, request, pk, question_id):
-        question = get_object_or_404(Question.objects.prefetch_related('correct_answer'), pk=question_id)
+        question = get_object_or_404(Question, pk=question_id)
         answers = Answer.objects.filter(question=question)
-        correct_answers = [_.answer.meaning for _ in question.correct_answer.all()]
+        correct_answers = [_.meaning for _ in answers if _.is_correct]
         question_form, answer_formset = QuestionForm(instance=question), AnswerFormSetExtra1(queryset=answers, )
         context = {'question_form': question_form, 'answer_formset': answer_formset, 'pk': pk,
                    'question_id': question_id, 'correct_answers': correct_answers}
@@ -214,10 +246,9 @@ class UpdateQuestionView(TestAndQuestionMixin):
     def post(self, request, pk, question_id):
         """ Получает и проверяет данные формы для обновления вопроса, после чего сохраняет его """
         test = self._get_and_check_test_permission(pk, request.user.member)
-        question = get_object_or_404(Question, pk=question_id)
-        answers = Answer.objects.filter(question=question)
+        question = get_object_or_404(Question.objects.prefetch_related('answer_options'), pk=question_id)
 
-        saved, context = self._save_question_with_answers(request.POST, test, request.FILES, question, answers)
+        saved, context = self._save_question_with_answers(request.POST, test, request.FILES, question)
         context.update({'question_id': question_id})
         if saved:
             return redirect('edit_test', pk=test.pk)
@@ -253,8 +284,9 @@ class EditTestView(TestAndQuestionMixin):
         if test_form.is_valid():
             test_form.save()
             return redirect('test', pk=pk)
+        errors = [str(v[0].message) for _, v in test_form.errors.as_data().items()]
         questions = Question.objects.filter(test=test).only('wording')
-        context = {'test_form': test_form, 'pk': pk, 'questions': questions}
+        context = {'test_form': test_form, 'pk': pk, 'questions': questions, 'msg': '; '.join(errors)}
         return render(request, 'testing/test_edit.html', context=context, status=400)
 
 
@@ -269,19 +301,23 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
         if is_completed:
             return redirect('test_list')
 
-        question_list = Question.objects.filter(test=current_test).prefetch_related('answer_options')
-        context = {
-            'question_list': question_list, 'test': current_test,
-        }
+        context = self._get_default_context(current_test, user_test_result)
         return render(request, 'testing/add_test_result.html', context=context)
+
+    def _get_default_context(self, test, user_result):
+        return {
+            'question_list': Question.objects.filter(test=test).prefetch_related('answer_options'),
+            'test': test,
+            'end_date': datetime.datetime.strftime(timezone.localtime(user_result.end_date) - timezone.timedelta(seconds=3), "%Y-%m-%d %H:%M:%S")
+        }
 
     def _test_is_completed(self, member, current_test):
         """ Создает или получает тест пользователя и обновляет его статус, если он изменился """
+        end_date = timezone.now() + timezone.timedelta(minutes=current_test.time_limit) if current_test.time_limit or not current_test.type.is_psychological() else timezone.now() + timezone.timedelta(days=3650)
         user_test_result, is_new_test = TestResult.objects.get_or_create(test=current_test, member=member,
                                                                          defaults={'result': 0,
                                                                                    'status': TestResult.test_statuses[1][0],
-                                                                                   'end_date': timezone.now() +
-                                                                                               timezone.timedelta(minutes=current_test.time_limit)})
+                                                                                   'end_date': end_date})
 
         if not is_new_test and (user_test_result.end_date < timezone.now() or user_test_result.status == TestResult.test_statuses[-1][0]):
             if user_test_result.status != TestResult.test_statuses[-1][0]:
@@ -294,10 +330,21 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
         """ Проверяет результаты теста пользователя, если он еще не был прорешен, то сохраняет результаты теста пользователя """
         member = request.user.member
         test = get_object_or_404(Test, pk=pk)
-        is_completed, _, _ = self._test_is_completed(member, test)
+        is_completed, user_test_result, _ = self._test_is_completed(member, test)
         if is_completed:
             return redirect('test_list')
         answers = self._get_answers_from_page(request.POST)
+        question_ids = [str(_.pk) for _ in Question.objects.filter(test=test).only('pk')]
+        if test.type.is_psychological() and list(answers.keys()) != question_ids:
+            user_answers = []
+            for _ in answers.values():
+                user_answers.extend(_['user_answer'])
+
+            context = self._get_default_context(test, user_test_result)
+            context.update({
+                'user_answers': user_answers, 'msg': 'Необходимо ответить на все вопросы'
+            })
+            return render(request, 'testing/add_test_result.html', context=context, status=400)
         self._add_or_update_user_answers(member, answers, test)
         return redirect('test_list')
 
@@ -308,8 +355,8 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
             if 'answer' in param:
                 _, question_id, answer_id = param.split('_')
                 answer_id = params[param] if not answer_id else answer_id
-                question = get_object_or_404(Question.objects.prefetch_related('correct_answer'), pk=question_id)
-                params_from_page[question_id]['correct_answer'] = [_.answer.pk for _ in question.correct_answer.all()]
+                question = get_object_or_404(Question.objects.prefetch_related('answer_options'), pk=question_id)
+                params_from_page[question_id]['correct_answer'] = [_.pk for _ in question.answer_options.all() if _.is_correct]
                 params_from_page[question_id]['question'] = question
                 params_from_page[question_id]['user_answer'].append(int(answer_id))
         return params_from_page
@@ -336,11 +383,11 @@ class TestResultView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
     def get(self, request, pk, result_id):
         """ Получает результаты теста пользователя и генерирует страницу просмотра результатов """
         user_test_result = get_object_or_404(TestResult, pk=result_id)
-        question_list, user_answers, correct_answers = self._get_user_questions_and_answers(user_test_result)
+        question_list, user_answers = self._get_user_questions_and_answers(user_test_result)
         is_psychological = user_test_result.test.type.is_psychological()
         context = {
             'user_answers': user_answers, 'question_list': question_list, 'is_psychological': is_psychological,
-            'correct_answers': correct_answers, 'pk': pk, 'result_id': result_id, 'test_res': user_test_result
+            'pk': pk, 'result_id': result_id, 'test_res': user_test_result
         }
         return render(request, 'testing/test_result.html', context=context)
 
@@ -348,10 +395,9 @@ class TestResultView(LoginRequiredMixin, OnlyMasterAccessMixin, View):
         """ Собирает данные по результатам теста пользователя: список вопросов, ответы пользователя и правильные ответы """
         user_answers = []
         question_list = Question.objects.filter(test=user_test_result.test).prefetch_related('answer_options')
-        correct_answers = [_.answer.pk for _ in CorrectAnswer.objects.filter(question__in=question_list).prefetch_related('answer')]
         for _ in UserAnswer.objects.filter(question__in=question_list, member=user_test_result.member):
             user_answers.extend(list(map(int, _.answer_option)))
-        return question_list, user_answers, correct_answers
+        return question_list, user_answers
 
 
 class TestResultInWordView(LoginRequiredMixin, OnlyMasterAccessMixin, View):

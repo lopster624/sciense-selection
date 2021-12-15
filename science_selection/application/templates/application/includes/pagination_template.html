@@ -1,0 +1,26 @@
+<nav aria-label="Пагинация">
+    <ul class="pagination justify-content-center">
+        <li class="page-item">
+            <a class="page-link" href="?{{cleaned_query_string}}page=1" aria-label="Самая первая">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        </li>
+        {% for n in page_obj.paginator.page_range %}
+        {% if n > page_obj.number|add:-4 and n < page_obj.number|add:4 %}
+        <li class='page-item {% if n == page_obj.number %}active{% else %}no-active{% endif %}'>
+            <a class="page-link" href="?{{cleaned_query_string}}page={{n}}">{{ n }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        <li class="page-item">
+            <a class="page-link" href="?{{cleaned_query_string}}page={{ page_obj.paginator.num_pages }}"
+               aria-label="Самая последняя">
+                &raquo;
+            </a>
+        </li>
+
+    </ul>
+</nav>
+
+
+

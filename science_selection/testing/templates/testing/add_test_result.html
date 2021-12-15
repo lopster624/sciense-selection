@@ -10,6 +10,19 @@
     <div class="row">
         <h4 class="text-center">Вопросы к тесту - {{ test.name }}</h4>
         <p class="fs-5 offset-1 mb-1 col-10"><b class="text-primary text-opacity-75">Описание:</b> {{ test.description }}</p>
+
+        {% if not test.type.is_psychological or test.time_limit %}
+            <div id="countdown" class="countdown fs-5 fst-italic">
+                <div class="text-end">Оставшееся время:
+                    <span class="hours"></span>:<span class="minutes"></span>:<span class="seconds "></span>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if msg %}
+            <div class="alert alert-danger">{{ msg }}</div>
+        {% endif %}
+
         <form action="{% url 'add_test_result' test.pk %}" class="form-horizontal" method="post" id="form-container">
             {% csrf_token %}
             <ul class="list-group list-group-flush list-group-numbered">
@@ -27,7 +40,7 @@
                             <div class="col-4 offset-2">
                                 {% if question.question_type == 1 or test.type.is_psychological %}
                                     <input class="form-check-input" type="radio" name="answer_{{ question.id }}_"
-                                           value="{{ answer.pk }}">
+                                           value="{{ answer.pk }}" {% if answer.pk in user_answers %}checked{%endif%}>
                                 {% else %}
                                     <input class="form-check-input" type="checkbox" name="answer_{{question.id}}_{{ answer.pk }}">
                                 {%endif%}
@@ -46,4 +59,8 @@
     </div>
 </div>
 
+{% if not test.type.is_psychological or test.time_limit %}
+    {{ end_date|json_script:"end_time" }}
+    <script src="{% static 'js/add_form_timer.js' %}" type="text/javascript"></script>
+{% endif %}
 {% endblock %}

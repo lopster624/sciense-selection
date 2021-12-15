@@ -1,6 +1,5 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
 from django.utils.translation import gettext_lazy as _
 from utils.constants import PSYCHOLOGICAL_TYPE_OF_TEST
 
@@ -25,7 +24,7 @@ class Test(models.Model):
     """ Таблица с тестами """
 
     name = models.CharField(max_length=128, verbose_name='Название теста')
-    time_limit = models.IntegerField(verbose_name='Ограничение по времени (в мин.)', validators=[MinValueValidator(1)])
+    time_limit = models.IntegerField(verbose_name='Ограничение по времени (в мин.)', blank=True, null=True)
     description = models.CharField(max_length=256, verbose_name='Описание теста', blank=True)
     directions = models.ManyToManyField('application.Direction', verbose_name='Направления тестов', blank=True)
     creator = models.ForeignKey('account.Member', on_delete=models.CASCADE, verbose_name='Создатель теста')
@@ -99,6 +98,7 @@ class Answer(models.Model):
     meaning = models.CharField(max_length=256, verbose_name='Ответ')
     question = models.ForeignKey(Question, on_delete=models.CASCADE, verbose_name='Вопрос',
                                  related_name='answer_options')
+    is_correct = models.BooleanField(default=False, verbose_name='Правильный ответ')
 
     class Meta:
         verbose_name = "Ответ"
@@ -106,20 +106,6 @@ class Answer(models.Model):
 
     def __str__(self):
         return f'{self.meaning}'
-
-
-class CorrectAnswer(models.Model):
-    """ Таблица с правильными вариантами ответов к вопросам """
-
-    question = models.ForeignKey(Question, on_delete=models.CASCADE, verbose_name='Вопрос', related_name='correct_answer')
-    answer = models.ForeignKey(Answer, on_delete=models.CASCADE, verbose_name='Ответ')
-
-    class Meta:
-        verbose_name = "Правильный ответ"
-        verbose_name_plural = "Правильные ответы"
-
-    def __str__(self):
-        return f'{self.question}-{self.answer}'
 
 
 class UserAnswer(models.Model):
