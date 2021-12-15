@@ -17,7 +17,7 @@ from django.views.generic.list import ListView
 
 from application.models import Application, Direction
 from application.mixins import OnlyMasterAccessMixin, MasterDataMixin, OnlySlaveAccessMixin
-from application.utils import WordTemplate
+from application.utils import WordTemplate, get_cleared_query_string_of_page, get_form_data
 from utils.calculations import get_current_draft_year
 from utils.exceptions import MasterHasNoDirectionsException
 from utils.constants import PATH_TO_PSYCHOLOGICAL_TESTS
@@ -108,6 +108,7 @@ class TestResultsView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
     """ Получить список результатов тестирования операторов """
     model = TestResult
     template_name = 'testing/test_results.html'
+    paginate_by = 50
 
     def get_queryset(self):
         apps = Application.objects.select_related('member').only('member')
@@ -117,7 +118,7 @@ class TestResultsView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
 
     def _get_filtered_queryset(self, apps):
         """Фильтруует список анкет по году и сезону призыва. Если приходят пустые параметры, то текущий год и призыв"""
-        if not self.request.GET:
+        if not get_form_data(self.request.GET):
             current_year, current_season = get_current_draft_year()
             return apps.filter(draft_year=current_year, draft_season=current_season[0])
 
@@ -133,6 +134,8 @@ class TestResultsView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        args = get_form_data(self.request.GET)
+
         results = {member: list(tests) for member, tests in groupby(context['testresult_list'], attrgetter('member'))}
         context['results'] = results
 
@@ -141,11 +144,11 @@ class TestResultsView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
             'draft_year': current_year,
             'draft_season': current_season,
         }
-        data = self.request.GET if self.request.GET else None
         draft_year_set = Application.objects.order_by('draft_year').distinct().values_list('draft_year', 'draft_year')
-        filter_form = FilterTestResultForm(initial=initial, data=data, draft_year_set=draft_year_set,)
+        filter_form = FilterTestResultForm(initial=initial, data=args, draft_year_set=draft_year_set,)
         context['form'] = filter_form
-        context['reset_filters'] = True if self.request.GET else False
+        context['reset_filters'] = True if args else False
+        context['cleaned_query_string'] = get_cleared_query_string_of_page(self.request.META['QUERY_STRING'])
         return context
 
 
