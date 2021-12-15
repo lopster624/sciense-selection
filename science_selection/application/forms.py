@@ -190,8 +190,7 @@ class CreateWorkGroupForm(ModelForm):
 
 
 class FilterWorkGroupForm(forms.Form):
-    book = list(BookingType.objects.all().values_list('id', 'name'))
-    book.append(('all', 'Не отобраны'))
+    """Класс формы фильтрации на странице рабочего списка."""
     affiliation = forms.ChoiceField(
         label='Направления заявки',
         required=False,
@@ -201,17 +200,20 @@ class FilterWorkGroupForm(forms.Form):
         label='Состояние бронирования',
         required=False,
         widget=CheckboxSelectMultiple(),
-        choices=book
     )
 
     def __init__(self, *args, **kwargs):
         master_affiliations = kwargs.pop('master_affiliations')
         affiliation_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
         super(FilterWorkGroupForm, self).__init__(*args, **kwargs)
+        book = list(BookingType.objects.all().values_list('id', 'name'))
+        book.append(('all', 'Не отобраны'))
+        self.fields['booking_type'].choices = book
         self.fields['affiliation'].choices = affiliation_set
 
 
 class ChooseWorkGroupForm(forms.ModelForm):
+    """Форма выбора рабочей группы на странице рабочего списка"""
     class Meta:
         model = Application
         fields = ['work_group']
