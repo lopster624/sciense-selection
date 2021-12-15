@@ -88,7 +88,7 @@ PATH_TO_PSYCHOLOGICAL_TESTS = {
     os.environ.get("DJANGO_NAME_OF_FIRST_PSYCHOLOGICAL_TEST"):
         os.path.join(os.path.abspath(os.curdir), os.environ.get("DJANGO_PATH_TO_FIRST_PSYCHOLOGICAL_TEST")),
 }
-print(PATH_TO_PSYCHOLOGICAL_TESTS)
+
 TYPE_SERVICE_DOCUMENT = {
     'candidates': (PATH_TO_CANDIDATES_LIST, "Итоговый список кандидатов.docx"),
     'rating': (PATH_TO_RATING_LIST, "Рейтинговый список призыва.docx"),
