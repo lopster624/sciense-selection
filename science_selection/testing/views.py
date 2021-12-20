@@ -17,12 +17,12 @@ from django.views.generic.list import ListView
 
 from application.models import Application, Direction
 from application.mixins import OnlyMasterAccessMixin, MasterDataMixin, OnlySlaveAccessMixin
-from application.utils import WordTemplate
+from application.utils import WordTemplate, get_cleared_query_string_of_page, get_form_data
 from utils.calculations import get_current_draft_year
 from utils.exceptions import MasterHasNoDirectionsException
 from utils.constants import PATH_TO_PSYCHOLOGICAL_TESTS
 
-from .forms import TestCreateForm, QuestionForm, AnswerFormSetExtra1, AnswerFormSetExtra5
+from .forms import TestCreateForm, QuestionForm, AnswerFormSetExtra1, AnswerFormSetExtra5, FilterTestResultForm
 from .mixins import TestAndQuestionMixin
 from .models import Test, TestResult, Question, UserAnswer, Answer
 from .utils import get_master_directions
@@ -108,19 +108,47 @@ class TestResultsView(LoginRequiredMixin, OnlyMasterAccessMixin, ListView):
     """ Получить список результатов тестирования операторов """
     model = TestResult
     template_name = 'testing/test_results.html'
+    paginate_by = 50
 
     def get_queryset(self):
-        current_year, current_season = get_current_draft_year()
-        current_apps = Application.objects.filter(draft_year=current_year,
-                                                  draft_season=current_season[0]).select_related('member')\
-            .only('member')
+        apps = Application.objects.select_related('member').only('member')
+        current_apps = self._get_filtered_queryset(apps)
         members = [app.member for app in current_apps]
         return TestResult.objects.filter(member__in=members).prefetch_related('test', 'member', 'test__type').order_by('member')
 
+    def _get_filtered_queryset(self, apps):
+        """Фильтруует список анкет по году и сезону призыва. Если приходят пустые параметры, то текущий год и призыв"""
+        if not get_form_data(self.request.GET):
+            current_year, current_season = get_current_draft_year()
+            return apps.filter(draft_year=current_year, draft_season=current_season[0])
+
+        draft_season = self.request.GET.getlist('draft_season', None)
+        if draft_season:
+            apps = apps.filter(draft_season__in=draft_season).distinct()
+
+        # фильтрация по году призыва
+        draft_year = self.request.GET.getlist('draft_year', None)
+        if draft_year:
+            apps = apps.filter(draft_year__in=draft_year).distinct()
+        return apps
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        args = get_form_data(self.request.GET)
+
         results = {member: list(tests) for member, tests in groupby(context['testresult_list'], attrgetter('member'))}
         context['results'] = results
+
+        current_year, current_season = get_current_draft_year()
+        initial = {
+            'draft_year': current_year,
+            'draft_season': current_season,
+        }
+        draft_year_set = Application.objects.order_by('draft_year').distinct().values_list('draft_year', 'draft_year')
+        filter_form = FilterTestResultForm(initial=initial, data=args, draft_year_set=draft_year_set,)
+        context['form'] = filter_form
+        context['reset_filters'] = True if args else False
+        context['cleaned_query_string'] = get_cleared_query_string_of_page(self.request.META['QUERY_STRING'])
         return context
 
 
@@ -194,7 +222,8 @@ class AddQuestionToTestView(TestAndQuestionMixin):
         if saved:
             context = self._get_default_context(test)
             context['notification'] = True
-        return render(request, 'testing/test_add_question.html', context=context)
+            return render(request, 'testing/test_add_question.html', context=context)
+        return render(request, 'testing/test_add_question.html', context=context, status=400)
 
     def _get_default_context(self, test):
         question_form = QuestionForm()
@@ -315,7 +344,7 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
             context.update({
                 'user_answers': user_answers, 'msg': 'Необходимо ответить на все вопросы'
             })
-            return render(request, 'testing/add_test_result.html', context=context)
+            return render(request, 'testing/add_test_result.html', context=context, status=400)
         self._add_or_update_user_answers(member, answers, test)
         return redirect('test_list')
 

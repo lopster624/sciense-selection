@@ -1,5 +1,6 @@
-django
-docxtpl
-Pillow
-django-autocomplete-light
-celery[redis]
+Django==3.2.9
+django-debug-toolbar==3.2.2
+docxtpl==0.14.2
+Pillow==8.4.0
+django-autocomplete-light==3.8.2
+celery==5.2.1

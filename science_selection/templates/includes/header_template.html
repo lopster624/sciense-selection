@@ -6,9 +6,15 @@
                 {% if user.member.role %}
                 <li class="nav-item active">
                     {% if user.member.is_slave %}
-                        <a class="nav-link" href=" {% url 'create_application' %} ">Создать заявку</a>
+                    <a class="nav-link" href=" {% url 'create_application' %} ">
+                        {% if user.member.application %}
+                            Заявка
+                        {% else %}
+                            Создать заявку
+                        {% endif %}
+                    </a>
                     {% elif user.member.is_master %}
-                        <a class="nav-link" href=" {% url 'application_list' %} ">Заявки</a>
+                    <a class="nav-link" href=" {% url 'application_list' %} ">Заявки</a>
                     {% endif %}
                 </li>
                 <li class="nav-item active">

@@ -8,6 +8,7 @@ from django.forms.widgets import Input, SelectMultiple, Select, CheckboxInput, C
     NumberInput, Textarea, DateInput
 
 from account.models import Member, Affiliation, BookingType
+from utils.calculations import get_current_draft_year
 from .models import Application, Education, Direction, Competence, WorkGroup
 
 
@@ -150,13 +151,13 @@ class FilterAppListForm(forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
-        directions_set = kwargs.pop('directions_set')
-        in_wishlist_set = kwargs.pop('in_wishlist_set')
-        draft_year_set = kwargs.pop('draft_year_set')
-        chosen_affiliation_set = kwargs.pop('chosen_affiliation_set')
+        master_affiliations = kwargs.pop('master_affiliations')
+        directions_set = {(aff.direction.id, aff.direction.name) for aff in master_affiliations}
+        in_wishlist_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
+        draft_year_set = Application.objects.order_by('draft_year').distinct().values_list('draft_year', 'draft_year')
         super(FilterAppListForm, self).__init__(*args, **kwargs)
         self.fields['directions'].choices = directions_set
-        self.fields['affiliation'].choices = chosen_affiliation_set
+        self.fields['affiliation'].choices = in_wishlist_set
         self.fields['in_wishlist'].choices = in_wishlist_set
         self.fields['draft_year'].choices = draft_year_set
 
@@ -189,39 +190,30 @@ class CreateWorkGroupForm(ModelForm):
 
 
 class FilterWorkGroupForm(forms.Form):
-    book = list(BookingType.objects.all().values_list('id', 'name'))
-    book.append(('all', 'Не отобраны'))
+    """Класс формы фильтрации на странице рабочего списка."""
     affiliation = forms.ChoiceField(
         label='Направления заявки',
-        required=True,
+        required=False,
         widget=Select(attrs={'class': 'form-select'}),
     )
     booking_type = forms.MultipleChoiceField(
         label='Состояние бронирования',
-        required=True,
+        required=False,
         widget=CheckboxSelectMultiple(),
-        choices=book
     )
 
     def __init__(self, *args, **kwargs):
-        affiliation_set = kwargs.pop('affiliation_set')
+        master_affiliations = kwargs.pop('master_affiliations')
+        affiliation_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
         super(FilterWorkGroupForm, self).__init__(*args, **kwargs)
+        book = list(BookingType.objects.all().values_list('id', 'name'))
+        book.append(('all', 'Не отобраны'))
+        self.fields['booking_type'].choices = book
         self.fields['affiliation'].choices = affiliation_set
 
 
-# class ChooseWorkGroupForm(forms.Form):
-#     affiliation = forms.ChoiceField(
-#         required=False,
-#         widget=Select(attrs={'class': 'form-select'}),
-#         blank=True,
-#     )
-#
-#     def __init__(self, *args, **kwargs):
-#         group_set = kwargs.pop('group_set')
-#         super(ChooseWorkGroupForm, self).__init__(*args, **kwargs)
-#         self.fields['affiliation'].choices = group_set
-
 class ChooseWorkGroupForm(forms.ModelForm):
+    """Форма выбора рабочей группы на странице рабочего списка"""
     class Meta:
         model = Application
         fields = ['work_group']

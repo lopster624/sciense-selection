@@ -2,7 +2,7 @@ from django import forms
 from django.core.validators import MinValueValidator
 from django.forms.widgets import Input, SelectMultiple, Select, NumberInput
 
-from application.models import Direction
+from application.models import Direction, Application
 
 from .models import Test, Question, Answer
 
@@ -71,3 +71,23 @@ class AnswerForm(forms.ModelForm):
 
 AnswerFormSetExtra5 = forms.modelformset_factory(Answer, form=AnswerForm, extra=5,)
 AnswerFormSetExtra1 = forms.modelformset_factory(Answer, form=AnswerForm, extra=1,)
+
+
+class FilterTestResultForm(forms.Form):
+
+    draft_season = forms.MultipleChoiceField(
+        label='Сезон призыва',
+        required=False,
+        choices=Application.season,
+        widget=SelectMultiple(attrs={'class': 'form-select'}),
+    )
+    draft_year = forms.MultipleChoiceField(
+        label='Год призыва',
+        required=False,
+        widget=SelectMultiple(attrs={'class': 'form-select'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        draft_year_set = kwargs.pop('draft_year_set')
+        super(FilterTestResultForm, self).__init__(*args, **kwargs)
+        self.fields['draft_year'].choices = draft_year_set

@@ -2,8 +2,7 @@ from django import template
 
 from account.models import Affiliation
 from application.models import ApplicationNote, Education
-from application.utils import check_booking_our_or_exception, is_booked_our
-from utils.constants import MASTER_ROLE_NAME
+from application.utils import is_booked_our
 
 register = template.Library()
 
@@ -16,7 +15,7 @@ def get_key(value, arg):
 @register.filter(name='intersections')
 def get_intersections(value, arg):
     if value and arg:
-        return True if list(set(value) & set(arg)) else False
+        return bool(list(set(value) & set(arg)))
     return False
 
 
@@ -31,6 +30,12 @@ def vals_to_str(*vals):
     """Возвращает все переданные переменные в виде одной строки"""
     return ''.join(map(str, vals))
 
+@register.simple_tag
+def get_object_number(page, per_page, is_paginated, counter):
+    """Возвращает номер записи учитывая пагинацию"""
+    if not is_paginated:
+        return counter
+    return (page-1) * per_page + counter
 
 @register.simple_tag
 def init_field(field, init):
