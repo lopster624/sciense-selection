@@ -97,6 +97,12 @@
                         {% endif %}
                     </td>
                 </tr>
+                {% empty %}
+                <tr class="text-center">
+                    <td colspan="12">
+                        Извините, по данному запросу ничего не нашлось
+                    </td>
+                </tr>
                 {% endfor %}
                 </tbody>
             </table>
