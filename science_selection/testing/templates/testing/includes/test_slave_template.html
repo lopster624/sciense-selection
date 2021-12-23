@@ -7,34 +7,37 @@
 <div class="container">
     <ul class="list-group list-group-flush">
         {% for test in test_list %}
-        <li class="list-group-item">
-            <div class="row justify-content-between">
-                <div class="col-6">
-                    <h6>
-                        {% if test.test_res.all.0.status == 2 %}
-                            <a href="{% url  'add_test_result' test.pk %}" class="text-primary">{{test.name}}</a>
-                        {% else %}
-                                <a href="{% url 'test'  test.pk %}" class="text-primary">{{test.name}}</a>
-                        {% endif %}
-                    </h6>
-                </div>
-                {% if user.member.is_slave %}
-                    {% if test.test_res.all.0.status == 3 and not test.type.is_psychological %}
-                        <div class="col-3">
-                            Результат: {{test.test_res.all.0.result|default:"0" }} %
+        <li class="list-group-item" style="border-width: 0 0 0">
+            <div class="card mb-2">
+                <div class="col-1 w-100 card-header p-1 {% if test.test_res.all.0.status == 3 %}bg-success{% elif test.test_res.all.0.status == 2%} bg-warning{% elif test.test_res.all.0.status == 1%} bg-secondary{% endif %} bg-opacity-50 me-0 text-center"></div>
+                <div class="row g-0 shadow-sm">
+                    <div class="col">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                {{test.name}}
+                            </h5>
+                            <p class="card-text mb-1 fst-italic">Описание: {{test.description}}</p>
+                            <p class="card-text mb-1 fst-italic">Ограничение по времени (мин.): {{ test.time_limit|default:"Нет" }}</p>
+                            {% if user.member.is_slave %}
+                                <div class="row">
+                                    <p class="col mt-2 mb-1 fst-italic">
+                                        Статус: {{test.test_res.all.0.get_status_display|default:"Не начат" }}
+                                    </p>
+                                    {% if test.test_res.all.0.status == 3 and not test.type.is_psychological %}
+                                    <p class="col mt-2 mb-1 fst-italic">
+                                        Результат: {{test.test_res.all.0.result|default:"0" }} %
+                                    </p>
+                                    {% endif %}
+                                    {% if not test.test_res.all.0.status == 3%}
+                                        <a href="{% url  'add_test_result' test.pk %}" class="col text-end">
+                                            <button type="button" class="btn btn-outline-dark">Пройти тест</button>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
                         </div>
-                    {% endif %}
-                    <div class="col-3">
-                        Статус: {{test.test_res.all.0.get_status_display|default:"Не начат" }}
                     </div>
-                {% elif user.member.is_master and test.creator.pk == user.member.pk %}
-                    <div class="col-1">
-                        <button type="button" class="btn ms-3 p-1" data-bs-toggle="modal" aria-label="delete" data-bs-target="#deleteTestModal{{ test.pk }}">
-                                <img src="{% static 'images/trash.svg' %}" alt="Удалить" width="20" height="20">
-                        </button>
-                        {% get_delete_test_modal test=test %}
-                    </div>
-                {% endif %}
+                </div>
             </div>
         </li>
         {% endfor %}
