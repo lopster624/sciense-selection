@@ -17,8 +17,8 @@
         <form action="{% url 'add_question_to_test' pk %}" enctype="multipart/form-data" class="form-horizontal" method="post">
             {% include 'testing/includes/test_add_question_form_template.html' %}
             <div class="row mb-2">
-                <div class="col-auto me-auto"><a class="btn btn-secondary" href="{% url 'test' pk %}">Вернуться к тесту</a></div>
-                <div class="col-auto"><button type="submit" class="btn btn-primary">Создать</button></div>
+                <div class="col-auto me-auto"><a class="btn btn-outline-secondary" href="{% url 'test' pk %}">Вернуться к тесту</a></div>
+                <div class="col-auto"><button type="submit" class="btn btn-outline-dark">Создать</button></div>
             </div>
         </form>
     </div>
