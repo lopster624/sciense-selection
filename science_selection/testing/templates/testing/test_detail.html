@@ -13,7 +13,7 @@
                 <h4 class=""> Тест: {{ test.name }}</h4>
             </div>
             <ul class="list-group">
-                <li class="list-group-item mb-2">
+                <li class="list-group-item mb-2 fst-italic">
                     <div class="row col-12 mb-2">
                         <div class="col">
                             Описание теста:
@@ -58,10 +58,10 @@
                         {% if test.creator == user.member %}
                             <div class="d-flex justify-content-end mb-2">
                                 <a href="{% url 'add_question_to_test' test.pk %}" class="me-2">
-                                    <button type="button" class="btn btn-secondary">Добавить вопрос</button>
+                                    <button type="button" class="btn btn-outline-secondary">Добавить вопрос</button>
                                 </a>
                                 <a href="{% url 'edit_test' test.pk %}" >
-                                    <button type="button" class="btn btn-primary">Редактировать</button>
+                                    <button type="button" class="btn btn-outline-dark">Редактировать</button>
                                 </a>
                             </div>
                         {% endif %}
@@ -69,7 +69,7 @@
                         <div class="d-flex justify-content-center mb-2">
                             {% if not blocked %}
                                 <a href="{% url 'add_test_result' test.pk %}">
-                                    <button type="button" class="btn btn-primary">Пройти тест</button>
+                                    <button type="button" class="btn btn-outline-dark">Пройти тест</button>
                                 </a>
                             {% else %}
                                 <div class="alert alert-info mb-0">

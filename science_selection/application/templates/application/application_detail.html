@@ -12,12 +12,13 @@
     <div class="row justify-content-end">
         <div class="col-6 bg-white list-group-item list-group-item-light">
             <div class="text-center">
-                <h4 class=""> Анкета оператора</h4>
+                <h4 class=""> {{ app.member }}</h4>
             </div>
             <div class="d-flex flex-row">
                 {% if not app.is_final or user.member.is_master %}
-                <button class="btn btn-outline-secondary m-2"><a
-                        href="{%url 'edit_application' pk %}">Редактировать</a></button>
+                <a href="{%url 'edit_application' pk %}">
+                    <button class="btn btn-outline-dark m-2">Редактировать</button>
+                </a>
                 {% endif %}
                 <button class="btn btn-outline-secondary m-2"><a
                         href="{%url 'create_word_app' pk %}">
@@ -32,14 +33,6 @@
             <ul class="list-group">
                 <li class="list-group-item">
                     <h5 class="text-center mb-3">Основная информация</h5>
-                    <div class="row col-12 mb-2">
-                        <div class="col">
-                            ФИО:
-                        </div>
-                        <div class="col">
-                            {{ app.member }}
-                        </div>
-                    </div>
                     <div class="row col-12 mb-2">
                         <div class="col">
                             Телефон:
@@ -113,25 +106,27 @@
                         </div>
                     </div>
                 </li>
-                <li class="list-group-item">
-                    <h5 class="text-center mb-3">Образование</h5>
-                    {% for educate in user_education %}
-                    <div class="card text-center mb-1">
-                        <div class="card-header"><h6>{{ educate.get_education_type_display }}</h6></div>
-                        <div class="card-body text-dark">
-                            <p class="card-title {% if user.member.is_master and not educate.check_name_uni %} bg-danger text-dark bg-opacity-25 rounded{% endif %}">
-                                Университет: {{ educate.university }}</p>
-                            <p class="card-text">Специальнсть: {{ educate.specialization }} </p>
-                            <p class="card-text">Средний балл: {{ educate.avg_score }}</p>
-                            <p class="card-text">Наименование документа: {{ educate.name_of_education_doc }}</p>
-                            <p class="card-text">Тема диплома: {{ educate.theme_of_diploma }}</p>
-                            <p class="card-text">Год окончания: {{ educate.end_year }}</p>
-                            <p class="card-text">Статус окончия: {% if educate.is_ended %}Окончил
-                                {% else %}Не окончил{% endif %}</p>
+                {% if user_education %}
+                    <li class="list-group-item">
+                        <h5 class="text-center mb-3">Образование</h5>
+                        {% for educate in user_education %}
+                        <div class="card text-center mb-1">
+                            <div class="card-header"><h6>{{ educate.get_education_type_display }}</h6></div>
+                            <div class="card-body text-dark">
+                                <p class="card-title {% if user.member.is_master and not educate.check_name_uni %} bg-danger text-dark bg-opacity-25 rounded{% endif %}">
+                                    Университет: {{ educate.university }}</p>
+                                <p class="card-text">Специальнсть: {{ educate.specialization }} </p>
+                                <p class="card-text">Средний балл: {{ educate.avg_score }}</p>
+                                <p class="card-text">Наименование документа: {{ educate.name_of_education_doc }}</p>
+                                <p class="card-text">Тема диплома: {{ educate.theme_of_diploma }}</p>
+                                <p class="card-text">Год окончания: {{ educate.end_year }}</p>
+                                <p class="card-text">Статус окончия: {% if educate.is_ended %}Окончил
+                                    {% else %}Не окончил{% endif %}</p>
+                            </div>
                         </div>
-                    </div>
-                    {% endfor %}
-                </li>
+                        {% endfor %}
+                    </li>
+                {% endif %}
                 <li class="list-group-item mb-2">
                     <h5 class="text-center mb-3">Дополнительная информация</h5>
                     <div class="row col-12 mb-2">
