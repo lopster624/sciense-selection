@@ -371,7 +371,7 @@ class AddTestResultView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
         final_value = 0
         if not test.type.is_psychological() and answers:
             total = sum([1 for k, v in answers.items() if v['correct_answer'] == v['user_answer']])
-            final_value = int((total / len(answers)) * 100)
+            final_value = int((total / len(questions)) * 100)
 
         TestResult.objects.filter(test=test, member=member).update(status=TestResult.test_statuses[-1][0],
                                                                    result=final_value)
