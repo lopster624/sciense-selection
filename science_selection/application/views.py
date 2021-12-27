@@ -543,7 +543,6 @@ class ApplicationListView(MasterDataMixin, ListView):
                 Q(member__user__last_name__icontains=search) |
                 Q(member__father_name__icontains=search)
             ).distinct()
-            print(apps)
 
         # фильтрация по направлениям
         chosen_directions = self.request.GET.getlist('directions', None)
