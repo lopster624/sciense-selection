@@ -535,6 +535,16 @@ class ApplicationListView(MasterDataMixin, ListView):
             current_year, current_season = get_current_draft_year()
             return apps.filter(draft_year=current_year, draft_season=current_season[0]).distinct()
         # тут производится вся сортировка и фильтрация
+
+        search = self.request.GET.get('search', None)
+        if search:
+            apps = apps.filter(
+                Q(member__user__first_name__icontains=search) |
+                Q(member__user__last_name__icontains=search) |
+                Q(member__father_name__icontains=search)
+            ).distinct()
+            print(apps)
+
         # фильтрация по направлениям
         chosen_directions = self.request.GET.getlist('directions', None)
         if chosen_directions:

@@ -7,8 +7,10 @@
 {% block content %}
 {% include 'includes/header_template.html' %}
 {% include 'application/includes/nav_tabs_template.html' %}
+
 <div class="container-fluid">
     <div class="row justify-content-center">
+
         <div class="col-2 mb-3 bg-white position-relative">
             <h5>
                 Фильтры
@@ -46,7 +48,9 @@
                 <tbody>
                 {% for app in object_list %}
                 <tr class="{% if app.is_booked_our %}bg-success bg-opacity-25{%endif%} {% if not app.our_direction %} table-active {% endif %}">
-                    <th>{% get_object_number page_obj.number page_obj.paginator.per_page is_paginated forloop.counter %}</th>
+                    <th>
+                        {% get_object_number page_obj.number page_obj.paginator.per_page is_paginated forloop.counter%}
+                    </th>
                     <td scope="row">
                         <h5 class="card-title">
                             <a href="{% url 'application' app.id %}" class="">{{ app.member }}</a>
