@@ -1,18 +1,36 @@
 import os
 
-
+# диапозон оценок средних баллов
 MINIMUM_SCORE = 2
 MAX_SCORE = 5
+
+# возможные статусы заявки
 BOOKED = 'Отобран'
 IN_WISHLIST = 'В избранном'
+
+# роли пользователей в системе
 MASTER_ROLE_NAME = 'Отбирающий'
 SLAVE_ROLE_NAME = 'Оператор'
+
+# название типа спихологического теста
 PSYCHOLOGICAL_TYPE_OF_TEST = 'Психологический'
-ACTIVATION_LINK = '127.0.0.1:8000/accounts/activation/'  # в переменные окружения
+
+# Шаблон URL`а для активации учетой записи
+ACTIVATION_LINK = os.environ.get("DJANGO_ACTIVATION_LINK", "127.0.0.1:8000/accounts/activation/")
+
+# деление призывов на сезоны
 MIDDLE_RECRUITING_DATE = {'day': 15, 'month': 7}
 
-MEANING_COEFFICIENTS = {'k1': 0.25, 'k2': 0.15, 'k3': 0.3, 'k4': 0.2, 'k5': 0.5, 'k6': 0.25, 'k7': 0.1}
+# коэффициенты для расчета итогового  балла оператора
+MEANING_COEFFICIENTS = {'k1': float(os.environ.get("DJANGO_VALUE_OF_K1_COEF")),
+                        'k2': float(os.environ.get("DJANGO_VALUE_OF_K2_COEF")),
+                        'k3': float(os.environ.get("DJANGO_VALUE_OF_K3_COEF")),
+                        'k4': float(os.environ.get("DJANGO_VALUE_OF_K4_COEF")),
+                        'k5': float(os.environ.get("DJANGO_VALUE_OF_K5_COEF")),
+                        'k6': float(os.environ.get("DJANGO_VALUE_OF_K6_COEF")),
+                        'k7': float(os.environ.get("DJANGO_VALUE_OF_K7_COEF"))}
 
+# задавать через переменные окружения? для все коэф ниже - или через файл -> в перемен окр
 # баллы, начисляемые в критерии a1
 INTERNATIONAL_ARTICLES_SCORE = 5
 PATENTS_SCORE = 4
@@ -52,6 +70,7 @@ SCIENCE_EXPERIENCE_SCORE = 6
 MILITARY_SPORT_ACHIEVEMENTS_SCORE = 4
 SPORT_ACHIEVEMENTS_SCORE = 2
 
+# шаблон для заполненности заявки
 DEFAULT_FILED_BLOCKS = {
     'Основные данные': False,
     'Образование': False,
@@ -60,12 +79,14 @@ DEFAULT_FILED_BLOCKS = {
     'Загруженные файлы': False,
 }
 
-PATH_TO_INTERVIEW_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\interview_list.docx')
-PATH_TO_CANDIDATES_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\list_of_candidates.docx')
-PATH_TO_RATING_LIST = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\rating_list.docx')
-PATH_TO_EVALUATION_STATEMENT = os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\evaluation_statement.docx')
+# пути к шаблоннам файлов word, но основе которых генерируются основные документы
+PATH_TO_INTERVIEW_LIST = os.path.join(os.path.abspath(os.curdir), os.environ.get("DJANGO_PATH_TO_INTERVIEW_LIST"))
+PATH_TO_CANDIDATES_LIST = os.path.join(os.path.abspath(os.curdir), os.environ.get("DJANGO_PATH_TO_CANDIDATES_LIST"))
+PATH_TO_RATING_LIST = os.path.join(os.path.abspath(os.curdir), os.environ.get("DJANGO_PATH_TO_RATING_LIST"))
+PATH_TO_EVALUATION_STATEMENT = os.path.join(os.path.abspath(os.curdir), os.environ.get("DJANGO_PATH_TO_EVALUATION_STATEMENT"))
 PATH_TO_PSYCHOLOGICAL_TESTS = {
-    'ОПВС 2': os.path.join(os.path.abspath(os.curdir), 'static\\docx\\templates\\psychological_test.docx')
+    os.environ.get("DJANGO_NAME_OF_FIRST_PSYCHOLOGICAL_TEST"):
+        os.path.join(os.path.abspath(os.curdir), os.environ.get("DJANGO_PATH_TO_FIRST_PSYCHOLOGICAL_TEST")),
 }
 
 TYPE_SERVICE_DOCUMENT = {
@@ -74,5 +95,8 @@ TYPE_SERVICE_DOCUMENT = {
     'evaluation-statement': (PATH_TO_EVALUATION_STATEMENT, "Оценочная ведомость.docx"),
 }
 
-MAX_APP_DIRECTIONS = 4
+# Ограничение на максимальное количество выбираемых направлений
+MAX_APP_DIRECTIONS = 4  # задавать через переменные окружения?
+
+# шаблон для именования полей в форме html в тестах пользователей
 NAME_ADDITIONAL_FIELD_TEMPLATE = 'additional_field_'
