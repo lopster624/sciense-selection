@@ -5,7 +5,7 @@ from django import forms
 from django.core.validators import MinValueValidator
 from django.forms import modelformset_factory, ModelForm, ModelMultipleChoiceField, ModelChoiceField
 from django.forms.widgets import Input, SelectMultiple, Select, CheckboxInput, CheckboxSelectMultiple, \
-    NumberInput, Textarea, DateInput
+    NumberInput, Textarea, DateInput, TextInput
 
 from account.models import Member, Affiliation, BookingType
 from utils.calculations import get_current_draft_year
@@ -116,6 +116,11 @@ class FilterAppListForm(forms.Form):
         ('-final_score', 'По итоговому баллу'),
         ('-fullness', 'По заполненности анкеты'),
     ]
+    search = forms.CharField(
+        label='Поиск',
+        required=False,
+        widget=TextInput(attrs={'class': 'form-control'}),
+    )
     ordering = forms.ChoiceField(
         label='Сортировка',
         required=False,
@@ -214,6 +219,7 @@ class FilterWorkGroupForm(forms.Form):
 
 class ChooseWorkGroupForm(forms.ModelForm):
     """Форма выбора рабочей группы на странице рабочего списка"""
+
     class Meta:
         model = Application
         fields = ['work_group']
