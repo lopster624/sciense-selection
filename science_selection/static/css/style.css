@@ -32,3 +32,12 @@ span.select2-selection__placeholder {
 #countdown{
     color: #FFA500;
 }
+a{
+    color: #2e68bf;
+}
+a:hover{
+    color: black;
+}
+.nav-link{
+    color: #2e68bf;
+}
