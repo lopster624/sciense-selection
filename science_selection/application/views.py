@@ -349,10 +349,10 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
     def post(self, request, pk):
         user_app = get_object_or_404(Application, pk=pk)
         user_directions = user_app.directions.all()
-        competencies_of_direction = Competence.objects.filter(directions__in=user_directions).distinct()
+        competencies_of_direction = Competence.objects.filter(directions__in=user_directions, is_estimated=True).distinct()
         level_competence = [ApplicationCompetencies(application=user_app,
                                                     competence=competence,
-                                                    level=request.POST.get(str(competence.id), 0))
+                                                    level=int(request.POST.get(str(competence.id), 0)))
                             for competence in competencies_of_direction]
         ApplicationCompetencies.objects.filter(application=user_app, competence__in=competencies_of_direction).delete()
         ApplicationCompetencies.objects.bulk_create(level_competence)
