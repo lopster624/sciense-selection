@@ -44,8 +44,7 @@
                 <tbody>
                 {% for app in object_list %}
                 <tr class="{% if app.is_booked_our %}{% if app.company == chosen_company and app.platoon == chosen_platoon %} bg-success {% else %} bg-info {%endif%} bg-opacity-25{%endif%}{% if not app.our_direction %} table-active {% endif %}">
-                    <th>{% get_object_number page_obj.number page_obj.paginator.per_page is_paginated forloop.counter
-                        %}
+                    <th>{% get_object_number page_obj.number page_obj.paginator.per_page is_paginated forloop.counter %}
                     </th>
                     <td scope="row">
                         <h5 class="card-title">

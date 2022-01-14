@@ -349,7 +349,8 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
     def post(self, request, pk):
         user_app = get_object_or_404(Application, pk=pk)
         user_directions = user_app.directions.all()
-        competencies_of_direction = Competence.objects.filter(directions__in=user_directions, is_estimated=True).distinct()
+        competencies_of_direction = Competence.objects.filter(directions__in=user_directions,
+                                                              is_estimated=True).distinct()
         level_competence = [ApplicationCompetencies(application=user_app,
                                                     competence=competence,
                                                     level=int(request.POST.get(str(competence.id), 0)))
@@ -984,15 +985,15 @@ class WorkingListView(MasterDataMixin, ListView):
         :param chosen_affiliation_id: id выбранной принадлежности
         :return: отфильтрованный queryset
         """
+        current_year, current_season = get_current_draft_year()
+        apps = apps.filter(draft_year=current_year, draft_season=current_season[0])
         booked_members = Booking.objects.filter(affiliation__id=chosen_affiliation_id,
                                                 booking_type__name=const.BOOKED).values_list('slave', flat=True)
         args = dict(self.request.GET)
         if args:
             args.pop('page', None)
         if not args:
-            current_year, current_season = get_current_draft_year()
-            return apps.filter(draft_year=current_year, draft_season=current_season[0],
-                               directions__affiliation__id=chosen_affiliation_id,
+            return apps.filter(directions__affiliation__id=chosen_affiliation_id,
                                member__id__in=booked_members).distinct()
 
         # фильтрация по принадлежностям
