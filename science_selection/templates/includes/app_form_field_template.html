@@ -10,7 +10,7 @@
 {% elif f.label == 'Достижения' %}
     <h5 class="text-center mb-3">Дополнительная информация</h5>
 {% endif %}
-    <div class="form-group row mb-2">
+    <div class="form-group row mb-2 {% if f.html_name in hidden_fields %}hidden-fields rounded{% endif %}">
         <div class="col-4">
             <label class="col-form-label">{{ f.label }}</label>
             <small class="form-text text-muted d-block">{{ f.help_text }}</small>

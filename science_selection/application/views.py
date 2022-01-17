@@ -192,7 +192,8 @@ class EditApplicationView(LoginRequiredMixin, View):
         user_additional_fields = {f.addition_field_id: f.value for f in
                                   AdditionFieldApp.objects.filter(application=user_app)}
         context = {'app_form': app_form, 'pk': pk, 'education_formset': education_formset, 'app_active': True,
-                   'additional_fields': additional_fields, 'user_additional_fields': user_additional_fields}
+                   'additional_fields': additional_fields, 'user_additional_fields': user_additional_fields,
+                   'hidden_fields': Application.hidden_fields}
         return render(request, 'application/application_edit.html', context=context)
 
     @check_permission_decorator(const.MASTER_ROLE_NAME)
@@ -217,7 +218,7 @@ class EditApplicationView(LoginRequiredMixin, View):
             return redirect('application', pk=new_app.pk)
         else:
             context = {'app_form': app_form, 'pk': pk, 'education_formset': education_formset, 'app_active': True,
-                       'msg': 'Некорректные данные в заявке'}
+                       'msg': 'Некорректные данные в заявке', 'hidden_fields': Application.hidden_fields}
             return render(request, 'application/application_edit.html', context=context, status=400)
 
 

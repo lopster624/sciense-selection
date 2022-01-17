@@ -34,6 +34,8 @@ class Application(models.Model):
         (1, 'Весна'),
         (2, 'Осень')
     ]
+    hidden_fields = ['compliance_prior_direction', 'compliance_additional_direction',
+                     'postgraduate_additional_direction', 'postgraduate_prior_direction']
 
     member = models.OneToOneField(Member, on_delete=models.CASCADE, verbose_name='Пользователь',
                                   related_name='application')

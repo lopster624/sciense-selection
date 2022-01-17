@@ -22,7 +22,11 @@
         {{ error_msg }}
       </div>
     {% endif %}
-    <div class="text-center lead bg-info bg-opacity-10 mb-2 rounded">Выберите желаемые направления отбора <br> Максимальное количество направлений - 4</div>
+    {% if user.member.is_master %}
+        <h5 class="text-center mb-2">Выбранные кандидатом направления</h5>
+    {% elif user.member.is_slave %}
+        <div class="text-center lead bg-info bg-opacity-10 mb-2 rounded">Выберите желаемые направления отбора <br> Максимальное количество направлений - 4</div>
+    {% endif %}
     {% if not blocked %}
       <form action="{% url 'choose_app_direction' pk %}" method="POST">
         {% csrf_token %}
