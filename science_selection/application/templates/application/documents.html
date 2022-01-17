@@ -17,6 +17,7 @@
                 <button type="button" class="btn-close ms-2" data-bs-toggle="modal"
                         data-bs-target="#staticBackdrop{{ file.id }}" aria-label="Close"></button>
 
+                <small>Загружен: {{file.create_date}}</small>
                 <div class="modal fade" id="staticBackdrop{{ file.id }}" data-bs-backdrop="static" tabindex="-1"
                      role="dialog"
                      aria-labelledby="staticBackdropLabel{{ file.id }}" aria-hidden="true">
@@ -24,7 +25,7 @@
                         <div class="modal-content bg-light">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="staticBackdropLabel{{ file.id }}">Удаление
-                                    компетенции</h5>
+                                    файла</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"
                                         aria-label="Close"></button>
                             </div>

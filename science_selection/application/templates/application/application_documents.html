@@ -24,7 +24,7 @@
             <li class="list-group-item list-group-item-light fs-5">
                 <img src="{% static 'images/file-earmark-arrow-down.svg' %}" alt="download file" width="32" height="32">
                 <a href="{% url 'download_documents' file.pk %}" class="mb-1">{{ file.file_name }}</a>
-
+                 <small>Загружен: {{file.create_date}}</small>
                 {% if not blocked %}
                     <button type="button" class="btn-close ms-2" data-bs-toggle="modal"
                             data-bs-target="#staticBackdrop{{ file.id }}" aria-label="Close"></button>
