@@ -695,11 +695,13 @@ class DeleteFromWishlistView(MasterDataMixin, View):
     def post(self, request, pk):
         affiliations_id = request.POST.getlist('affiliations', None)
         slave_member = Member.objects.get(application__id=pk)
+        master_affiliations_id = set(self.get_master_affiliations_id())
         for affiliation_id in affiliations_id:
-            current_booking = Booking.objects.filter(booking_type__name=const.IN_WISHLIST, master=request.user.member,
-                                                     slave=slave_member, affiliation__id=affiliation_id)
-            if current_booking:
-                current_booking.first().delete()
+            if int(affiliation_id) in master_affiliations_id:
+                current_booking = Booking.objects.filter(booking_type__name=const.IN_WISHLIST,
+                                                         slave=slave_member, affiliation__id=affiliation_id)
+                if current_booking:
+                    current_booking.first().delete()
         return self.get_redirect_on_previous_page(request)
 
 
