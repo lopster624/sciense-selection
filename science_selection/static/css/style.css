@@ -41,7 +41,7 @@ a:hover{
 .nav-link{
     color: #2e68bf;
 }
-#active-directions{
+.active-directions{
     background-color: #D2F1D0;
 }
 .hidden-fields{
