@@ -147,7 +147,7 @@ class WordTemplate:
             'military_commissariat': user_app.military_commissariat,
             'university': user_last_education.university,
             'specialization': user_last_education.specialization,
-            'avg_score': user_last_education.avg_score,
+            'avg_score': convert_float(user_last_education.avg_score),
         }
 
     def _get_candidates_info(self, user_app, user_last_education):
@@ -155,7 +155,7 @@ class WordTemplate:
         return {
             'subject': commissariat.subject if commissariat else '',
             'birth_day': user_app.birth_day.year,
-            'avg_score': user_last_education.avg_score,
+            'avg_score': convert_float(user_last_education.avg_score),
         }
 
 

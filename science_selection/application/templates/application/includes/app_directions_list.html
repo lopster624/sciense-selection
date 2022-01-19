@@ -1,24 +1,28 @@
 <div class="row row-cols-1 row-cols-md-3">
     {% for direction in directions %}
         <div class="col mb-2">
-          <div class="card h-100">
-            {% if direction.image_url %}
-                <img src="{{ direction.image_url }}" class="h-100 card-img-top" alt="{{ direction.name }}">
-            {% endif %}
-            {% if user.member.is_master and direction.id in selected_directions %}
-              <div class="card-body active-directions">
-            {% else %}
-              <div class="card-body">
-            {% endif %}
-              <h5 class="card-title"> {{ direction.name }} </h5>
-              <p class="card-text"> {{ direction.description }} </p>
-              <div class="custom-control custom-checkbox">
-                <input type="checkbox" class="custom-control-input"  name="direction" id="{{ direction.name }}" {% if blocked %}disabled{%endif%}
-                       value="{{ direction.id }}" {% if direction.id in selected_directions %} checked {% endif %}>
-                <label class="custom-control-label"><small class="text-muted">Выбрать направление</small></label>
-              </div>
+            <div class="card h-100">
+                {% if direction.image_url %}
+                    <img src="{{ direction.image_url }}" class="card-img-top" alt="{{ direction.name }}" style="height: 225px">
+                {% endif %}
+                {% if user.member.is_master and direction.id in selected_directions %}
+                    <div class="card-body active-directions">
+                {% else %}
+                    <div class="card-body ">
+                {% endif %}
+                <h5 class="card-title"> {{ direction.name }} </h5>
+                <p class="card-text fst-italic"> {{ direction.description }} </p>
+                </div>
+                {% if not user.member.is_master %}
+                    <div class="card-footer">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input"  name="direction" id="{{ direction.name }}"
+                                   {% if blocked %}disabled{%endif%} value="{{ direction.id }}" {% if direction.id in selected_directions %} checked {% endif %}>
+                            <label class="custom-control-label"><small class="text-muted">Выбрать направление</small></label>
+                        </div>
+                    </div>
+                {% endif %}
             </div>
-          </div>
         </div>
     {% endfor %}
 </div>
