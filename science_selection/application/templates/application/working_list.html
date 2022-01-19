@@ -36,7 +36,8 @@
                     {% for test in direction_tests %}
                     <td scope="col">Тест "{{test.name}}"</td>
                     {% endfor %}
-                    <td scope="col">Бронирование</td>
+                    <td scope="col">Отобран</td>
+                    <td scope="col" class="text-nowrap">В избранном</td>
                     <td scope="col">Заметки</td>
                     <td scope="col" class="text-nowrap">Рабочая группа</td>
                 </tr>
@@ -77,31 +78,11 @@
                     <td scope="row">{% get_test_result test.id app.member.test_results%}</td>
                     {% endfor %}
 
-
                     <td scope="row">
-                        {% if app.can_unbook or app.our_direction and not app.is_booked %}
-                        <button type="button" class="btn btn-white ps-0" data-bs-toggle="modal"
-                                data-bs-target="#staticBackdrop{{ app.id }}" aria-label="book">
-                            {% endif%}
-                            <span class="text-nowrap">
-                            {% if app.is_booked%}
-                            <img src="{% static 'images/lock-fill.svg' %}" alt="download file" width="20"
-                                 height="20">
-                            {{app.company}} рота, {{app.platoon}} взвод
-                            {% else %}
-                            <img src="{% static 'images/lock.svg' %}" alt="download file" width="20" height="20">
-                            {% endif%}
-                            </span>
-                            {% if app.can_unbook or app.our_direction and not app.is_booked %}
-                        </button>
-                        {% endif %}
-
-                        {% if app.can_unbook %}
-                        {% include 'application/includes/unbook_member_template.html' %}
-                        {% endif %}
-                        {% if not app.is_booked and app.our_direction %}
-                        {% include 'application/includes/book_member_template.html' %}
-                        {% endif %}
+                        {% include 'application/includes/book_button_template.html' %}
+                    </td>
+                    <td scope="row">
+                        {% include 'application/includes/wishlist_button_template.html' %}
                     </td>
 
                     <td scope="row">

@@ -212,7 +212,6 @@ class FilterWorkGroupForm(forms.Form):
         affiliation_set = [(affiliation.id, affiliation) for affiliation in master_affiliations]
         super(FilterWorkGroupForm, self).__init__(*args, **kwargs)
         book = list(BookingType.objects.all().values_list('id', 'name'))
-        book.append(('all', 'Не отобраны'))
         self.fields['booking_type'].choices = book
         self.fields['affiliation'].choices = affiliation_set
 

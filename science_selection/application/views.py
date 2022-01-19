@@ -966,6 +966,7 @@ class WorkingListView(MasterDataMixin, ListView):
         context['form'] = filter_form
         context['reset_filters'] = bool(get_form_data(self.request.GET))
         context['work_list_active'] = True
+        context['master_affiliations'] = master_affiliations
         context['master_directions_affiliations'] = self.get_master_direction_affiliations(master_affiliations)
         chosen_affiliation = get_object_or_404(Affiliation.objects.select_related('direction'),
                                                pk=self.chosen_affiliation_id)
@@ -1002,12 +1003,13 @@ class WorkingListView(MasterDataMixin, ListView):
         # фильтрация по принадлежностям
         chosen_affiliation = self.request.GET.get('affiliation', None)
         apps = apps.filter(directions__affiliation__id=chosen_affiliation)
+
         booking_type_id = self.request.GET.getlist('booking_type', None)
-        if not booking_type_id or 'all' in booking_type_id:
+        if not booking_type_id:
             return apps
-        booked_members = Booking.objects.filter(affiliation__in=chosen_affiliation,
-                                                booking_type__id__in=booking_type_id).values_list('slave', flat=True)
-        return apps.filter(member__id__in=booked_members)
+        return apps.filter(member__id__in=Booking.objects.filter(
+            affiliation__in=chosen_affiliation,
+            booking_type__id__in=booking_type_id).values_list('slave', flat=True))
 
 
 class ChangeWorkGroupView(MasterDataMixin, View):
