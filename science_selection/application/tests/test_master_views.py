@@ -788,7 +788,7 @@ class DeleteFromWishlistViewTest(TestCase):
                                    affiliation=new_affiliation).exists())
 
     def test_delete_not_our_member(self):
-        """Проверяет, что нельзя удалить чужое бронирование"""
+        """Проверяет, что можно удалить чужое бронирование"""
         slave_member = self.slave_members[0]
         booking_type = BookingType.objects.only('id').get(name=IN_WISHLIST)
         self.client.login(username='master', password='master')
@@ -800,7 +800,7 @@ class DeleteFromWishlistViewTest(TestCase):
             {'affiliations': [new_affiliation.id]}, HTTP_REFERER=reverse('application_list'))
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, reverse('application_list'))
-        self.assertTrue(
+        self.assertFalse(
             Booking.objects.filter(booking_type=booking_type, master=self.master_member2, slave=slave_member,
                                    affiliation=new_affiliation).exists())
 
@@ -1318,7 +1318,7 @@ class WorkingListViewTest(TestCase):
         resp = self.client.get(reverse('work_list'))
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(tuple(resp.context['object_list']),
-                         (Application.objects.get(member__user__username='testuser1'),))
+                         ())
         self.assertEqual(resp.context['master_directions_affiliations'],
                          {self.aff1.id: [self.aff1], self.aff3.id: [self.aff3]})
         self.assertEqual(resp.context['chosen_company'], 1)
@@ -1340,10 +1340,10 @@ class WorkingListViewTest(TestCase):
         """Проверяет, что показываются анкеты только для второго направления"""
         self.client.login(username='master', password='master')
         resp = self.client.get(
-            reverse('work_list') + f'?affiliation={self.aff3.id}&booking_type=1&booking_type=2&booking_type=all')
+            reverse('work_list') + f'?affiliation={self.aff3.id}&booking_type=1&booking_type=2')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(tuple(resp.context['object_list']),
-                         tuple(Application.objects.filter(~Q(member__user__username='testuser4'))))
+                         tuple(Application.objects.filter(Q(member__user__username='testuser2'))))
         self.assertEqual(resp.context['chosen_company'], 3)
         self.assertEqual(resp.context['chosen_platoon'], 3)
 
@@ -1354,6 +1354,6 @@ class WorkingListViewTest(TestCase):
             reverse('work_list') + f'?affiliation={self.aff3.id}&booking_type=1&booking_type=2')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(tuple(resp.context['object_list']),
-                         tuple(Application.objects.filter(member__user__username__in=('testuser2', 'testuser1')), ))
+                         tuple(Application.objects.filter(member__user__username='testuser2'), ))
         self.assertEqual(resp.context['chosen_company'], 3)
         self.assertEqual(resp.context['chosen_platoon'], 3)
