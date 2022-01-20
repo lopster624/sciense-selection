@@ -35,7 +35,7 @@ class DataApplicationMixin:
         return Affiliation.objects.filter(member=self.request.user.member)
 
     def get_master_affiliations_id(self):
-        return Affiliation.objects.filter(member=self.request.user.member).values_list('direction__id', flat=True)
+        return Affiliation.objects.filter(member=self.request.user.member).values_list('id', flat=True)
 
     def get_all_directions(self):
         return Direction.objects.all()
