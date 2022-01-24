@@ -202,7 +202,7 @@ class FilterWorkGroupForm(forms.Form):
         widget=Select(attrs={'class': 'form-select'}),
     )
     booking_type = forms.MultipleChoiceField(
-        label='Состояние бронирования',
+        label='Состояние отбора',
         required=False,
         widget=CheckboxSelectMultiple(),
     )
