@@ -5,11 +5,11 @@ from django.forms.widgets import Input
 
 class RegisterForm(forms.ModelForm):
     father_name = forms.CharField(label='Отчество', widget=Input(attrs={'class': 'form-control'}))
-    phone = forms.RegexField(label='Телефон', regex=r'^\+?1?\d{9,15}$', widget=Input(attrs={'class': 'form-control'}))
+    phone = forms.RegexField(label='Телефон', regex=r'^\+?1?\d{9,15}$', widget=Input(attrs={'class': 'form-control', 'placeholder': '88005553535'}))
 
     class Meta:
         model = User
-        fields = ('username', 'password', 'first_name', 'last_name', 'father_name',
+        fields = ('username', 'password', 'last_name', 'first_name', 'father_name',
                   'email', 'phone')
 
         widgets = {
