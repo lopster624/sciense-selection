@@ -3,6 +3,7 @@ import re
 from io import BytesIO
 
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from docxtpl import DocxTemplate
 
