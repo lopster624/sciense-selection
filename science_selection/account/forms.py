@@ -29,7 +29,7 @@ class RegisterForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(RegisterForm, self).__init__(*args, **kwargs)
         for key in self.fields:
-            self.fields[key].required = True
+            self.fields[key].required = True if key != 'father_name' else False
 
     def clean_username(self):
         username = self.cleaned_data['username']

@@ -44,7 +44,7 @@ class Member(models.Model):
 
     user = models.OneToOneField(User, verbose_name="Пользователь", on_delete=models.CASCADE)
     role = models.ForeignKey(Role, verbose_name="Роль", null=True, blank=True, on_delete=models.SET_NULL)
-    father_name = models.CharField(max_length=32, verbose_name="Отчество", blank=True)
+    father_name = models.CharField(max_length=32, verbose_name="Отчество", null=True, blank=True)
     phone = models.CharField(validators=[Validator.phone_regex], verbose_name="Телефон", max_length=17)
     affiliations = models.ManyToManyField(Affiliation, verbose_name="Принадлежность", blank=True)
 
