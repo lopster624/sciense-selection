@@ -44,7 +44,7 @@ class Application(models.Model):
     directions = models.ManyToManyField('Direction', verbose_name='Выбранные направления', blank=True,
                                         related_name='application')
     birth_day = models.DateField(verbose_name='Дата рождения')
-    birth_place = models.CharField(max_length=128, verbose_name='Место рождения')
+    birth_place = models.CharField(max_length=128, verbose_name='Место рождения', help_text='Область, город')
     nationality = models.CharField(max_length=128, verbose_name='Гражданство')
     military_commissariat = models.CharField(max_length=128, verbose_name='Военный комиссариат')
     group_of_health = models.CharField(max_length=32, verbose_name='Группа здоровья')
