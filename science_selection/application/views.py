@@ -337,9 +337,11 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
                                                      directions__in=user_directions).prefetch_related('child',
                                                                                                       'child__child',
                                                                                                       'directions').distinct()
+            picked_competencies = Competence.objects.filter(directions__in=user_directions).only('name')
             competence_levels = ApplicationCompetencies.competence_levels
             context.update({'levels': competence_levels, 'selected_competencies': selected_competencies,
-                            'competencies': competencies, 'selected_directions': user_directions})
+                            'competencies': competencies, 'selected_directions': user_directions,
+                            'picked_competencies': picked_competencies})
         else:
             msg = 'Направления не выбраны' if request.user.member.is_master() else 'Заполните направления'
             context.update({'msg': msg, 'name': 'choose_app_direction'})
@@ -366,10 +368,11 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
                                                  directions__in=user_directions).prefetch_related('child',
                                                                                                   'child__child',
                                                                                                   'directions').distinct()
+        picked_competencies = Competence.objects.filter(directions__in=user_directions).only('name')
 
         context = {'competencies': competencies, 'levels': ApplicationCompetencies.competence_levels,
                    'selected_competencies': selected_competencies, 'pk': pk, 'competence_active': True,
-                   'selected_directions': user_directions}
+                   'selected_directions': user_directions, 'picked_competencies': picked_competencies}
         return render(request, 'application/application_competence_choose.html', context=context)
 
 
