@@ -28,7 +28,7 @@ from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities, AdditionFieldApp, AdditionField, Specialization, MilitaryCommissariat, WorkGroup
 from .utils import check_permission_decorator, WordTemplate, check_booking_our_or_exception, check_final_decorator, \
-    add_additional_fields, get_cleared_query_string_of_page, get_sorted_queryset, get_form_data
+    add_additional_fields, get_cleared_query_string_of_page, get_sorted_queryset, get_form_data, get_additional_fields
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
@@ -97,8 +97,11 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
                 add_additional_fields(request, new_app)
                 return redirect('application', pk=new_app.pk)
             else:
+                additional_fields = AdditionField.objects.all()
+                user_additional_fields = get_additional_fields(request)
                 context = {'app_active': True, 'msg': 'Некорректные данные в заявке', 'app_form': app_form,
-                           'education_formset': education_formset}
+                           'education_formset': education_formset, 'additional_fields': additional_fields,
+                           'user_additional_fields': user_additional_fields}
                 return render(request, 'application/application_create.html', context=context, status=400)
         else:
             return redirect('application', pk=Application.objects.filter(member=request.user.member).first().id)
@@ -217,8 +220,11 @@ class EditApplicationView(LoginRequiredMixin, View):
             add_additional_fields(request, user_app)
             return redirect('application', pk=new_app.pk)
         else:
+            additional_fields = AdditionField.objects.all()
+            user_additional_fields = get_additional_fields(request)
             context = {'app_form': app_form, 'pk': pk, 'education_formset': education_formset, 'app_active': True,
-                       'msg': 'Некорректные данные в заявке', 'hidden_fields': Application.hidden_fields}
+                       'msg': 'Некорректные данные в заявке', 'hidden_fields': Application.hidden_fields,
+                       'additional_fields': additional_fields, 'user_additional_fields': user_additional_fields}
             return render(request, 'application/application_edit.html', context=context, status=400)
 
 

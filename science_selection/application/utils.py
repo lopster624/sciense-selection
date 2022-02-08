@@ -188,6 +188,12 @@ def add_additional_fields(request, user_app):
                                                           f"{NAME_ADDITIONAL_FIELD_TEMPLATE}{field.id}")})
 
 
+def get_additional_fields(request):
+    additional_fields = {int(re.search('\d+', field).group(0)): request.POST.get(field) for field in request.POST
+                         if NAME_ADDITIONAL_FIELD_TEMPLATE in field}
+    return additional_fields
+
+
 def get_cleared_query_string_of_page(query_string):
     """Возвращает строку query-параметров без параметра page"""
     if not query_string:
