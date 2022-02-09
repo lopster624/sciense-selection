@@ -7,7 +7,7 @@
 {% include 'includes/header_template.html' %}
 {% include 'application/includes/nav_app_template.html' %}
 
-<div class="w-50 bg-white list-group-item" style="margin-left: 25%;">
+<div class="w-50 bg-white list-group-item border-top-0" style="margin-left: 25%;">
     {% if msg %}
         <div class="btn w-50" style="margin-left: 25%"> {{ msg }}
             {% if user.member.is_slave %}
