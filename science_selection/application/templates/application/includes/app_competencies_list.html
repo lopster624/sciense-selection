@@ -25,8 +25,8 @@
         <div id="accordion_{{comp_lvl1.id}}" class="accordion-collapse collapse">
             <div class="accordion-body">
             {% for comp_lvl2 in comp_lvl1.child.all %}
+                {% if comp_lvl2 in picked_competencies %}
                 <div class="ms-5">
-
                     <div class="form-group col-12">
                         <div class="row mb-1">
                             <div class="ms-1 fs-5 col-9">{{comp_lvl2.name}}</div>
@@ -45,6 +45,7 @@
                     </div>
 
                     {% for comp_lvl3 in comp_lvl2.child.all %}
+                    {% if comp_lvl3 in picked_competencies %}
                     <div class="ms-5">
                         <div class="form-group col-12">
                             <div class="row mb-1">
@@ -63,8 +64,10 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
                     {% endfor %}
                 </div>
+                {% endif %}
             {% endfor %}
             </div>
         </div>
