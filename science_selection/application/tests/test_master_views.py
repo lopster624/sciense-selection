@@ -538,7 +538,7 @@ class UnBookMemberViewTest(TestCase):
         self.assertEqual(resp.status_code, 403)
         self.assertTemplateUsed(resp, 'access_error.html')
         self.assertEqual(str(resp.context['error']),
-                         'Отказано в запросе на удаление. Удалять может только  mattew , отобравший кандидатуру.')
+                         'Отказано в запросе на удаление. Удалять может только  mattew None, отобравший кандидатуру.')
 
     def test_reseting_of_workgroup_deleted_user(self):
         """Проверяет, что у удаляемой заявки удаляется workgroup"""

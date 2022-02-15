@@ -23,8 +23,8 @@ def check_role(user, role_name):
 
 
 def check_permission_decorator(role_name=None):
-    """ Декоратор, который проверяет роль пользователя с заданной через параметр role_name """
-
+    """ Кидает исключение PermissionDenied, если роль user!=role_name
+    или текущий пользователь не является пользователем с переданным pk"""
     def decorator(func):
         def wrapper(self, request, pk, *args, **kwargs):
             if request.user.member.role.role_name == role_name:

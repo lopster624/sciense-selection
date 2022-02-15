@@ -36,6 +36,8 @@ class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
 
     @check_permission_decorator(const.MASTER_ROLE_NAME)
     def get(self, request, pk):
+        """ Показывает пользователю все направления. Отмечает выбранные. Разрешает редактирование только
+        кандидату, если это его анкета и она не заблокирована."""
         user_app = get_object_or_404(Application.objects.only('is_final'), pk=pk)
         selected_directions = [_.id for _ in user_app.directions.all()]
         context = {'direction_active': True, 'pk': pk, 'directions': self.get_all_directions(),
@@ -47,6 +49,7 @@ class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
     @check_final_decorator
     @check_permission_decorator()
     def post(self, request, pk):
+        """ Сохраняет список выбранных направлений. Доступно только для владельца анкеты, если она не заблокирована."""
         user_app = get_object_or_404(Application, pk=pk)
         selected_directions = request.POST.getlist('direction')
         context = {}
