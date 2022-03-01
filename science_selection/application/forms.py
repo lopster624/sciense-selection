@@ -112,7 +112,8 @@ EducationFormSet = modelformset_factory(Education, form=EducationCreateForm, ext
 class FilterAppListForm(forms.Form):
     order = [
         ('member__user__last_name', 'По фамилии'),
-        ('birth_place', 'По городу'),
+        ('birth_place', 'По месту рождения'),
+        ('subject_name', 'По субъекту'),
         ('-final_score', 'По итоговому баллу'),
         ('-fullness', 'По заполненности анкеты'),
     ]
