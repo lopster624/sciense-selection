@@ -1,6 +1,14 @@
+import pandas as pd
+
 from django.contrib import admin
+from django.conf.urls import url
+from django.shortcuts import render
+
+from engine.middleware import logger
+from utils.constants import TABLE_HEADER_NAMES
 
 from . import models
+from .utils import Questionnaires
 
 
 class CompetenciesInlineAdmin(admin.TabularInline):
@@ -9,9 +17,30 @@ class CompetenciesInlineAdmin(admin.TabularInline):
 
 @admin.register(models.Application)
 class ApplicationAdmin(admin.ModelAdmin):
+    change_list_template = "admin/application_change_list.html"
+
     inlines = [CompetenciesInlineAdmin]
     list_display = ('member', 'draft_year', 'draft_season', 'final_score')
     list_filter = ('draft_year', 'draft_season', 'final_score')
+
+    def get_urls(self):
+        urls = super(ApplicationAdmin, self).get_urls()
+        custom_urls = [
+            url('^import/$', self.process_import, name='process_import')]
+        return custom_urls + urls
+
+    def process_import(self, request):
+        # https: // habr.com / ru / company / cloud4y / blog / 650357 /
+        # TODO; было бы хорошо создавать таски на выполнение этих задач, но вряд ли это будем делать)))
+        new_files = request.FILES.getlist('downloaded_files')
+        overall_result = []
+        for file in new_files:
+            user_questionnaires = pd.read_excel(file, names=TABLE_HEADER_NAMES)
+            questionnaires = Questionnaires(user_questionnaires)
+            result = questionnaires.add_applications_to_db()
+            overall_result.append(result)
+            logger.info(result)
+        return render(request, 'import.html', context={'results': overall_result, 'uri': request.META.get('HTTP_REFERER')})
 
 
 @admin.register(models.Education)

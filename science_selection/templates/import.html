@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load application_extras %}
+{% block title %}
+Результат импорта
+{% endblock title %}
+{% block content %}
+{% include 'includes/header_template.html' %}
+<div class="card p-2 mb-2 w-50 bg-default" style="margin-left: 25%;">
+    <div class="alert">
+        {% for res in results %}
+            <div class="card-header">Успешно добавленные анкеты</div>
+            <ul class="list-group list-group-flush mb-2">
+                {% for r in res|get_item:'accepted' %}
+                    <li class="list-group-item text-uppercase fw-bold">{{ r }}</li>
+                {% endfor %}
+            </ul>
+            <div class="card-header">Ошибки</div>
+            <ul class="list-group list-group-flush">
+                {% for r in res|get_item:'errors' %}
+                    <li class="list-group-item text-uppercase fw-bold">{{ r }}</li>
+                {% endfor %}
+            </ul>
+        {% endfor %}
+    </div>
+    <div class="text-end">
+        <a class="btn btn-outline-secondary" href="{{uri}}" role="button">Вернуться обратно</a>
+    </div>
+
+</div>
+{% endblock %}

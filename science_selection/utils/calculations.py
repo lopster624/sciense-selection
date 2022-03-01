@@ -22,6 +22,10 @@ def convert_float(value):
     return str(value).replace('.', ',')
 
 
+def covert_date_str_to_datetime(datetime_str):
+    return datetime.datetime.strptime(datetime_str, '%d.%m.%Y')
+
+
 def get_exception_status_code(exception):
     """Возвращает статус кода ошибки по классу"""
     if isinstance(exception, IncorrectActivationLinkException) or isinstance(exception, Http404) or isinstance(

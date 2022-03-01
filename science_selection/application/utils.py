@@ -1,17 +1,24 @@
 import datetime
 import re
+import pandas as pd
 from io import BytesIO
 
+from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from docxtpl import DocxTemplate
 
-from account.models import Member, Affiliation, Booking
+from account.models import Member, Affiliation, Booking, Role
+from engine.middleware import logger
 from utils.calculations import get_current_draft_year, convert_float
 from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
     PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT
-from utils.constants import NAME_ADDITIONAL_FIELD_TEMPLATE
-from .models import Application, AdditionField, AdditionFieldApp, MilitaryCommissariat
+from utils import constants as const
+from utils.calculations import covert_date_str_to_datetime
+
+from .models import Application, AdditionField, AdditionFieldApp, MilitaryCommissariat, Education, Universities, \
+    Specialization, Competence, ApplicationCompetencies, Direction
 
 
 def check_role(user, role_name):
@@ -179,18 +186,18 @@ def is_booked_our(pk, user):
 
 def add_additional_fields(request, user_app):
     additional_fields = [int(re.search('\d+', field).group(0)) for field in request.POST
-                         if NAME_ADDITIONAL_FIELD_TEMPLATE in field]
+                         if const.NAME_ADDITIONAL_FIELD_TEMPLATE in field]
     if additional_fields:
         addition_fields = AdditionField.objects.filter(pk__in=additional_fields)
         for field in addition_fields:
             AdditionFieldApp.objects.update_or_create(addition_field=field, application=user_app,
                                                       defaults={'value': request.POST.get(
-                                                          f"{NAME_ADDITIONAL_FIELD_TEMPLATE}{field.id}")})
+                                                          f"{const.NAME_ADDITIONAL_FIELD_TEMPLATE}{field.id}")})
 
 
 def get_additional_fields(request):
     additional_fields = {int(re.search('\d+', field).group(0)): request.POST.get(field) for field in request.POST
-                         if NAME_ADDITIONAL_FIELD_TEMPLATE in field}
+                         if const.NAME_ADDITIONAL_FIELD_TEMPLATE in field}
     return additional_fields
 
 
@@ -215,3 +222,135 @@ def get_form_data(get_dict):
     if not orig_dict:
         return None
     return get_dict
+
+
+class Questionnaires:
+    def __init__(self, xlsx):
+        self.xlsx = xlsx
+
+    def create_member(self, user_params):
+        new_user = self._create_new_user(user_params)
+        return Member.objects.create(user=new_user, role=Role.objects.get(role_name=const.SLAVE_ROLE_NAME),
+                                     father_name=user_params.get('father_name'), phone=user_params.get('phone'))
+
+    def add_applications_to_db(self):
+        result = {
+            'errors': [],
+            'accepted': [],
+        }
+        for _, params in self.xlsx.iterrows():
+            if pd.isna(params.id):
+                continue
+            user_params = self._get_params_for_member_create(params)
+            if self._is_member_exists(user_params):
+                result['errors'].append(f"Анкета id: {params['id']} пользователя {user_params['last_name']} {user_params['first_name']} уже создана")
+                continue
+            try:
+                new_member = self.create_member(user_params)
+                new_app = self.create_application(new_member, params)
+                self.add_education(new_app, params)
+                self.add_additional_values(new_app, params)
+                new_app.update_scores()
+                result['accepted'].append(f"Анкета id: {params['id']} пользователя {user_params['last_name']} {user_params['first_name']} успешно создана")
+            except Exception as e:
+                result['errors'].append(f"Ошибка при создании анкеты с id:{params['id']} - {e}")
+                logger.error(f'Ошибка в анкете с id: {params["id"]} - {e}')
+        return result
+
+    def _is_member_exists(self, user_params):
+        return True if Member.objects.filter(Q(phone=user_params['phone']) | Q(user__email=user_params['email'])) else False
+
+    def create_application(self, member, params):
+        birth_day = covert_date_str_to_datetime(params['birth_day'])
+        ready_to_secret = self._convert_ready_to_secret(params['ready_to_secret'])
+        draft_season = self._convert_draft_season(params['draft_season'])
+        return Application.objects.create(member=member, birth_day=birth_day, birth_place='Пока не добавили',
+                                          nationality=params['nationality'], military_commissariat=params['military_commissariat'],
+                                          group_of_health=params['group_of_health'], draft_year=params['draft_year'],
+                                          draft_season=draft_season, ready_to_secret=ready_to_secret,
+                                          scientific_achievements=params['scientific_achievements'], scholarships=params['scholarships'],
+                                          candidate_exams=params['candidate_exams'], sporting_achievements=params['sporting_achievements'],
+                                          hobby=params['hobby'], other_information=params['other_information'])
+
+    def _convert_draft_season(self, draft_season):
+        season = draft_season[1:-1]
+        for s in Application.season:
+            if s[-1].lower() == season:
+                return s[0]
+
+    def _convert_ready_to_secret(self, ready_to_secret):
+        return True if ready_to_secret == '[Да]' else False
+
+    def add_education(self, app, params):
+        education_type = self._convert_education_type(params['education_type'])
+        university, specialization = self._get_university_and_specialization(params['university'], params['specialization'])
+        return Education.objects.create(application=app, education_type=education_type, university=university,
+                                        specialization=specialization, avg_score=params['avg_score'],
+                                        end_year=params['end_year'], name_of_education_doc=params['name_of_education_doc'],
+                                        theme_of_diploma=params['theme_of_diploma'])
+
+    def _convert_education_type(self, education_type):
+        ed_program = education_type[1:-1]
+        for program in Education.education_program:
+            if program[-1] == ed_program:
+                return program[0]
+
+    def _get_university_and_specialization(self, university, specialization):
+        uni = Universities.get_by_name_or_leave(university)
+        spec = Specialization.get_by_name_or_leave(specialization)
+        return uni, spec
+
+    def add_additional_values(self, app, params):
+        user_directions, user_achievements = self._get_user_directions_and_achievements(params)
+        self.add_directions_to_app(app, user_directions)
+        self.add_achievements_to_app(app, user_achievements)
+        self.add_competencies_to_app(app, params)
+
+    def add_achievements_to_app(self, app, user_achievements):
+        for achievement in user_achievements:
+            setattr(app, const.CONVERTER_ACHIEVEMENTS_NAMES_TO_MODEL_FIELDS[achievement], True)
+        app.save()
+
+    def add_directions_to_app(self, app, user_directions):
+        directions = Direction.objects.filter(name__in=user_directions)
+        app.directions.add(*directions)
+
+    def add_competencies_to_app(self, app, params):
+        user_selected_competencies = [comp for comp in const.EXIST_COMPETENCIES_ON_SITE if params[comp] != '[0]']
+        competencies = Competence.objects.filter(name__in=user_selected_competencies)
+        competencies_with_levels = [ApplicationCompetencies(application=app, competence=competence,
+                                                            level=int(params[competence.name][1:-1]))
+                                    for competence in competencies]
+        ApplicationCompetencies.objects.bulk_create(competencies_with_levels)
+
+    def _get_user_directions_and_achievements(self, params):
+        following_app = None
+        for index, row in self.xlsx.loc[params.name+1:, 'id'].items():
+            if pd.notna(row):
+                following_app = index
+
+        if following_app:
+            user_directions = [row[1:-1] for row in self.xlsx.loc[params.name:following_app-1, 'directions'] if pd.notna(row)]
+            user_achievements = [row[1:-1] for row in self.xlsx.loc[params.name:following_app-1, 'achievements'] if pd.notna(row)]
+        else:
+            user_directions = [row[1:-1] for row in self.xlsx.loc[params.name:, 'directions'] if pd.notna(row)]
+            user_achievements = [row[1:-1] for row in self.xlsx.loc[params.name:, 'achievements'] if pd.notna(row)]
+        return user_directions, user_achievements
+
+    def _create_new_user(self, member_params):
+        return User.objects.create_user(username=member_params.get('email'),
+                                        password=const.USER_PASSWORD,
+                                        email=member_params.get('email'),
+                                        first_name=member_params.get('first_name'),
+                                        last_name=member_params.get('last_name'))
+
+    def _get_params_for_member_create(self, params):
+        full_name = params.get('full_name')
+        first_name, last_name, father_name = full_name.strip().split(' ', 3)
+        return {
+            'first_name': first_name,
+            'last_name': last_name,
+            'father_name': father_name,
+            'phone': int(params['phone']),
+            'email': params['email'],
+        }

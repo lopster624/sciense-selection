@@ -100,3 +100,40 @@ MAX_APP_DIRECTIONS = int(os.environ.get("DJANGO_MAX_APP_DIRECTIONS", 4))
 
 # шаблон для именования полей в форме html в тестах пользователей
 NAME_ADDITIONAL_FIELD_TEMPLATE = 'additional_field_'
+
+USER_PASSWORD = os.environ.get("DJANGO_USER_PASSWORD")
+
+# Таблица соотношений названий достижений пользователя и названий полей в таблице (необходима для импорта из excel)
+CONVERTER_ACHIEVEMENTS_NAMES_TO_MODEL_FIELDS = {
+    'Опубликованные научные статьи в международных изданиях': 'international_articles',
+    'Опубликованные научные статьи в изданиях, рекомендуемых ВАК': 'vac_articles',
+    'Опубликованные научные статьи в изданиях РИНЦ': 'rinc_articles',
+    'Патенты на изобретения и полезные модели': 'patents',
+    'Свидетельства на рационализаторское предложение': 'innovation_proposals',
+    'Свидетельства о регистрации баз данных и программ для ЭВМ': 'evm_register',
+    'Призовые места на международных олимпиадах': 'international_olympics',
+    'Призовые места на олимпиадах всероссийского уровня': 'country_olympics',
+    'Призовые места на олимпиадах областного уровня': 'region_olympics',
+    'Призовые места на олимпиадах городского уровня': 'city_olympics',
+    'Государственные стипендии Президента Российской Федерации': 'president_scholarship',
+    'Государственные стипендии Правительства Российской Федерации': 'government_scholarship',
+    'Гранты по научным работам, имеющим прикладное значение для Минобороны РФ, которые подтверждены органами военного управления': 'military_grants',
+    'Опыт работы по специальности в коммерческих предприятиях (не менее 1 года)': 'commercial_experience',
+    'Опыт работы по специальности на предприятиях ОПК (не менее 1 года)': 'opk_experience',
+    'Опыт работы по специальности в научных организациях (подразделениях) на должностях научных сотрудников (не менее 1 года)': 'science_experience',
+    'Спортивные достижения по военно-прикладным видам спорта, в том числе выполнение нормативов ГТО': 'military_sport_achievements',
+    'Спортивные достижения по иным видам спорта': 'sport_achievements',
+}
+
+# Заголовки excel таблицы для импорта данных с сайта
+TABLE_HEADER_NAMES = ['id', 'status', 'changed', 'creator', 'full_name', 'phone', 'email', 'birth_day', 'nationality',
+                      'military_commissariat', 'group_of_health', 'draft_year', 'draft_season', 'ready_to_secret',
+                      'education_type', 'university', 'specialization', 'spec_2', 'avg_score', 'end_year', 'name_of_education_doc', 'theme_of_diploma',
+                      'directions', 'achievements', 'scientific_achievements', 'scholarships', 'candidate_exams', 'sporting_achievements', 'hobby', 'other_information',
+                      'C', 'C++', 'GO', 'Java', 'JS', 'PHP', 'Python', 'Ассемблер', 'Анализ данных', 'Машинное обучение', 'Нейронные сети', 'Blender', '3ds Max', 'SolidWorks', 'КОМПАС-3D', 'Ansys', 'Proteus', 'Matlab', 'Altium', 'Mathcad', 'ЛОГОС', 'QGIS',
+                      'OptiSystem', 'Cadence', 'DipTrace', 'CorelDraw Technical Suite', 'SNAP', 'PostgreSQL', 'MySQL', 'NoSQL', 'MongoDB', 'Oracle',
+                      'telegram', 'num1', 'numb2']
+
+EXIST_COMPETENCIES_ON_SITE = ['C', 'C++', 'GO', 'Java', 'JS', 'PHP', 'Python', 'Ассемблер', 'Анализ данных', 'Машинное обучение', 'Нейронные сети',
+                              'Blender', '3ds Max', 'SolidWorks', 'КОМПАС-3D', 'Ansys', 'Proteus', 'Matlab', 'Altium', 'Mathcad', 'ЛОГОС', 'QGIS',
+                              'OptiSystem', 'Cadence', 'DipTrace', 'CorelDraw Technical Suite', 'SNAP', 'PostgreSQL', 'MySQL', 'NoSQL', 'MongoDB', 'Oracle']

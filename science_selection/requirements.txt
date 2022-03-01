@@ -6,3 +6,5 @@ django-debug-toolbar==3.2.2
 celery[redis]
 psycopg2-binary
 python-dotenv
+pandas
+openpyxl

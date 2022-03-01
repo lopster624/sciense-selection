@@ -50,14 +50,14 @@ class Application(models.Model):
     group_of_health = models.CharField(max_length=32, verbose_name='Группа здоровья')
     draft_year = models.IntegerField(verbose_name='Год призыва', validators=[validate_draft_year])
     draft_season = models.IntegerField(choices=season, verbose_name='Сезон призыва')
+    ready_to_secret = models.BooleanField(default=False, verbose_name='Готовность к секретности',
+                                          help_text='Готовность гражданина к оформлению допуска к сведениям, содержащим государственную тайну, по 3 форме')
     scientific_achievements = models.TextField(blank=True, verbose_name='Научные достижения',
                                                help_text='Участие в конкурсах, олимпиадах, издательской деятельности, '
                                                          'научно-практические конференции, наличие патентов на изобретения, '
                                                          'свидетельств о регистрации программ, свидетельств о рационализаторских предложениях и т.п.')
     scholarships = models.TextField(blank=True, verbose_name='Стипендии',
                                     help_text='Наличие грантов, именных премий, именных стипендий и т.п.')
-    ready_to_secret = models.BooleanField(default=False, verbose_name='Готовность к секретности',
-                                          help_text='Готовность гражданина к оформлению допуска к сведениям, содержащим государственную тайну, по 3 форме')
     candidate_exams = models.TextField(blank=True, verbose_name='Кандидатские экзамены',
                                        help_text='Наличие оформленного соискательства ученой степени и сданных экзаменов кандидатского минимума')
     sporting_achievements = models.TextField(blank=True, verbose_name='Спортивные достижения',
@@ -246,7 +246,7 @@ class Education(models.Model):
 class Direction(models.Model):
     """Направление работы"""
     name = models.CharField(max_length=128, verbose_name='Наименование направления')
-    description = models.TextField(verbose_name='Описание направления')
+    description = models.TextField(verbose_name='Описание направления', blank=True)
     image = models.ImageField(upload_to='images/', blank=True, null=True, verbose_name='Изображения')
 
     @property
@@ -354,6 +354,11 @@ class Universities(models.Model):
     def __str__(self):
         return self.name
 
+    @staticmethod
+    def get_by_name_or_leave(name):
+        uni = Universities.objects.filter(name=name).first()
+        return uni if uni else name
+
     class Meta:
         verbose_name = 'Университет'
         verbose_name_plural = 'Университеты'
@@ -416,6 +421,11 @@ class Specialization(models.Model):
 
     def __str__(self):
         return self.name
+
+    @staticmethod
+    def get_by_name_or_leave(name):
+        spec = Specialization.objects.filter(name=name).first()
+        return spec if spec else name
 
     class Meta:
         verbose_name = 'Специальность'
