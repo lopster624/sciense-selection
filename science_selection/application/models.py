@@ -124,6 +124,9 @@ class Application(models.Model):
         verbose_name = "Заявка"
         verbose_name_plural = "Заявки"
 
+    def check_military_commissariat(self):
+        return True if MilitaryCommissariat.objects.filter(name=self.military_commissariat) else False
+
     def get_filed_blocks(self):
         return {
             'Основные данные': True,

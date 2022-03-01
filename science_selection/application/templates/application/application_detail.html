@@ -73,7 +73,7 @@
                             {{ app.nationality }}
                         </div>
                     </div>
-                    <div class="row col-12 mb-2">
+                    <div class="row col-12 mb-2 {% if user.member.is_master and not app.check_military_commissariat %} bg-danger text-dark bg-opacity-25 rounded{% endif %}">
                         <div class="col">
                             Военный комиссариат:
                         </div>
