@@ -1060,3 +1060,10 @@ class ChangeWorkGroupView(MasterDataMixin, View):
         if work_group_select.is_valid():
             work_group_select.save()
         return self.get_redirect_on_previous_page(request)
+
+
+class ApplicationsDownloadingView(MasterDataMixin, View):
+    """ Скачивание отфильтрованного/отсортированного списка заявок """
+
+    def get(self, request):
+        pass

@@ -12,6 +12,7 @@ urlpatterns = [
     path('application/<int:pk>/word/', views.CreateWordAppView.as_view(), name='create_word_app'),
     path('application/<int:pk>/add_note/', views.EditApplicationNote.as_view(), name='add_application_note'),
     path('application/list/', views.ApplicationListView.as_view(), name='application_list'),
+    path('application/list/download/', views.ApplicationsDownloadingView.as_view(), name='downloading_applications'),
     path('application/<int:pk>/finished/', views.ChangeAppFinishedView.as_view(), name='change_finished'),
     path('application/list/service-document/', views.CreateServiceDocumentView.as_view(),
          name='create_word_service_document'),

@@ -33,11 +33,11 @@
                     <th scope="col">#</th>
                     <td scope="col">ФИО</td>
                     <td scope="col">Сезон призыва</td>
+                    <td scope="col">Дата рождения</td>
                     <td scope="col">Место рождения</td>
                     <td scope="col">Субъект</td>
                     <td scope="col">ВУЗ</td>
                     <td scope="col">Программа</td>
-                    <td scope="col">Дата рождения</td>
                     <td scope="col">Средний балл диплома</td>
                     <td scope="col">Итоговый балл</td>
                     <td scope="col" class="text-nowrap">Заполнил, %</td>
@@ -64,6 +64,9 @@
                         {{app.get_draft_time}}
                     </td>
                     <td scope="row">
+                        {{ app.birth_day }}
+                    </td>
+                    <td scope="row">
                         {{ app.birth_place }}
                     </td>
                     <td scope="row">
@@ -76,9 +79,6 @@
                     </td>
                     <td scope="row">
                         {% get_education_type_name app.education_type %}
-                    </td>
-                    <td scope="row">
-                        {{ app.birth_day }}
                     </td>
                     <td scope="row">
                         {% if app.avg_score %}
