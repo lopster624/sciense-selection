@@ -6,6 +6,7 @@ from io import BytesIO
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
+from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404, redirect
 from docxtpl import DocxTemplate
 
@@ -32,6 +33,7 @@ def check_role(user, role_name):
 def check_permission_decorator(role_name=None):
     """ Кидает исключение PermissionDenied, если роль user!=role_name
     или текущий пользователь не является пользователем с переданным pk"""
+
     def decorator(func):
         def wrapper(self, request, pk, *args, **kwargs):
             if request.user.member.role.role_name == role_name:
@@ -211,6 +213,9 @@ def get_cleared_query_string_of_page(query_string):
 def get_sorted_queryset(apps, ordering):
     """Возвращает отсортированый queryset по our_direction и ordering(если есть)"""
     if ordering:
+        if ordering in ['subject_name', 'birth_place']:
+            # если поля для поиска текстовое, то сортируем в lowercase
+            ordering = Lower(ordering)
         return apps.order_by('-our_direction', ordering)
     return apps.order_by('-our_direction')
 

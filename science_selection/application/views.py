@@ -520,7 +520,13 @@ class ApplicationListView(MasterDataMixin, ListView):
                 ApplicationNote.objects.filter(application=OuterRef('pk'),
                                                affiliations__in=self.get_master_affiliations(),
                                                ).values('text')[:1]),
+            subject=(MilitaryCommissariat.objects.filter(
+                name=OuterRef('military_commissariat')).values_list('subject')[:1]),
+            subject_name=Case(
+                When(subject=None, then=Value('')), default='subject'
+            )
         )
+        apps = self.filter_by_search(apps)
         apps = get_sorted_queryset(apps, self.request.GET.get('ordering', None))
         return apps
 
@@ -552,15 +558,6 @@ class ApplicationListView(MasterDataMixin, ListView):
         if not args:
             current_year, current_season = get_current_draft_year()
             return apps.filter(draft_year=current_year, draft_season=current_season[0]).distinct()
-        # Поиск по всем словам в запросе в фамилии, имени и отчестве
-        search = self.request.GET.get('search', None)
-        if search:
-            q = Q()
-            for param in search.split():
-                q |= Q(member__user__first_name__icontains=param)
-                q |= Q(member__user__last_name__icontains=param)
-                q |= Q(member__father_name__icontains=param)
-            apps = apps.filter(q).distinct()
 
         # фильтрация по направлениям
         chosen_directions = self.request.GET.getlist('directions', None)
@@ -591,6 +588,20 @@ class ApplicationListView(MasterDataMixin, ListView):
         draft_year = self.request.GET.getlist('draft_year', None)
         if draft_year:
             apps = apps.filter(draft_year__in=draft_year).distinct()
+        return apps
+
+    def filter_by_search(self, apps):
+        # Фильтрация с помощью поиска по всем словам в запросе в фамилии, имени и отчестве, названию вуза и субъекту РФ
+        search = self.request.GET.get('search', None)
+        if search:
+            q = Q()
+            for param in search.split():
+                q |= Q(member__user__first_name__icontains=param)
+                q |= Q(member__user__last_name__icontains=param)
+                q |= Q(member__father_name__icontains=param)
+            q |= Q(university__icontains=search)
+            q |= Q(subject_name__icontains=search)
+            apps = apps.filter(q).distinct()
         return apps
 
 

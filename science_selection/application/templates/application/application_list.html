@@ -34,6 +34,7 @@
                     <td scope="col">ФИО</td>
                     <td scope="col">Сезон призыва</td>
                     <td scope="col">Место рождения</td>
+                    <td scope="col">Субъект</td>
                     <td scope="col">ВУЗ</td>
                     <td scope="col">Программа</td>
                     <td scope="col">Дата рождения</td>
@@ -64,6 +65,9 @@
                     </td>
                     <td scope="row">
                         {{ app.birth_place }}
+                    </td>
+                    <td scope="row">
+                        {{ app.subject_name }}
                     </td>
                     <td scope="row">
                         {% if app.university %}
