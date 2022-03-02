@@ -369,7 +369,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
         level_competence = [ApplicationCompetencies(application=user_app,
                                                     competence=competence,
                                                     level=int(request.POST.get(str(competence.id), 0)))
-                            for competence in competencies_of_direction]
+                            for competence in competencies_of_direction if int(request.POST.get(str(competence.id), 0))]
         ApplicationCompetencies.objects.filter(application=user_app, competence__in=competencies_of_direction).delete()
         ApplicationCompetencies.objects.bulk_create(level_competence)
 
