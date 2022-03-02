@@ -5,11 +5,11 @@
     <div class="accordion-item">
             <div class="accordion-header">
                 <div class="input-group">
-                    <button class="fs-5 accordion-button collapsed col-8 p-2 me-4" type="button" data-bs-toggle="collapse" data-bs-target="#accordion_{{comp_lvl1.id}}" aria-expanded="false" aria-controls="accordion_{{comp_lvl1.id}}" style="width: 75%">
+                    <button class="fs-5 accordion-button collapsed col-8 p-2 me-4" type="button" data-bs-toggle="collapse" data-bs-target="#accordion_{{comp_lvl1.id}}" aria-expanded="false" aria-controls="accordion_{{comp_lvl1.id}}" style="width: 65.6%">
                         {{comp_lvl1.name}}
                     </button>
                     {% if comp_lvl1.is_estimated %}
-                        <div class="col-2">
+                        <div class="col-3 pe-4">
                         <select class="form-select" id="{{ comp_lvl1.id }}" name="{{ comp_lvl1.id }}" {% if blocked %}disabled{%endif%}>
                             {% for level in levels %}
                                 <option value="{{ level.0 }}" {% if comp_lvl1.id in selected_competencies.keys and selected_competencies|getkey:comp_lvl1.id == level.0 %} selected {% endif %}>
@@ -29,9 +29,9 @@
                 <div class="ms-5">
                     <div class="form-group col-12">
                         <div class="row mb-1">
-                            <div class="ms-1 fs-5 col-9">{{comp_lvl2.name}}</div>
+                            <div class="ms-1 fs-5 col-8">{{comp_lvl2.name}}</div>
                             {% if comp_lvl2.is_estimated %}
-                                <div class="col-2">
+                                <div class="col-3">
                                     <select class="form-select" id="{{ comp_lvl2.id }}" name="{{ comp_lvl2.id }}" {% if blocked %}disabled{%endif%}>
                                         {% for level in levels %}
                                             <option value="{{ level.0 }}" {% if comp_lvl2.id in selected_competencies.keys and selected_competencies|getkey:comp_lvl2.id == level.0 %} selected {% endif %}>
@@ -49,9 +49,9 @@
                     <div class="ms-5">
                         <div class="form-group col-12">
                             <div class="row mb-1">
-                                <div class="ms-1 fs-6 col-9">{{comp_lvl3.name}}</div>
+                                <div class="ms-1 fs-6 col-8">{{comp_lvl3.name}}</div>
                                 {% if comp_lvl3.is_estimated %}
-                                    <div class="col-2">
+                                    <div class="col-3 ps-3 pe-3">
                                         <select class="form-select" id="{{ comp_lvl3.id }}" name="{{ comp_lvl3.id }}" {% if blocked %}disabled{%endif%}>
                                             {% for level in levels %}
                                                 <option value="{{ level.0 }}" {% if comp_lvl3.id in selected_competencies.keys and selected_competencies|getkey:comp_lvl3.id == level.0 %} selected {% endif %}>
