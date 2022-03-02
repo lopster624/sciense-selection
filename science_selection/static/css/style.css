@@ -47,3 +47,10 @@ a:hover{
 .hidden-fields{
     background-color: #fcf0de;
 }
+.dot {
+  width: 15px;
+  height: 15px;
+  background-color: #5e9fff;
+  border-radius: 50%;
+  display: inline-block;
+}

@@ -26,7 +26,7 @@ from utils.exceptions import MasterHasNoDirectionsException
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
-    Universities, AdditionFieldApp, AdditionField, Specialization, MilitaryCommissariat, WorkGroup
+    Universities, AdditionFieldApp, AdditionField, Specialization, MilitaryCommissariat, WorkGroup, AppsViewedByMaster
 from .utils import check_permission_decorator, WordTemplate, check_booking_our_or_exception, check_final_decorator, \
     add_additional_fields, get_cleared_query_string_of_page, get_sorted_queryset, get_form_data, get_additional_fields
 
@@ -117,6 +117,9 @@ class ApplicationView(LoginRequiredMixin, DataApplicationMixin, View):
     def get(self, request, pk):
         context = {}
         user_application = self.get_user_application(pk)
+        if request.user.member.is_master():
+            AppsViewedByMaster.objects.get_or_create(member=request.user.member, application=user_application)
+
         user_education = user_application.education.order_by('end_year').all()
         context['master_directions_affiliations'] = self.get_master_direction_affiliations(
             self.get_master_affiliations())
@@ -537,6 +540,7 @@ class ApplicationListView(MasterDataMixin, ListView):
         context['master_affiliations'] = master_affiliations
         context['master_directions_affiliations'] = self.get_master_direction_affiliations(master_affiliations)
         context['cleaned_query_string'] = get_cleared_query_string_of_page(self.request.META['QUERY_STRING'])
+        context['viewed_apps'] = AppsViewedByMaster.get_viewed_app_ids(self.request.user.member)
         return context
 
     def get_filtered_queryset(self, apps):

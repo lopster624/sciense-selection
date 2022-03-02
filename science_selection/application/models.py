@@ -433,3 +433,16 @@ class Specialization(models.Model):
     class Meta:
         verbose_name = 'Специальность'
         verbose_name_plural = 'Специальности'
+
+
+class AppsViewedByMaster(models.Model):
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, verbose_name='Пользователь')
+    application = models.ForeignKey(Application, on_delete=models.CASCADE, verbose_name='Заявка',)
+
+    class Meta:
+        verbose_name = 'Просмотренная заявка пользователем'
+        verbose_name_plural = 'Просмотренные заявки пользователями'
+
+    @staticmethod
+    def get_viewed_app_ids(member):
+        return [app.application_id for app in AppsViewedByMaster.objects.filter(member=member)]
