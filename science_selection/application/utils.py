@@ -5,6 +5,7 @@ from io import BytesIO
 
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.db.models import Q
 from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404, redirect
@@ -248,15 +249,16 @@ class Questionnaires:
                 continue
             user_params = self._get_params_for_member_create(params)
             if self._is_member_exists(user_params):
-                result['errors'].append(f"Анкета id: {params['id']} пользователя {user_params['last_name']} {user_params['first_name']} уже создана")
+                result['errors'].append(f"Анкета id: {params['id']} пользователя {user_params['last_name']} {user_params['first_name']} уже создана!")
                 continue
             try:
-                new_member = self.create_member(user_params)
-                new_app = self.create_application(new_member, params)
-                self.add_education(new_app, params)
-                self.add_additional_values(new_app, params)
-                new_app.update_scores()
-                result['accepted'].append(f"Анкета id: {params['id']} пользователя {user_params['last_name']} {user_params['first_name']} успешно создана")
+                with transaction.atomic():
+                    new_member = self.create_member(user_params)
+                    new_app = self.create_application(new_member, params)
+                    self.add_education(new_app, params)
+                    self.add_additional_values(new_app, params)
+                    new_app.update_scores()
+                result['accepted'].append(f"Анкета id: {params['id']} пользователя {user_params['last_name']} {user_params['first_name']} успешно создана!")
             except Exception as e:
                 result['errors'].append(f"Ошибка при создании анкеты с id:{params['id']} - {e}")
                 logger.error(f'Ошибка в анкете с id: {params["id"]} - {e}')
@@ -269,7 +271,7 @@ class Questionnaires:
         birth_day = covert_date_str_to_datetime(params['birth_day'])
         ready_to_secret = self._convert_ready_to_secret(params['ready_to_secret'])
         draft_season = self._convert_draft_season(params['draft_season'])
-        return Application.objects.create(member=member, birth_day=birth_day, birth_place='Пока не добавили',
+        return Application.objects.create(member=member, birth_day=birth_day, birth_place=params['birth_place'],
                                           nationality=params['nationality'], military_commissariat=params['military_commissariat'],
                                           group_of_health=params['group_of_health'], draft_year=params['draft_year'],
                                           draft_season=draft_season, ready_to_secret=ready_to_secret,

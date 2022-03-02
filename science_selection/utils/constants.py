@@ -126,9 +126,9 @@ CONVERTER_ACHIEVEMENTS_NAMES_TO_MODEL_FIELDS = {
 }
 
 # Заголовки excel таблицы для импорта данных с сайта
-TABLE_HEADER_NAMES = ['id', 'status', 'changed', 'creator', 'full_name', 'phone', 'email', 'birth_day', 'nationality',
+TABLE_HEADER_NAMES = ['id', 'status', 'changed', 'creator', 'full_name', 'phone', 'email', 'birth_day', 'birth_place', 'nationality',
                       'military_commissariat', 'group_of_health', 'draft_year', 'draft_season', 'ready_to_secret',
-                      'education_type', 'university', 'specialization', 'spec_2', 'avg_score', 'end_year', 'name_of_education_doc', 'theme_of_diploma',
+                      'education_type', 'university', 'specialization', 'avg_score', 'end_year', 'name_of_education_doc', 'theme_of_diploma',
                       'directions', 'achievements', 'scientific_achievements', 'scholarships', 'candidate_exams', 'sporting_achievements', 'hobby', 'other_information',
                       'C', 'C++', 'GO', 'Java', 'JS', 'PHP', 'Python', 'Ассемблер', 'Анализ данных', 'Машинное обучение', 'Нейронные сети', 'Blender', '3ds Max', 'SolidWorks', 'КОМПАС-3D', 'Ansys', 'Proteus', 'Matlab', 'Altium', 'Mathcad', 'ЛОГОС', 'QGIS',
                       'OptiSystem', 'Cadence', 'DipTrace', 'CorelDraw Technical Suite', 'SNAP', 'PostgreSQL', 'MySQL', 'NoSQL', 'MongoDB', 'Oracle',
