@@ -1,11 +1,10 @@
-import pandas as pd
+from openpyxl import load_workbook
 
 from django.contrib import admin
 from django.conf.urls import url
 from django.shortcuts import render
 
 from engine.middleware import logger
-from utils.constants import TABLE_HEADER_NAMES
 
 from . import models
 from .utils import Questionnaires
@@ -35,8 +34,8 @@ class ApplicationAdmin(admin.ModelAdmin):
         new_files = request.FILES.getlist('downloaded_files')
         overall_result = []
         for file in new_files:
-            user_questionnaires = pd.read_excel(file, names=TABLE_HEADER_NAMES)
-            questionnaires = Questionnaires(user_questionnaires)
+            wb = load_workbook(file)
+            questionnaires = Questionnaires(workbook=wb)
             result = questionnaires.add_applications_to_db()
             overall_result.append(result)
             logger.info(result)

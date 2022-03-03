@@ -30,12 +30,14 @@ def vals_to_str(*vals):
     """Возвращает все переданные переменные в виде одной строки"""
     return ''.join(map(str, vals))
 
+
 @register.simple_tag
 def get_object_number(page, per_page, is_paginated, counter):
     """Возвращает номер записи учитывая пагинацию"""
     if not is_paginated:
         return counter
     return (page-1) * per_page + counter
+
 
 @register.simple_tag
 def init_field(field, init):

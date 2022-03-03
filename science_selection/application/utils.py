@@ -1,6 +1,5 @@
 import datetime
 import re
-import pandas as pd
 from io import BytesIO
 
 from django.contrib.auth.models import User
@@ -231,8 +230,9 @@ def get_form_data(get_dict):
 
 
 class Questionnaires:
-    def __init__(self, xlsx):
-        self.xlsx = xlsx
+    def __init__(self, workbook):
+        sheet = workbook.active
+        self.sheet = sheet
 
     def create_member(self, user_params):
         new_user = self._create_new_user(user_params)
@@ -244,21 +244,23 @@ class Questionnaires:
             'errors': [],
             'accepted': [],
         }
-        for _, params in self.xlsx.iterrows():
-            if pd.isna(params.id):
+        for line_number, row in enumerate(self.sheet.iter_rows(min_row=2, values_only=True), start=1):
+            params = {name: cell for name, cell in zip(const.TABLE_HEADER_NAMES, row)}
+            if not params['id']:
                 continue
             user_params = self._get_params_for_member_create(params)
             if self._is_member_exists(user_params):
-                result['errors'].append(f"Анкета id: {params['id']} пользователя {user_params['last_name']} {user_params['first_name']} уже создана!")
+                result['errors'].append(f"Анкета с пользователем {params['full_name']} (id: {params['id']}) уже создана!")
                 continue
+
             try:
                 with transaction.atomic():
                     new_member = self.create_member(user_params)
                     new_app = self.create_application(new_member, params)
                     self.add_education(new_app, params)
-                    self.add_additional_values(new_app, params)
+                    self.add_additional_values(line_number, new_app, params)
                     new_app.update_scores()
-                result['accepted'].append(f"Анкета id: {params['id']} пользователя {user_params['last_name']} {user_params['first_name']} успешно создана!")
+                result['accepted'].append(f"Анкета пользователя {params['full_name']} с id: {params['id']} успешно создана!")
             except Exception as e:
                 result['errors'].append(f"Ошибка при создании анкеты с id:{params['id']} - {e}")
                 logger.error(f'Ошибка в анкете с id: {params["id"]} - {e}')
@@ -273,7 +275,7 @@ class Questionnaires:
         draft_season = self._convert_draft_season(params['draft_season'])
         return Application.objects.create(member=member, birth_day=birth_day, birth_place=params['birth_place'],
                                           nationality=params['nationality'], military_commissariat=params['military_commissariat'],
-                                          group_of_health=params['group_of_health'], draft_year=params['draft_year'],
+                                          group_of_health=params['group_of_health'], draft_year=int(params['draft_year']),
                                           draft_season=draft_season, ready_to_secret=ready_to_secret,
                                           scientific_achievements=params['scientific_achievements'], scholarships=params['scholarships'],
                                           candidate_exams=params['candidate_exams'], sporting_achievements=params['sporting_achievements'],
@@ -292,8 +294,8 @@ class Questionnaires:
         education_type = self._convert_education_type(params['education_type'])
         university, specialization = self._get_university_and_specialization(params['university'], params['specialization'])
         return Education.objects.create(application=app, education_type=education_type, university=university,
-                                        specialization=specialization, avg_score=params['avg_score'],
-                                        end_year=params['end_year'], name_of_education_doc=params['name_of_education_doc'],
+                                        specialization=specialization, avg_score=float(params['avg_score']),
+                                        end_year=int(params['end_year']), name_of_education_doc=params['name_of_education_doc'],
                                         theme_of_diploma=params['theme_of_diploma'])
 
     def _convert_education_type(self, education_type):
@@ -307,8 +309,8 @@ class Questionnaires:
         spec = Specialization.get_by_name_or_leave(specialization)
         return uni, spec
 
-    def add_additional_values(self, app, params):
-        user_directions, user_achievements = self._get_user_directions_and_achievements(params)
+    def add_additional_values(self, line_number, app, params):
+        user_directions, user_achievements = self._get_user_directions_and_achievements(line_number)
         self.add_directions_to_app(app, user_directions)
         self.add_achievements_to_app(app, user_achievements)
         self.add_competencies_to_app(app, params)
@@ -330,18 +332,21 @@ class Questionnaires:
                                     for competence in competencies]
         ApplicationCompetencies.objects.bulk_create(competencies_with_levels)
 
-    def _get_user_directions_and_achievements(self, params):
+    def _get_user_directions_and_achievements(self, line_number):
         following_app = None
-        for index, row in self.xlsx.loc[params.name+1:, 'id'].items():
-            if pd.notna(row):
-                following_app = index
+        for j, row in enumerate(self.sheet.iter_rows(min_row=line_number+2, values_only=True)):
+            if row[0]:
+                following_app = j + line_number + 2  # номер итерации + номер текущей строки с данными + номер 1 строки с данными excel
+        user_directions, user_achievements = [], []
 
         if following_app:
-            user_directions = [row[1:-1] for row in self.xlsx.loc[params.name:following_app-1, 'directions'] if pd.notna(row)]
-            user_achievements = [row[1:-1] for row in self.xlsx.loc[params.name:following_app-1, 'achievements'] if pd.notna(row)]
+            for row in self.sheet[(line_number + 2 - 1):(following_app - 1)]:
+                user_directions.append(row[22].value[1:-1]) if row[22].value else None
+                user_achievements.append(row[23].value[1:-1]) if row[23].value else None
         else:
-            user_directions = [row[1:-1] for row in self.xlsx.loc[params.name:, 'directions'] if pd.notna(row)]
-            user_achievements = [row[1:-1] for row in self.xlsx.loc[params.name:, 'achievements'] if pd.notna(row)]
+            for row in self.sheet[(line_number + 2 - 1):self.sheet.max_row]:
+                user_directions.append(row[22].value[1:-1]) if row[22].value else None
+                user_achievements.append(row[23].value[1:-1]) if row[23].value else None
         return user_directions, user_achievements
 
     def _create_new_user(self, member_params):

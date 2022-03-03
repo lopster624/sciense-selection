@@ -118,7 +118,8 @@ class ApplicationView(LoginRequiredMixin, DataApplicationMixin, View):
         context = {}
         user_application = self.get_user_application(pk)
         if request.user.member.is_master():
-            AppsViewedByMaster.objects.get_or_create(member=request.user.member, application=user_application)
+            if not AppsViewedByMaster.objects.filter(member=request.user.member, application=user_application).exists():
+                AppsViewedByMaster.objects.create(member=request.user.member, application=user_application)
 
         user_education = user_application.education.order_by('end_year').all()
         context['master_directions_affiliations'] = self.get_master_direction_affiliations(
@@ -1067,3 +1068,32 @@ class ApplicationsDownloadingView(MasterDataMixin, View):
 
     def get(self, request):
         pass
+    #     apps = Application.objects.all().select_related('member', 'member__user')\
+    #         .only('id', 'member', 'birth_day', 'birth_place', 'draft_year', 'draft_season', 'member__user__first_name',
+    #               'member__user__last_name', 'member__father_name',)
+    #     apps = apps.annotate(university=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
+    #             'university')[:1]),
+    #         avg_score=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
+    #             'avg_score')[:1]),
+    #         education_type=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
+    #             'education_type')[:1]),
+    #         subject=(MilitaryCommissariat.objects.filter(
+    #             name=OuterRef('military_commissariat')).values_list('subject')[:1]),
+    #         subject_name=Case(
+    #             When(subject=None, then=Value('')), default='subject'
+    #         )
+    #     )
+    #     apps = ApplicationListView(request=request).get_filtered_queryset(apps)
+    #     apps = self._get_sorted_queryset(apps)
+    #
+    #     for app in apps:
+    #         print(app.__dict__)
+    #     return redirect('../')
+    #
+    # def _get_sorted_queryset(self, apps):
+    #     ordering = self.request.GET.get('ordering', None)
+    #     if ordering:
+    #         # if ordering in ['subject_name', 'birth_place']:
+    #         #     ordering = Lower(ordering)
+    #         return apps.order_by(ordering)
+    #     return apps
