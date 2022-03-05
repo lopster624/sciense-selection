@@ -126,14 +126,17 @@ CONVERTER_ACHIEVEMENTS_NAMES_TO_MODEL_FIELDS = {
 }
 
 # Заголовки excel таблицы для импорта данных с сайта
-TABLE_HEADER_NAMES = ['id', 'status', 'changed', 'creator', 'full_name', 'phone', 'email', 'birth_day', 'birth_place', 'nationality',
-                      'military_commissariat', 'group_of_health', 'draft_year', 'draft_season', 'ready_to_secret',
-                      'education_type', 'university', 'specialization', 'avg_score', 'end_year', 'name_of_education_doc', 'theme_of_diploma',
-                      'directions', 'achievements', 'scientific_achievements', 'scholarships', 'candidate_exams', 'sporting_achievements', 'hobby', 'other_information',
-                      'C', 'C++', 'GO', 'Java', 'JS', 'PHP', 'Python', 'Ассемблер', 'Анализ данных', 'Машинное обучение', 'Нейронные сети', 'Blender', '3ds Max', 'SolidWorks', 'КОМПАС-3D', 'Ansys', 'Proteus', 'Matlab', 'Altium', 'Mathcad', 'ЛОГОС', 'QGIS',
-                      'OptiSystem', 'Cadence', 'DipTrace', 'CorelDraw Technical Suite', 'SNAP', 'PostgreSQL', 'MySQL', 'NoSQL', 'MongoDB', 'Oracle',
-                      'telegram', 'num1', 'numb2']
+EXCEL_TABLE_HEADERS_FOR_IMPORT_APPS = ['id', 'status', 'changed', 'creator', 'full_name', 'phone', 'email', 'birth_day', 'birth_place', 'nationality',
+                                       'military_commissariat', 'group_of_health', 'draft_year', 'draft_season', 'ready_to_secret',
+                                       'education_type', 'university', 'specialization', 'avg_score', 'end_year', 'name_of_education_doc', 'theme_of_diploma',
+                                       'directions', 'achievements', 'scientific_achievements', 'scholarships', 'candidate_exams', 'sporting_achievements', 'hobby', 'other_information',
+                                       'C', 'C++', 'GO', 'Java', 'JS', 'PHP', 'Python', 'Ассемблер', 'Анализ данных', 'Машинное обучение', 'Нейронные сети', 'Blender', '3ds Max', 'SolidWorks', 'КОМПАС-3D', 'Ansys', 'Proteus', 'Matlab', 'Altium', 'Mathcad', 'ЛОГОС', 'QGIS',
+                                       'OptiSystem', 'Cadence', 'DipTrace', 'CorelDraw Technical Suite', 'SNAP', 'PostgreSQL', 'MySQL', 'NoSQL', 'MongoDB', 'Oracle',
+                                       'telegram', 'num1', 'numb2']
 
 EXIST_COMPETENCIES_ON_SITE = ['C', 'C++', 'GO', 'Java', 'JS', 'PHP', 'Python', 'Ассемблер', 'Анализ данных', 'Машинное обучение', 'Нейронные сети',
                               'Blender', '3ds Max', 'SolidWorks', 'КОМПАС-3D', 'Ansys', 'Proteus', 'Matlab', 'Altium', 'Mathcad', 'ЛОГОС', 'QGIS',
                               'OptiSystem', 'Cadence', 'DipTrace', 'CorelDraw Technical Suite', 'SNAP', 'PostgreSQL', 'MySQL', 'NoSQL', 'MongoDB', 'Oracle']
+
+# заголовки для excel таблицы списка заявок
+HEADERS_FOR_EXCEL_APP_TABLES = ['ФИО', 'Сезон призыва', 'Дата рождения', 'Место рождения', 'Субъект', 'Программа', 'ВУЗ', 'Средний балл']

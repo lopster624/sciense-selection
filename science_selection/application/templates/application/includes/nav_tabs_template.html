@@ -1,8 +1,14 @@
+{% load count_number_apps_not_viewed from application_extras %}
 <div class="w-50" style="margin-left: 25%;">
     <ul class="nav nav-tabs">
         <li class="nav-item">
             <a class="nav-link {% if application_active %}active{%endif %}" aria-current="page"
-               href="{% url 'application_list' %}">Список заявок</a>
+               href="{% url 'application_list' %}">Список заявок
+                {% count_number_apps_not_viewed user as count_apps %}
+                {% if count_apps %}
+                    <span class="badge bg-primary">{{ count_apps }}</span>
+                {% endif %}
+            </a>
         </li>
 
         <li class="nav-item">

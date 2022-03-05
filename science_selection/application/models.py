@@ -444,5 +444,5 @@ class AppsViewedByMaster(models.Model):
         verbose_name_plural = 'Просмотренные заявки пользователями'
 
     @staticmethod
-    def get_viewed_app_ids(member):
-        return [app.application_id for app in AppsViewedByMaster.objects.filter(member=member)]
+    def get_viewed_app_ids_from_member(member, apps):
+        return [app.application_id for app in AppsViewedByMaster.objects.filter(member=member, application__in=apps)]

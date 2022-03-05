@@ -22,8 +22,12 @@ def convert_float(value):
     return str(value).replace('.', ',')
 
 
-def covert_date_str_to_datetime(datetime_str):
+def convert_date_str_to_datetime(datetime_str):
     return datetime.datetime.strptime(datetime_str, '%d.%m.%Y')
+
+
+def convert_datetime_to_str(date_time, date_format):
+    return datetime.datetime.strftime(date_time, date_format)
 
 
 def get_exception_status_code(exception):

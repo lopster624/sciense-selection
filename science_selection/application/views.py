@@ -7,6 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied, BadRequest
 from django.db import transaction
 from django.db.models import F, Q, Count, OuterRef, Subquery, Prefetch, Case, When, Value
+from django.db.models.functions import Lower
 from django.http import FileResponse
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.urls import reverse, reverse_lazy
@@ -28,7 +29,8 @@ from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities, AdditionFieldApp, AdditionField, Specialization, MilitaryCommissariat, WorkGroup, AppsViewedByMaster
 from .utils import check_permission_decorator, WordTemplate, check_booking_our_or_exception, check_final_decorator, \
-    add_additional_fields, get_cleared_query_string_of_page, get_sorted_queryset, get_form_data, get_additional_fields
+    add_additional_fields, get_cleared_query_string_of_page, get_sorted_queryset, get_form_data, get_additional_fields, \
+    ExcelFromApps
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
@@ -547,7 +549,8 @@ class ApplicationListView(MasterDataMixin, ListView):
         context['master_affiliations'] = master_affiliations
         context['master_directions_affiliations'] = self.get_master_direction_affiliations(master_affiliations)
         context['cleaned_query_string'] = get_cleared_query_string_of_page(self.request.META['QUERY_STRING'])
-        context['viewed_apps'] = AppsViewedByMaster.get_viewed_app_ids(self.request.user.member)
+        app_ids_on_page = [app.id for app in context['application_list']]
+        context['viewed_apps'] = AppsViewedByMaster.get_viewed_app_ids_from_member(self.request.user.member, app_ids_on_page)
         return context
 
     def get_filtered_queryset(self, apps):
@@ -1067,33 +1070,37 @@ class ApplicationsDownloadingView(MasterDataMixin, View):
     """ Скачивание отфильтрованного/отсортированного списка заявок """
 
     def get(self, request):
-        pass
-    #     apps = Application.objects.all().select_related('member', 'member__user')\
-    #         .only('id', 'member', 'birth_day', 'birth_place', 'draft_year', 'draft_season', 'member__user__first_name',
-    #               'member__user__last_name', 'member__father_name',)
-    #     apps = apps.annotate(university=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
-    #             'university')[:1]),
-    #         avg_score=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
-    #             'avg_score')[:1]),
-    #         education_type=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
-    #             'education_type')[:1]),
-    #         subject=(MilitaryCommissariat.objects.filter(
-    #             name=OuterRef('military_commissariat')).values_list('subject')[:1]),
-    #         subject_name=Case(
-    #             When(subject=None, then=Value('')), default='subject'
-    #         )
-    #     )
-    #     apps = ApplicationListView(request=request).get_filtered_queryset(apps)
-    #     apps = self._get_sorted_queryset(apps)
-    #
-    #     for app in apps:
-    #         print(app.__dict__)
-    #     return redirect('../')
-    #
-    # def _get_sorted_queryset(self, apps):
-    #     ordering = self.request.GET.get('ordering', None)
-    #     if ordering:
-    #         # if ordering in ['subject_name', 'birth_place']:
-    #         #     ordering = Lower(ordering)
-    #         return apps.order_by(ordering)
-    #     return apps
+        apps = self.get_apps_with_filters_and_sorting()
+        excel_from_apps = ExcelFromApps(apps)
+        excel_file = excel_from_apps.add_app_to_sheet()
+
+        response = HttpResponse(excel_file, content_type='application/xlsx')
+        response['Content-Disposition'] = 'attachment; filename="' + escape_uri_path('Список заявок.xlsx') + '"'
+        return response
+
+    def get_apps_with_filters_and_sorting(self):
+        apps = Application.objects.all().select_related('member', 'member__user')\
+            .only('id', 'member', 'birth_day', 'birth_place', 'draft_year', 'draft_season',)
+        apps = apps.annotate(university=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
+                'university')[:1]),
+            avg_score=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
+                'avg_score')[:1]),
+            education_type=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
+                'education_type')[:1]),
+            subject=(MilitaryCommissariat.objects.filter(
+                name=OuterRef('military_commissariat')).values_list('subject')[:1]),
+            subject_name=Case(
+                When(subject=None, then=Value('')), default='subject'
+            )
+        )
+        apps = ApplicationListView(request=self.request).get_filtered_queryset(apps)
+        apps = self._get_sorted_queryset(apps)
+        return apps
+
+    def _get_sorted_queryset(self, apps):
+        ordering = self.request.GET.get('ordering', None)
+        if ordering:
+            if ordering in ['subject_name', 'birth_place']:
+                ordering = Lower(ordering)
+            return apps.order_by(ordering, '-create_date')
+        return apps

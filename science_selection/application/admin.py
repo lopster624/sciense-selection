@@ -1,5 +1,3 @@
-from openpyxl import load_workbook
-
 from django.contrib import admin
 from django.conf.urls import url
 from django.shortcuts import render
@@ -34,8 +32,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         new_files = request.FILES.getlist('downloaded_files')
         overall_result = []
         for file in new_files:
-            wb = load_workbook(file)
-            questionnaires = Questionnaires(workbook=wb)
+            questionnaires = Questionnaires(file=file)
             result = questionnaires.add_applications_to_db()
             overall_result.append(result)
             logger.info(result)
