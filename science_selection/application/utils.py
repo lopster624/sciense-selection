@@ -219,7 +219,7 @@ def get_sorted_queryset(apps, ordering):
             # если поля для поиска текстовое, то сортируем в lowercase
             ordering = Lower(ordering)
         return apps.order_by('-our_direction', ordering)
-    return apps.order_by('-our_direction')
+    return apps.order_by('-our_direction', '-create_date')
 
 
 def get_form_data(get_dict):
@@ -253,7 +253,8 @@ class Questionnaires:
                 continue
             user_params = self._get_params_for_member_create(params)
             if self._is_member_exists(user_params):
-                result['errors'].append(f"Анкета с пользователем {params['full_name']} (id: {params['id']}) уже создана!")
+                result['errors'].append(
+                    f"Анкета с пользователем {params['full_name']} (id: {params['id']}) уже создана!")
                 continue
 
             try:
@@ -263,25 +264,31 @@ class Questionnaires:
                     self.add_education(new_app, params)
                     self.add_additional_values(line_number, new_app, params)
                     new_app.update_scores()
-                result['accepted'].append(f"Анкета пользователя {params['full_name']} с id: {params['id']} успешно создана!")
+                result['accepted'].append(
+                    f"Анкета пользователя {params['full_name']} с id: {params['id']} успешно создана!")
             except Exception as e:
                 result['errors'].append(f"Ошибка при создании анкеты с id:{params['id']} - {e}")
                 logger.error(f'Ошибка в анкете с id: {params["id"]} - {e}')
         return result
 
     def _is_member_exists(self, user_params):
-        return True if Member.objects.filter(Q(phone=user_params['phone']) | Q(user__email=user_params['email'])) else False
+        return True if Member.objects.filter(
+            Q(phone=user_params['phone']) | Q(user__email=user_params['email'])) else False
 
     def create_application(self, member, params):
         birth_day = convert_date_str_to_datetime(params['birth_day'])
         ready_to_secret = self._convert_ready_to_secret(params['ready_to_secret'])
         draft_season = Converter.convert_draft_season_by_name(params['draft_season'][1:-1])
         return Application.objects.create(member=member, birth_day=birth_day, birth_place=params['birth_place'],
-                                          nationality=params['nationality'], military_commissariat=params['military_commissariat'],
-                                          group_of_health=params['group_of_health'], draft_year=int(params['draft_year']),
+                                          nationality=params['nationality'],
+                                          military_commissariat=params['military_commissariat'],
+                                          group_of_health=params['group_of_health'],
+                                          draft_year=int(params['draft_year']),
                                           draft_season=draft_season, ready_to_secret=ready_to_secret,
-                                          scientific_achievements=params['scientific_achievements'], scholarships=params['scholarships'],
-                                          candidate_exams=params['candidate_exams'], sporting_achievements=params['sporting_achievements'],
+                                          scientific_achievements=params['scientific_achievements'],
+                                          scholarships=params['scholarships'],
+                                          candidate_exams=params['candidate_exams'],
+                                          sporting_achievements=params['sporting_achievements'],
                                           hobby=params['hobby'], other_information=params['other_information'])
 
     def _convert_ready_to_secret(self, ready_to_secret):
@@ -292,7 +299,8 @@ class Questionnaires:
         university, specialization = self._get_university_and_specialization(params['university'], params['specialization'])
         return Education.objects.create(application=app, education_type=education_type, university=university,
                                         specialization=specialization, avg_score=float(params['avg_score']),
-                                        end_year=int(params['end_year']), name_of_education_doc=params['name_of_education_doc'],
+                                        end_year=int(params['end_year']),
+                                        name_of_education_doc=params['name_of_education_doc'],
                                         theme_of_diploma=params['theme_of_diploma'])
 
     def _get_university_and_specialization(self, university, specialization):
@@ -325,7 +333,7 @@ class Questionnaires:
 
     def _get_user_directions_and_achievements(self, line_number):
         following_app = None
-        for j, row in enumerate(self.sheet.iter_rows(min_row=line_number+2, values_only=True)):
+        for j, row in enumerate(self.sheet.iter_rows(min_row=line_number + 2, values_only=True)):
             if row[0]:
                 following_app = j + line_number + 2  # номер итерации + номер текущей строки с данными + номер 1 строки с данными excel
         user_directions, user_achievements = [], []
