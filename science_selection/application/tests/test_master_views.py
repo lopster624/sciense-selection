@@ -98,8 +98,8 @@ class ApplicationListTest(TestCase):
         self.client.login(username='master', password='master')
         resp = self.client.get(reverse('application_list'))
         current_year, current_season = get_current_draft_year()
-        self.assertEqual(tuple(resp.context['object_list']),
-                         tuple(Application.objects.filter(draft_year=current_year, draft_season=current_season[0])))
+        self.assertEqual(set(resp.context['object_list']),
+                         set(Application.objects.filter(draft_year=current_year, draft_season=current_season[0])))
 
     def test_name_sort(self):
         self.client.login(username='master', password='master')

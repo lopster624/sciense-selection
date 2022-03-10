@@ -27,7 +27,6 @@ class ApplicationAdmin(admin.ModelAdmin):
         return custom_urls + urls
 
     def process_import(self, request):
-        # https: // habr.com / ru / company / cloud4y / blog / 650357 /
         # TODO; было бы хорошо создавать таски на выполнение этих задач, но вряд ли это будем делать)))
         new_files = request.FILES.getlist('downloaded_files')
         overall_result = []

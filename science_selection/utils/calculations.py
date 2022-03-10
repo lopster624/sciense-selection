@@ -22,8 +22,8 @@ def convert_float(value):
     return str(value).replace('.', ',')
 
 
-def convert_date_str_to_datetime(datetime_str):
-    return datetime.datetime.strptime(datetime_str, '%d.%m.%Y')
+def convert_date_str_to_datetime(datetime_str, datetime_format):
+    return datetime.datetime.strptime(datetime_str, datetime_format)
 
 
 def convert_datetime_to_str(date_time, date_format):

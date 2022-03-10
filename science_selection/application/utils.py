@@ -233,7 +233,7 @@ def get_form_data(get_dict):
 
 class Questionnaires:
     def __init__(self, file):
-        wb = load_workbook(file)
+        wb = load_workbook(file, read_only=True)
         sheet = wb.active
         self.sheet = sheet
 
@@ -276,7 +276,7 @@ class Questionnaires:
             Q(phone=user_params['phone']) | Q(user__email=user_params['email'])) else False
 
     def create_application(self, member, params):
-        birth_day = convert_date_str_to_datetime(params['birth_day'])
+        birth_day = convert_date_str_to_datetime(params['birth_day'].split()[0], '%d.%m.%Y')
         ready_to_secret = self._convert_ready_to_secret(params['ready_to_secret'])
         draft_season = Converter.convert_draft_season_by_name(params['draft_season'][1:-1])
         return Application.objects.create(member=member, birth_day=birth_day, birth_place=params['birth_place'],
@@ -285,11 +285,12 @@ class Questionnaires:
                                           group_of_health=params['group_of_health'],
                                           draft_year=int(params['draft_year']),
                                           draft_season=draft_season, ready_to_secret=ready_to_secret,
-                                          scientific_achievements=params['scientific_achievements'],
-                                          scholarships=params['scholarships'],
-                                          candidate_exams=params['candidate_exams'],
-                                          sporting_achievements=params['sporting_achievements'],
-                                          hobby=params['hobby'], other_information=params['other_information'])
+                                          scientific_achievements=params.get('scientific_achievements') or '',
+                                          scholarships=params.get('scholarships') or '',
+                                          candidate_exams=params.get('candidate_exams') or '',
+                                          sporting_achievements=params.get('sporting_achievements') or '',
+                                          other_information=params.get('other_information') or '',
+                                          hobby=params.get('hobby') or '')
 
     def _convert_ready_to_secret(self, ready_to_secret):
         return True if ready_to_secret == '[Да]' else False
@@ -357,11 +358,11 @@ class Questionnaires:
 
     def _get_params_for_member_create(self, params):
         full_name = params.get('full_name')
-        first_name, last_name, father_name = full_name.strip().split(' ', 3)
+        separated_full_name = full_name.strip().split(' ', maxsplit=2)
         return {
-            'first_name': first_name,
-            'last_name': last_name,
-            'father_name': father_name,
+            'first_name': separated_full_name[1],
+            'last_name': separated_full_name[0],
+            'father_name': separated_full_name[2] if len(separated_full_name) == 3 else '',
             'phone': int(params['phone']),
             'email': params['email'],
         }
@@ -386,8 +387,9 @@ class ExcelFromApps:
         birth_day = convert_datetime_to_str(app.birth_day, '%d.%m.%Y')
         draft_season = app.get_draft_time()
         full_name = f"{app.member.user.last_name} {app.member.user.first_name} {app.member.father_name}"
-        education_type = next(name for ed_type, name in Education.education_program if ed_type == app.education_type)
-        return [full_name, draft_season, birth_day, app.birth_place, app.subject_name, education_type, app.university, int(app.avg_score)]
+        education_type = [name for ed_type, name in Education.education_program if ed_type == app.education_type]
+        education_type = education_type[0] if education_type else ""
+        return [full_name, draft_season, birth_day, app.birth_place, app.subject_name, education_type, app.university, app.avg_score]
 
     def _save(self):
         buffer = BytesIO()
@@ -406,11 +408,11 @@ class Converter:
     @staticmethod
     def convert_education_type_by_name(education_type):
         for program in Education.education_program:
-            if program[-1] == education_type:
+            if program[-1].lower() == education_type.lower():
                 return program[0]
 
     @staticmethod
     def convert_draft_season_by_name(draft_season):
         for s in Application.season:
-            if s[-1].lower() == draft_season:
+            if s[-1].lower() == draft_season.lower():
                 return s[0]
