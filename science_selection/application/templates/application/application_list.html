@@ -26,7 +26,7 @@
                 </div>
             </form>
             <div class="mt-4 text-center">Экспортировать в Excel
-                <a href="{% url 'downloading_applications' %}" class="btn btn-outline-dark">Экспорт</a>
+                <a href="{% url 'downloading_applications' %}?{{request.GET.urlencode}}" class="btn btn-outline-dark">Экспорт</a>
             </div>
         </div>
         <div class="col-9">

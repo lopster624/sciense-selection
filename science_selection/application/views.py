@@ -1094,6 +1094,7 @@ class ApplicationsDownloadingView(MasterDataMixin, View):
             )
         )
         apps = ApplicationListView(request=self.request).get_filtered_queryset(apps)
+        apps = ApplicationListView(request=self.request).filter_by_search(apps)
         apps = self._get_sorted_queryset(apps)
         return apps
 
@@ -1102,5 +1103,5 @@ class ApplicationsDownloadingView(MasterDataMixin, View):
         if ordering:
             if ordering in ['subject_name', 'birth_place']:
                 ordering = Lower(ordering)
-            return apps.order_by(ordering, '-create_date')
-        return apps
+            return apps.order_by(ordering)
+        return apps.order_by('-create_date')
