@@ -284,13 +284,7 @@ class Questionnaires:
                                           military_commissariat=params['military_commissariat'],
                                           group_of_health=params['group_of_health'],
                                           draft_year=int(params['draft_year']),
-                                          draft_season=draft_season, ready_to_secret=ready_to_secret,
-                                          scientific_achievements=params.get('scientific_achievements') or '',
-                                          scholarships=params.get('scholarships') or '',
-                                          candidate_exams=params.get('candidate_exams') or '',
-                                          sporting_achievements=params.get('sporting_achievements') or '',
-                                          other_information=params.get('other_information') or '',
-                                          hobby=params.get('hobby') or '')
+                                          draft_season=draft_season, ready_to_secret=ready_to_secret,)
 
     def _convert_ready_to_secret(self, ready_to_secret):
         return True if ready_to_secret == '[Да]' else False
@@ -299,8 +293,8 @@ class Questionnaires:
         education_type = Converter.convert_education_type_by_name(params['education_type'][1:-1])
         university, specialization = self._get_university_and_specialization(params['university'], params['specialization'])
         return Education.objects.create(application=app, education_type=education_type, university=university,
-                                        specialization=specialization, avg_score=float(params['avg_score']),
-                                        end_year=int(params['end_year']),
+                                        specialization=specialization, end_year=int(params['end_year']),
+                                        avg_score=round(float(params['avg_score'].replace(',', '.')), 2),
                                         name_of_education_doc=params['name_of_education_doc'],
                                         theme_of_diploma=params['theme_of_diploma'])
 
@@ -310,9 +304,10 @@ class Questionnaires:
         return uni, spec
 
     def add_additional_values(self, line_number, app, params):
-        user_directions, user_achievements = self._get_user_directions_and_achievements(line_number)
-        self.add_directions_to_app(app, user_directions)
-        self.add_achievements_to_app(app, user_achievements)
+        user_info = self._get_user_directions_achievements_and_other_info(line_number)
+        self.add_directions_to_app(app, user_info['user_directions'])
+        self.add_achievements_to_app(app, user_info['user_achievements'])
+        self.update_additional_app_params(app, user_info)
         self.add_competencies_to_app(app, params)
 
     def add_achievements_to_app(self, app, user_achievements):
@@ -324,6 +319,15 @@ class Questionnaires:
         directions = Direction.objects.filter(name__in=user_directions)
         app.directions.add(*directions)
 
+    def update_additional_app_params(self, app, user_info):
+        app.scientific_achievements = '\n'.join(user_info['scientific_achievements']) or ''
+        app.scholarships = '\n'.join(user_info['scholarships']) or ''
+        app.candidate_exams = '\n'.join(user_info['candidate_exams']) or ''
+        app.sporting_achievements = '\n'.join(user_info['sporting_achievements']) or ''
+        app.other_information = '\n'.join(user_info['other_information']) or ''
+        app.hobby = '\n'.join(user_info['hobby']) or ''
+        app.save()
+
     def add_competencies_to_app(self, app, params):
         user_selected_competencies = [comp for comp in const.EXIST_COMPETENCIES_ON_SITE if params[comp] != '[0]']
         competencies = Competence.objects.filter(name__in=user_selected_competencies)
@@ -332,22 +336,33 @@ class Questionnaires:
                                     for competence in competencies]
         ApplicationCompetencies.objects.bulk_create(competencies_with_levels)
 
-    def _get_user_directions_and_achievements(self, line_number):
+    def _get_user_directions_achievements_and_other_info(self, line_number):
         following_app = None
         for j, row in enumerate(self.sheet.iter_rows(min_row=line_number + 2, values_only=True)):
             if row[0]:
                 following_app = j + line_number + 2  # номер итерации + номер текущей строки с данными + номер 1 строки с данными excel
-        user_directions, user_achievements = [], []
+                break
 
-        if following_app:
-            for row in self.sheet[(line_number + 2 - 1):(following_app - 1)]:
-                user_directions.append(row[22].value[1:-1]) if row[22].value else None
-                user_achievements.append(row[23].value[1:-1]) if row[23].value else None
-        else:
-            for row in self.sheet[(line_number + 2 - 1):self.sheet.max_row]:
-                user_directions.append(row[22].value[1:-1]) if row[22].value else None
-                user_achievements.append(row[23].value[1:-1]) if row[23].value else None
-        return user_directions, user_achievements
+        user_info = {
+            'user_directions': [],
+            'user_achievements': [],
+            'scientific_achievements': [],
+            'scholarships': [],
+            'candidate_exams': [],
+            'sporting_achievements': [],
+            'hobby': [],
+            'other_information': [],
+        }
+
+        last_row_with_user_info = following_app if following_app else self.sheet.max_row+1
+        for row in range(line_number + 2 - 1, last_row_with_user_info):
+            for i, field_name, in enumerate(user_info.keys()):
+                cell = self.sheet.cell(row=row, column=23+i).value
+                user_info[field_name].append(cell.strip()) if cell else None
+
+        user_info['user_directions'] = [_[1:-1] for _ in user_info['user_directions']]
+        user_info['user_achievements'] = [_[1:-1] for _ in user_info['user_achievements']]
+        return user_info
 
     def _create_new_user(self, member_params):
         return User.objects.create_user(username=member_params.get('email'),

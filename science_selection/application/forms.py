@@ -8,7 +8,6 @@ from django.forms.widgets import Input, SelectMultiple, Select, CheckboxInput, C
     NumberInput, Textarea, DateInput, TextInput
 
 from account.models import Member, Affiliation, BookingType
-from utils.calculations import get_current_draft_year
 from .models import Application, Education, Direction, Competence, WorkGroup
 
 
@@ -97,7 +96,7 @@ class EducationCreateForm(forms.ModelForm):
         widgets = {
             'university': Input(attrs={'class': 'form-control university'}),
             'specialization': Input(attrs={'class': 'form-control specialization'}),
-            'avg_score': NumberInput(attrs={'class': 'form-control', 'min': '2', 'max': '5', 'step': '0.1'}),
+            'avg_score': NumberInput(attrs={'class': 'form-control', 'min': '2', 'max': '5', 'step': '0.01'}),
             'end_year': NumberInput(attrs={'class': 'form-control', 'min': '0'}),
             'theme_of_diploma': Input(attrs={'class': 'form-control'}),
             'name_of_education_doc': Input(attrs={'class': 'form-control'}),
