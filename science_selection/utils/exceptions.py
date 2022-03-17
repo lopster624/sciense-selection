@@ -16,3 +16,8 @@ class MasterHasNoDirectionsException(Exception):
 class NoHTTPReferer(Exception):
     """404 ошибка, если нет предыдущей страницы"""
     pass
+
+
+class MaxAffiliationBookingException(Exception):
+    """400 ошибка, если превышено количество бронирований на принадлежность"""
+    pass

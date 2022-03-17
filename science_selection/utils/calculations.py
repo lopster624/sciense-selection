@@ -7,7 +7,7 @@ from application.models import Application
 
 from .constants import MIDDLE_RECRUITING_DATE
 from .exceptions import IncorrectActivationLinkException, ActivationFailedException, MasterHasNoDirectionsException, \
-    NoHTTPReferer
+    NoHTTPReferer, MaxAffiliationBookingException
 
 
 def get_current_draft_year():
@@ -38,6 +38,6 @@ def get_exception_status_code(exception):
     if isinstance(exception, ActivationFailedException) or isinstance(exception, PermissionDenied) or isinstance(
             exception, MasterHasNoDirectionsException):
         return 403
-    if isinstance(exception, BadRequest):
+    if isinstance(exception, BadRequest) or isinstance(exception, MaxAffiliationBookingException):
         return 400
     return 500

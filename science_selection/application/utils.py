@@ -18,6 +18,7 @@ from utils.calculations import get_current_draft_year, convert_float
 from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
     PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT
 from utils import constants as const
+from utils.exceptions import MaxAffiliationBookingException
 from utils.calculations import convert_date_str_to_datetime, convert_datetime_to_str
 
 from .models import Application, AdditionField, AdditionFieldApp, MilitaryCommissariat, Education, Universities, \
@@ -30,6 +31,27 @@ def check_role(user, role_name):
     if member.role.role_name == role_name:
         return True
     return False
+
+
+def check_affiliation_max_count(pk, booking_type, affiliation):
+    """
+    Проверяет, что в affiliation забронировано в сезоне призыва заявки(pk) не больше макс. количества.
+    :param pk: идентификатор анкеты
+    :param booking_type: тип бронирования
+    :param affiliation: объект affiliation
+    :return: True, если максимальное количество не превышено
+    """
+    slave_draft_info = Application.objects.filter(pk=pk).values('draft_year', 'draft_season')
+    if Booking.objects.filter(booking_type=booking_type, affiliation=affiliation,
+                              slave__application__draft_year=slave_draft_info[0].get('draft_year'),
+                              slave__application__draft_season=slave_draft_info[0].get(
+                                  'draft_season')).count() + 1 > const.MAX_BOOKED_ON_AFFILIATION:
+        raise MaxAffiliationBookingException(
+            f'Невозможно отобрать заявку в {affiliation.platoon} взвод {affiliation.company} роты. '
+            f'Превышено максимальное количество отобранных заявок ({const.MAX_BOOKED_ON_AFFILIATION} шт.)'
+            f' в данный взвод в этом призыве! Вам необоходимо сначало удалить из отбора другую заявку,'
+            f' чтобы добавить эту.')
+    return True
 
 
 def check_permission_decorator(role_name=None):

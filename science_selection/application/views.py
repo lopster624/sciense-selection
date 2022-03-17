@@ -23,14 +23,14 @@ from engine.settings import MEDIA_DIR
 from testing.models import TestResult, Test
 from utils import constants as const
 from utils.calculations import get_current_draft_year
-from utils.exceptions import MasterHasNoDirectionsException
+from utils.exceptions import MasterHasNoDirectionsException, MaxAffiliationBookingException
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
     Universities, AdditionFieldApp, AdditionField, Specialization, MilitaryCommissariat, WorkGroup, AppsViewedByMaster
 from .utils import check_permission_decorator, WordTemplate, check_booking_our_or_exception, check_final_decorator, \
     add_additional_fields, get_cleared_query_string_of_page, get_sorted_queryset, get_form_data, get_additional_fields, \
-    ExcelFromApps
+    ExcelFromApps, check_affiliation_max_count
 
 
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
@@ -670,7 +670,7 @@ class BookMemberView(MasterDataMixin, View):
         slave_directions_id = Member.objects.prefetch_related(
             'application__directions__id').only('application__directions__id').values_list(
             'application__directions__id', flat=True).distinct().filter(application__id=pk)
-
+        check_affiliation_max_count(pk, booking_type, affiliation)
         if not Booking.objects.filter(booking_type=booking_type, slave=slave_member).exists() \
                 and affiliation.direction_id in self.get_master_directions_id() \
                 and affiliation.direction_id in slave_directions_id:
