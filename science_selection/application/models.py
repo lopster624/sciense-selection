@@ -229,7 +229,7 @@ class Education(models.Model):
     is_ended = models.BooleanField(default=False, verbose_name='Окончено')
     name_of_education_doc = models.CharField(max_length=256, verbose_name='Наименование документа об образовании',
                                              blank=True)
-    theme_of_diploma = models.CharField(max_length=128, verbose_name='Тема диплома')
+    theme_of_diploma = models.CharField(max_length=256, verbose_name='Тема диплома')
 
     def __str__(self):
         return f'{self.application.member.user.first_name} {self.application.member.user.last_name}: {self.get_education_type_display()}'
@@ -444,5 +444,5 @@ class AppsViewedByMaster(models.Model):
         verbose_name_plural = 'Просмотренные заявки пользователями'
 
     @staticmethod
-    def get_viewed_app_ids(member):
-        return [app.application_id for app in AppsViewedByMaster.objects.filter(member=member)]
+    def get_viewed_app_ids_from_member(member, apps):
+        return [app.application_id for app in AppsViewedByMaster.objects.filter(member=member, application__in=apps)]

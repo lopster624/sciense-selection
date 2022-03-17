@@ -131,11 +131,19 @@
                     <h5 class="text-center mb-3">Дополнительная информация</h5>
                     <div class="row col-12 mb-2">
                         <div class="col">
+                            Готовность к секретности:
+                        </div>
+                        <div class="col">
+                            {% if app.ready_to_secret %}Готов{% else %}Не готов{% endif %}
+                        </div>
+                    </div>
+                    <div class="row col-12 mb-2">
+                        <div class="col">
                             Достижения:
                         </div>
                         <div class="col">
-                            {% if app.scientific_achievements %}{{ app.scientific_achievements }}
-                            {% else %}Отсутствует{% endif %}
+                            {% if app.scientific_achievements %}{{ app.scientific_achievements|linebreaks }}
+                            {% else %}Отсутствуют{% endif %}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -143,15 +151,7 @@
                             Стипендии:
                         </div>
                         <div class="col">
-                            {% if app.scholarships %}{{ app.scholarships }}{% else %}Отсутствует{% endif %}
-                        </div>
-                    </div>
-                    <div class="row col-12 mb-2">
-                        <div class="col">
-                            Готовность к секретности:
-                        </div>
-                        <div class="col">
-                            {% if app.scholarships %}Готов{% else %}Не готов{% endif %}
+                            {% if app.scholarships %}{{ app.scholarships|linebreaks }}{% else %}Отсутствуют{% endif %}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -159,8 +159,8 @@
                             Кандидатские экзамены:
                         </div>
                         <div class="col">
-                            {% if app.candidate_exams %}{{ app.candidate_exams }}
-                            {% else %}Отсутствует{% endif %}
+                            {% if app.candidate_exams %}{{ app.candidate_exams|linebreaks }}
+                            {% else %}Отсутствуют{% endif %}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -168,8 +168,8 @@
                             Спортивные достижения:
                         </div>
                         <div class="col">
-                            {% if app.sporting_achievements %}{{ app.sporting_achievements }}
-                            {% else %}Отсутствует{% endif %}
+                            {% if app.sporting_achievements %}{{ app.sporting_achievements|linebreaks }}
+                            {% else %}Отсутствуют{% endif %}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -177,7 +177,7 @@
                             Хобби:
                         </div>
                         <div class="col">
-                            {% if app.hobby %}{{ app.hobby }}{% else %}Отсутствует{% endif %}
+                            {% if app.hobby %}{{ app.hobby|linebreaks }}{% else %}Отсутствуют{% endif %}
                         </div>
                     </div>
                     <div class="row col-12 mb-2">
@@ -185,8 +185,8 @@
                             Дополнительная Информация:
                         </div>
                         <div class="col">
-                            {% if app.other_information %}{{ app.other_information }}
-                            {% else %}Отсутствует{% endif %}
+                            {% if app.other_information %}{{ app.other_information|linebreaks }}
+                            {% else %}Отсутствуют{% endif %}
                         </div>
                     </div>
                 </li>

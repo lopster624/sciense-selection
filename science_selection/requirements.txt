@@ -3,7 +3,6 @@ docxtpl==0.14.2
 Pillow==8.4.0
 django-autocomplete-light==3.8.2
 django-debug-toolbar==3.2.2
-celery[redis]
 psycopg2-binary
 python-dotenv
 openpyxl

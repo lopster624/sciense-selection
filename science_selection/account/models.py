@@ -8,7 +8,7 @@ from django.dispatch import receiver
 from engine.settings import DEFAULT_FROM_EMAIL
 from utils.constants import ACTIVATION_LINK, MASTER_ROLE_NAME, SLAVE_ROLE_NAME
 
-from .tasks import send_verification_email
+# from .tasks import send_verification_email
 
 
 class Role(models.Model):

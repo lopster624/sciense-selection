@@ -1,7 +1,7 @@
 from django import template
 
 from account.models import Affiliation
-from application.models import ApplicationNote, Education
+from application.models import ApplicationNote, Education, Application, AppsViewedByMaster
 from application.utils import is_booked_our
 
 register = template.Library()
@@ -90,3 +90,10 @@ def get_test_result(test_id, results):
         if test_result.test.id == test_id:
             return test_result.result
     return '-'
+
+
+@register.simple_tag
+def count_number_apps_not_viewed(user):
+    total_apps = Application.objects.count()
+    num_apps_viewed = AppsViewedByMaster.objects.filter(member=user.member).count()
+    return total_apps - num_apps_viewed
