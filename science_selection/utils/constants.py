@@ -97,6 +97,7 @@ TYPE_SERVICE_DOCUMENT = {
 
 # Ограничение на максимальное количество выбираемых направлений
 MAX_APP_DIRECTIONS = int(os.environ.get("DJANGO_MAX_APP_DIRECTIONS", 4))
+MAX_BOOKED_ON_AFFILIATION = int(os.environ.get("MAX_BOOKED_ON_AFFILIATION", 30))
 
 # шаблон для именования полей в форме html в тестах пользователей
 NAME_ADDITIONAL_FIELD_TEMPLATE = 'additional_field_'
