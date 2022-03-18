@@ -1,4 +1,5 @@
 import datetime
+import re
 
 from django.core.exceptions import PermissionDenied, BadRequest
 from django.http import Http404
@@ -28,6 +29,10 @@ def convert_date_str_to_datetime(datetime_str, datetime_format):
 
 def convert_datetime_to_str(date_time, date_format):
     return datetime.datetime.strftime(date_time, date_format)
+
+
+def convert_phone_format(phone):
+    return re.sub('[-|(|)]', '', phone)
 
 
 def get_exception_status_code(exception):

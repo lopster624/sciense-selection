@@ -19,7 +19,7 @@ from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
     PATH_TO_CANDIDATES_LIST, PATH_TO_EVALUATION_STATEMENT
 from utils import constants as const
 from utils.exceptions import MaxAffiliationBookingException
-from utils.calculations import convert_date_str_to_datetime, convert_datetime_to_str
+from utils.calculations import convert_date_str_to_datetime, convert_datetime_to_str, convert_phone_format
 
 from .models import Application, AdditionField, AdditionFieldApp, MilitaryCommissariat, Education, Universities, \
     Specialization, Competence, ApplicationCompetencies, Direction
@@ -400,7 +400,7 @@ class Questionnaires:
             'first_name': separated_full_name[1],
             'last_name': separated_full_name[0],
             'father_name': separated_full_name[2] if len(separated_full_name) == 3 else '',
-            'phone': int(params['phone']),
+            'phone': convert_phone_format(params['phone']),
             'email': params['email'],
         }
 
