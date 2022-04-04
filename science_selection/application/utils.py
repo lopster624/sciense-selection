@@ -274,7 +274,7 @@ class Questionnaires:
             if not params['id']:
                 continue
             user_params = self._get_params_for_member_create(params)
-            if member := self._if_member_exists(user_params):
+            if member := Member.if_member_exists(user_params['phone'], user_params['email']):
                 if not self._delete_app_if_not_booked(member):
                     result['errors'].append(
                         f"Анкета пользователя {params['full_name']} (id: {params['id']}) уже была создана и забронированна ранее!")
@@ -295,9 +295,6 @@ class Questionnaires:
                 result['errors'].append(f"Ошибка при создании анкеты с id:{params['id']} - {e}")
                 logger.error(f'Ошибка в анкете с id: {params["id"]} - {e}')
         return result
-
-    def _if_member_exists(self, user_params):
-        return Member.objects.filter(Q(phone=user_params['phone']) | Q(user__email=user_params['email'])).first()
 
     def _delete_app_if_not_booked(self, member):
         if not Booking.objects.filter(slave=member, booking_type=BookingType.objects.get(name=BOOKED)):

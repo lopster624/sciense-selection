@@ -61,6 +61,10 @@ class Member(models.Model):
     def is_master(self):
         return self.role.role_name == MASTER_ROLE_NAME
 
+    @staticmethod
+    def if_member_exists(phone=None, email=None):
+        return Member.objects.filter(models.Q(phone=phone) | models.Q(user__email=email)).first()
+
 
 def create_activation_link(user):
     token = uuid4()
