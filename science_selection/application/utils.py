@@ -12,7 +12,7 @@ from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404, redirect
 from docxtpl import DocxTemplate
 
-from account.models import Member, Affiliation, Booking, Role
+from account.models import Member, Affiliation, Booking, Role, BookingType
 from engine.middleware import logger
 from utils.calculations import get_current_draft_year, convert_float
 from utils.constants import BOOKED, MEANING_COEFFICIENTS, PATH_TO_RATING_LIST, \
@@ -274,15 +274,18 @@ class Questionnaires:
             if not params['id']:
                 continue
             user_params = self._get_params_for_member_create(params)
-            if self._is_member_exists(user_params):
+            if member := self._if_member_exists(user_params):
+                if not self._delete_app_if_not_booked(member):
+                    result['errors'].append(
+                        f"Анкета пользователя {params['full_name']} (id: {params['id']}) уже была создана и забронированна ранее!")
+                    continue
                 result['errors'].append(
-                    f"Анкета с пользователем {params['full_name']} (id: {params['id']}) уже создана!")
-                continue
+                    f"Анкета пользователя {params['full_name']} (id: {params['id']}) уже была создана и была обновлена!")
 
             try:
                 with transaction.atomic():
-                    new_member = self.create_member(user_params)
-                    new_app = self.create_application(new_member, params)
+                    member = self.create_member(user_params) if not member else member
+                    new_app = self.create_application(member, params)
                     self.add_education(new_app, params)
                     self.add_additional_values(line_number, new_app, params)
                     new_app.update_scores()
@@ -293,9 +296,14 @@ class Questionnaires:
                 logger.error(f'Ошибка в анкете с id: {params["id"]} - {e}')
         return result
 
-    def _is_member_exists(self, user_params):
-        return True if Member.objects.filter(
-            Q(phone=user_params['phone']) | Q(user__email=user_params['email'])) else False
+    def _if_member_exists(self, user_params):
+        return Member.objects.filter(Q(phone=user_params['phone']) | Q(user__email=user_params['email'])).first()
+
+    def _delete_app_if_not_booked(self, member):
+        if not Booking.objects.filter(slave=member, booking_type=BookingType.objects.get(name=BOOKED)):
+            Application.objects.filter(member=member).delete()
+            return True
+        return False
 
     def create_application(self, member, params):
         birth_day = convert_date_str_to_datetime(params['birth_day'].split()[0], '%d.%m.%Y')
@@ -306,14 +314,15 @@ class Questionnaires:
                                           military_commissariat=params['military_commissariat'],
                                           group_of_health=params['group_of_health'],
                                           draft_year=int(params['draft_year']),
-                                          draft_season=draft_season, ready_to_secret=ready_to_secret,)
+                                          draft_season=draft_season, ready_to_secret=ready_to_secret, )
 
     def _convert_ready_to_secret(self, ready_to_secret):
         return True if ready_to_secret == '[Да]' else False
 
     def add_education(self, app, params):
         education_type = Converter.convert_education_type_by_name(params['education_type'][1:-1])
-        university, specialization = self._get_university_and_specialization(params['university'], params['specialization'])
+        university, specialization = self._get_university_and_specialization(params['university'],
+                                                                             params['specialization'])
         return Education.objects.create(application=app, education_type=education_type, university=university,
                                         specialization=specialization, end_year=int(params['end_year']),
                                         avg_score=round(float(params['avg_score'].replace(',', '.')), 2),
@@ -376,10 +385,10 @@ class Questionnaires:
             'other_information': [],
         }
 
-        last_row_with_user_info = following_app if following_app else self.sheet.max_row+1
+        last_row_with_user_info = following_app if following_app else self.sheet.max_row + 1
         for row in range(line_number + 2 - 1, last_row_with_user_info):
             for i, field_name, in enumerate(user_info.keys()):
-                cell = self.sheet.cell(row=row, column=23+i).value
+                cell = self.sheet.cell(row=row, column=23 + i).value
                 user_info[field_name].append(cell.strip()) if cell else None
 
         user_info['user_directions'] = [_[1:-1] for _ in user_info['user_directions']]
@@ -426,7 +435,8 @@ class ExcelFromApps:
         full_name = f"{app.member.user.last_name} {app.member.user.first_name} {app.member.father_name}"
         education_type = [name for ed_type, name in Education.education_program if ed_type == app.education_type]
         education_type = education_type[0] if education_type else ""
-        return [full_name, draft_season, birth_day, app.birth_place, app.subject_name, education_type, app.university, app.avg_score]
+        return [full_name, draft_season, birth_day, app.birth_place, app.subject_name, education_type, app.university,
+                app.avg_score]
 
     def _save(self):
         buffer = BytesIO()
