@@ -63,7 +63,7 @@ class HomeMasterView(MasterDataMixin, View):
                 filter=Q(booking__slave__id__in=all_apps.values_list('member'), booking__booking_type__name=BOOKED),
                 distinct=True
             )
-        ).annotate(booking_percent=F('booked_count') * 100 / 20).select_related('direction').order_by('-direction')
+        ).annotate(booking_percent=F('booked_count') * 100 / 20).select_related('direction').order_by('company', 'platoon')
         return render(request, 'account/home_master.html',
                       context={'recruiting_season': current_season[1], 'count_apps': all_apps.count(),
                                'master_affiliations': master_affiliations, 'recruiting_year': current_year})
