@@ -7,7 +7,6 @@ from openpyxl.utils.cell import get_column_letter
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Q
 from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404, redirect
 from docxtpl import DocxTemplate
