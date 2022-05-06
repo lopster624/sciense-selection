@@ -44,7 +44,6 @@
                     <td scope="col">Специальность</td>
                     <td scope="col">Средний балл диплома</td>
                     <td scope="col">Итоговый балл</td>
-                    <td scope="col" class="text-nowrap">Заполнил, %</td>
                     <td scope="col">Отобран</td>
                     <td scope="col" class="text-nowrap">В избранном</td>
                     <td scope="col">Заметки</td>
@@ -94,9 +93,6 @@
                     </td>
                     <td scope="row">
                         {{ app.final_score }}
-                    </td>
-                    <td scope="row">
-                        {{ app.fullness }}
                     </td>
                     <td scope="row">
                         {% include 'application/includes/book_button_template.html' %}
