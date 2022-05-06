@@ -229,5 +229,4 @@ class ChooseWorkGroupForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         group_set = kwargs.pop('group_set', None)
         super(ChooseWorkGroupForm, self).__init__(*args, **kwargs)
-        if group_set:
-            self.fields['work_group'].queryset = group_set
+        self.fields['work_group'].queryset = group_set if group_set else WorkGroup.objects.none()

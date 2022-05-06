@@ -44,8 +44,8 @@ class TestListView(LoginRequiredMixin, View):
                 raise MasterHasNoDirectionsException(
                     f'У вас нет ни одного направления, по которому вы можете добавлять тесты')
 
-            selected_direction = master_directions[0] if not (
-                selected_direction := self.get_chosen_direction()) and master_directions else selected_direction
+            selected_direction = self.get_chosen_direction()
+            selected_direction = master_directions[0] if not selected_direction and master_directions else selected_direction
             direction_tests = Test.objects.filter(directions=selected_direction).prefetch_related('creator').distinct()
             test_list = Test.objects.exclude(pk__in=direction_tests).prefetch_related('creator')
             context.update({
