@@ -41,6 +41,7 @@
                     <td scope="col">Субъект</td>
                     <td scope="col">ВУЗ</td>
                     <td scope="col">Программа</td>
+                    <td scope="col">Специальность</td>
                     <td scope="col">Средний балл диплома</td>
                     <td scope="col">Итоговый балл</td>
                     <td scope="col" class="text-nowrap">Заполнил, %</td>
@@ -82,6 +83,9 @@
                     </td>
                     <td scope="row">
                         {% get_education_type_name app.education_type %}
+                    </td>
+                    <td scope="row">
+                        {{ app.specialization }}
                     </td>
                     <td scope="row">
                         {% if app.avg_score %}

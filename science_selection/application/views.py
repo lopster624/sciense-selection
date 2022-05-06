@@ -502,6 +502,8 @@ class ApplicationListView(MasterDataMixin, ListView):
             ),
             university=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
                 'university')[:1]),
+            specialization=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
+                'specialization')[:1]),
             avg_score=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
                 'avg_score')[:1]),
             education_type=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
