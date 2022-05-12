@@ -114,7 +114,6 @@ class FilterAppListForm(forms.Form):
         ('birth_place', 'По месту рождения'),
         ('subject_name', 'По субъекту'),
         ('-final_score', 'По итоговому баллу'),
-        ('-fullness', 'По заполненности анкеты'),
     ]
     search = forms.CharField(
         label='Поиск',

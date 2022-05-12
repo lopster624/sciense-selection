@@ -1089,6 +1089,8 @@ class ApplicationsDownloadingView(MasterDataMixin, View):
                 'avg_score')[:1]),
             education_type=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
                 'education_type')[:1]),
+            specialization=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
+                'specialization')[:1]),
             subject=(MilitaryCommissariat.objects.filter(
                 name=OuterRef('military_commissariat')).values_list('subject')[:1]),
             subject_name=Case(

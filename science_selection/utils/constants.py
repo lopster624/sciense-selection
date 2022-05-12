@@ -140,4 +140,4 @@ EXIST_COMPETENCIES_ON_SITE = ['C', 'C++', 'GO', 'Java', 'JS', 'PHP', 'Python', '
                               'OptiSystem', 'Cadence', 'DipTrace', 'CorelDraw Technical Suite', 'SNAP', 'PostgreSQL', 'MySQL', 'NoSQL', 'MongoDB', 'Oracle']
 
 # заголовки для excel таблицы списка заявок
-HEADERS_FOR_EXCEL_APP_TABLES = ['ФИО', 'Сезон призыва', 'Дата рождения', 'Место рождения', 'Субъект', 'Программа', 'ВУЗ', 'Средний балл']
+HEADERS_FOR_EXCEL_APP_TABLES = ['ФИО', 'Сезон призыва', 'Дата рождения', 'Место рождения', 'Субъект', 'ВУЗ', 'Программа', 'Специальность', 'Средний балл']

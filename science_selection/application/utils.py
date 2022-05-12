@@ -431,8 +431,8 @@ class ExcelFromApps:
         full_name = f"{app.member.user.last_name} {app.member.user.first_name} {app.member.father_name}"
         education_type = [name for ed_type, name in Education.education_program if ed_type == app.education_type]
         education_type = education_type[0] if education_type else ""
-        return [full_name, draft_season, birth_day, app.birth_place, app.subject_name, education_type, app.university,
-                app.avg_score]
+        return [full_name, draft_season, birth_day, app.birth_place, app.subject_name, app.university, education_type,
+                app.specialization, app.avg_score]
 
     def _save(self):
         buffer = BytesIO()
