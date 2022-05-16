@@ -23,7 +23,7 @@ from engine.settings import MEDIA_DIR
 from testing.models import TestResult, Test
 from utils import constants as const
 from utils.calculations import get_current_draft_year
-from utils.exceptions import MasterHasNoDirectionsException, MaxAffiliationBookingException
+from utils.exceptions import MasterHasNoDirectionsException
 from .forms import ApplicationCreateForm, EducationFormSet, ApplicationMasterForm
 from .mixins import OnlySlaveAccessMixin, OnlyMasterAccessMixin, MasterDataMixin, DataApplicationMixin
 from .models import Direction, Application, Education, Competence, ApplicationCompetencies, File, ApplicationNote, \
