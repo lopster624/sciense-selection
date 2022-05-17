@@ -6,7 +6,7 @@ from django.http import Http404
 
 from application.models import Application
 
-from .constants import MIDDLE_RECRUITING_DATE
+from .constants import FIRST_RECRUITING_SEASON, SECOND_RECRUITING_SEASON
 from .exceptions import IncorrectActivationLinkException, ActivationFailedException, MasterHasNoDirectionsException, \
     NoHTTPReferer, MaxAffiliationBookingException
 
@@ -14,9 +14,15 @@ from .exceptions import IncorrectActivationLinkException, ActivationFailedExcept
 def get_current_draft_year():
     """Возвращает кортеж вида: <текущий год,  (номер, Имя сезона)> для текущего сезона"""
     current_date = datetime.date.today()
-    middle_date = datetime.date(current_date.year, MIDDLE_RECRUITING_DATE['month'], MIDDLE_RECRUITING_DATE['day'])
-    recruiting_season = Application.season[1] if current_date > middle_date else Application.season[0]
-    return current_date.year, recruiting_season
+    first_recruiting_date = datetime.date(current_date.year, FIRST_RECRUITING_SEASON['month'], FIRST_RECRUITING_SEASON['day'])
+    second_recruiting_date = datetime.date(current_date.year, SECOND_RECRUITING_SEASON['month'], SECOND_RECRUITING_SEASON['day'])
+
+    if first_recruiting_date < current_date < second_recruiting_date:
+        return current_date.year, Application.season[1]
+    elif current_date < first_recruiting_date:
+        return current_date.year, Application.season[0]
+    elif second_recruiting_date < current_date:
+        return current_date.year + 1, Application.season[0]
 
 
 def convert_float(value):

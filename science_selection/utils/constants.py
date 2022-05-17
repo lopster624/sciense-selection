@@ -19,7 +19,9 @@ PSYCHOLOGICAL_TYPE_OF_TEST = 'Психологический'
 ACTIVATION_LINK = os.environ.get("DJANGO_ACTIVATION_LINK", "127.0.0.1:8000/accounts/activation/")
 
 # деление призывов на сезоны
-MIDDLE_RECRUITING_DATE = {'day': 15, 'month': 7}
+# MIDDLE_RECRUITING_DATE = {'day': 15, 'month': 7}  # середина июля - старое
+FIRST_RECRUITING_SEASON = {'day': 1, 'month': 5}  # после 1 мая
+SECOND_RECRUITING_SEASON = {'day': 1, 'month': 12}  # после 1 декабря
 
 # коэффициенты для расчета итогового  балла оператора
 MEANING_COEFFICIENTS = {'k1': float(os.environ.get("DJANGO_VALUE_OF_K1_COEF")),
