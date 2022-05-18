@@ -23,7 +23,7 @@
                 {% endif %}
             </ul>
             <div class="text-light">
-                {{ user.member }}
+                <a href="{% url 'profile' %}" id="profile-link">{{ user.member }}</a>
             </div>
             <div class="text-light">
                 <a class="p-2 nav-link" href=" {% url 'logout' %} ">Выйти</a>

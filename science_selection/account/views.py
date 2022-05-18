@@ -1,3 +1,4 @@
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, F, Q
 from django.shortcuts import render, redirect
@@ -8,7 +9,7 @@ from application.models import Application
 from utils.calculations import get_current_draft_year
 from utils.constants import SLAVE_ROLE_NAME, BOOKED, DEFAULT_FILED_BLOCKS
 from utils.exceptions import IncorrectActivationLinkException, ActivationFailedException
-from .forms import RegisterForm
+from .forms import RegisterForm, ProfileForm
 from .models import Member, ActivationLink, Role, Booking, create_activation_link
 
 
@@ -101,3 +102,24 @@ class HomeSlaveView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
 
         context = {'filed_blocks': filed_blocks, 'fullness': fullness, 'chooser': chooser}
         return render(request, 'account/home_slave.html', context=context)
+
+
+class GetUserProfileView(LoginRequiredMixin, View):
+    def get(self, request):
+        user = request.user
+        user_form = ProfileForm(instance=user, initial={'father_name': user.member.father_name, 'password': ''})
+        return render(request, 'profile.html', context={'form': user_form})
+
+    def post(self, request):
+        user_form = ProfileForm(request.POST, instance=request.user)
+        if user_form.is_valid():
+            new_user = user_form.save(commit=False)
+            new_user.set_password(user_form.cleaned_data['password'])
+            new_user.save()
+            if request.user.member.father_name != user_form.cleaned_data['father_name']:
+                Member.objects.filter(user=new_user).update(father_name=user_form.cleaned_data['father_name'])
+            update_session_auth_hash(request, new_user)
+            return redirect('home')
+        else:
+            msg = 'Некорректные данные в форме'
+        return render(request, "profile.html", {"form": user_form, "msg": msg, "success": False}, status=400)
