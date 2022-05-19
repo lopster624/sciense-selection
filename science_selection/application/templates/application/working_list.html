@@ -23,6 +23,9 @@
                     <button type="submit" class="btn btn-outline-dark">Применить</button>
                 </div>
             </form>
+            <div class="mt-4 text-center">Экспорт в Excel
+                <a href="{% url 'export_work_list' %}?{{request.GET.urlencode}}" class="btn btn-outline-dark">Экспорт</a>
+            </div>
         </div>
         <div class="col-9">
             <table class="table table bg-white">

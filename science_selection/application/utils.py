@@ -1,5 +1,6 @@
 import datetime
 import re
+from collections import defaultdict
 from io import BytesIO
 from openpyxl import load_workbook, Workbook
 from openpyxl.utils.cell import get_column_letter
@@ -417,22 +418,53 @@ class ExcelFromApps:
         self.sheet = self.wb.create_sheet()
 
     def add_app_to_sheet(self):
-        self._update_column_dimensions()
         header = const.HEADERS_FOR_EXCEL_APP_TABLES
+        self._update_column_dimensions(header)
         self.sheet.append(header)
         for app in self.apps:
             row = self._convert_app_to_required_format(app)
             self.sheet.append(row)
         return self._save()
 
+    def add_work_list_to_sheet(self):
+        header = const.WORK_LIST_HEADERS_FOR_EXCEL
+        self._update_column_dimensions(header)
+        self.sheet.append(header)
+        for app in self.apps:
+            row = self._convert_work_list_to_required_format(app)
+            self.sheet.append(row)
+        return self._save()
+
     def _convert_app_to_required_format(self, app):
         birth_day = convert_datetime_to_str(app.birth_day, '%d.%m.%Y')
         draft_season = app.get_draft_time()
-        full_name = f"{app.member.user.last_name} {app.member.user.first_name} {app.member.father_name}"
+        full_name = self._get_full_name(app)
+        education_type = self._get_education_type(app)
+        return [full_name, draft_season, birth_day, app.birth_place, app.subject_name,
+                app.university, education_type, app.specialization, app.avg_score]
+
+    def _convert_work_list_to_required_format(self, app):
+        full_name = self._get_full_name(app)
+        user_competencies = self._get_user_competencies(app)
+        return [full_name, app.member.phone, app.member.user.email, app.final_score, app.university, app.specialization,
+                ', '.join(user_competencies[3]), ', '.join(user_competencies[2]), ', '.join(user_competencies[1])]
+
+    def _get_user_competencies(self, app):
+        competence_levels = {
+            3: [],
+            2: [],
+            1: [],
+        }
+        for comp in app.app_competence.all():
+            competence_levels[comp.level].append(comp.competence.name)
+        return competence_levels
+
+    def _get_full_name(self, app):
+        return f"{app.member.user.last_name} {app.member.user.first_name} {app.member.father_name}"
+
+    def _get_education_type(self, app):
         education_type = [name for ed_type, name in Education.education_program if ed_type == app.education_type]
-        education_type = education_type[0] if education_type else ""
-        return [full_name, draft_season, birth_day, app.birth_place, app.subject_name, app.university, education_type,
-                app.specialization, app.avg_score]
+        return education_type[0] if education_type else ""
 
     def _save(self):
         buffer = BytesIO()
@@ -440,10 +472,10 @@ class ExcelFromApps:
         buffer.seek(0)
         return buffer
 
-    def _update_column_dimensions(self):
-        for i in range(1, len(const.HEADERS_FOR_EXCEL_APP_TABLES) + 1):
+    def _update_column_dimensions(self, columns):
+        for i in range(1, len(columns) + 1):
             letter = get_column_letter(i)
-            self.sheet.column_dimensions[letter].width = 20
+            self.sheet.column_dimensions[letter].width = 25
 
 
 class Converter:

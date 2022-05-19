@@ -1045,6 +1045,38 @@ class WorkingListView(MasterDataMixin, ListView):
             booking_type__id__in=booking_type_id).values_list('slave', flat=True))
 
 
+class ExportWorkListView(MasterDataMixin, View):
+
+    def get(self, request):
+        apps = self.get_work_list()
+        excel_from_apps = ExcelFromApps(apps)
+        excel_file = excel_from_apps.add_work_list_to_sheet()
+
+        response = HttpResponse(excel_file, content_type='application/xlsx')
+        response['Content-Disposition'] = 'attachment; filename="' + escape_uri_path('Рабочий список.xlsx') + '"'
+        return response
+
+    def get_work_list(self):
+        chosen_affiliation_id = WorkingListView(request=self.request).get_chosen_affiliation_id()
+        chosen_direction = Direction.objects.get(affiliation__id=chosen_affiliation_id)
+
+        apps = Application.objects.all().select_related('member', 'member__user').prefetch_related(
+            Prefetch('app_competence',
+                     queryset=ApplicationCompetencies.objects.filter(
+                         competence__directions=chosen_direction, level__in=[1, 2, 3]).select_related('competence')),
+
+        ).only('id', 'member', 'final_score', 'member__user__first_name', 'member__user__last_name', 'member__user__email',
+               'member__father_name')
+        apps = WorkingListView(request=self.request).get_filtered_queryset(apps, chosen_affiliation_id)
+        apps = apps.annotate(
+            university=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
+                'university')[:1]),
+            specialization=Subquery(Education.objects.filter(application=OuterRef('pk')).order_by('-end_year').values(
+                'specialization')[:1]),
+        )
+        return apps
+
+
 class ChangeWorkGroupView(MasterDataMixin, View):
     """Используется для смены рабочей группы у заявки."""
 

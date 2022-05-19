@@ -35,6 +35,7 @@ urlpatterns = [
     path('work-group/remove-application/<int:app_id>/<int:group_id>/', views.RemoveApplicationWorkGroupView.as_view(),
          name='remove_app_from_group'),
     path('work-list/', views.WorkingListView.as_view(), name='work_list'),
+    path('work-list/export/', views.ExportWorkListView.as_view(), name='export_work_list'),
     path('application/set-work-group/<int:app_id>/', views.ChangeWorkGroupView.as_view(), name='change_work_group'),
 
     path('search/universities/', views.ajax_search_info_in_db_tables, name='ajax_search_universities'),
