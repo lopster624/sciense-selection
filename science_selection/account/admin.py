@@ -34,7 +34,8 @@ class AffiliationAdmin(admin.ModelAdmin):
 @admin.register(models.Booking)
 class BookingAdmin(admin.ModelAdmin):
     list_display = ('booking_type', 'master', 'slave',)
-    list_filter = ('booking_type', 'master', 'slave',)
+    list_filter = ('booking_type', )
+    search_fields = ('slave__user__last_name', 'slave__user__first_name',)
 
 
 @admin.register(models.BookingType)
