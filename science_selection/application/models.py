@@ -238,9 +238,6 @@ class Education(models.Model):
     def check_name_uni(self):
         return True if Universities.objects.filter(name=self.university).exists() else False
 
-    def get_education_type_display(self):
-        return next(name for ed_type, name in self.education_program if ed_type == self.education_type)
-
     class Meta:
         verbose_name = "Образование"
         verbose_name_plural = "Образование"

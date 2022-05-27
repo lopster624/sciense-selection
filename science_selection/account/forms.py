@@ -4,7 +4,7 @@ from django.forms.widgets import Input
 
 
 class ProfileForm(forms.ModelForm):
-    father_name = forms.CharField(label='Отчество', widget=Input(attrs={'class': 'form-control'}))
+    father_name = forms.CharField(label='Отчество', widget=Input(attrs={'class': 'form-control', 'required': False}))
 
     class Meta:
         model = User
@@ -13,20 +13,23 @@ class ProfileForm(forms.ModelForm):
         widgets = {
             'password': Input(attrs={
                 'type': 'password',
-                'class': 'form-control'
+                'class': 'form-control',
+                'required': False,
             }),
             'email': Input(attrs={
                 'type': 'email',
-                'class': 'form-control'
+                'class': 'form-control',
+                'required': True,
             }),
-            'first_name': Input(attrs={'class': 'form-control'}),
-            'last_name': Input(attrs={'class': 'form-control'}),
+            'first_name': Input(attrs={'class': 'form-control', 'required': True}),
+            'last_name': Input(attrs={'class': 'form-control', 'required': True}),
         }
 
     def __init__(self, *args, **kwargs):
         super(ProfileForm, self).__init__(*args, **kwargs)
         for key in self.fields:
-            self.fields[key].required = True if key != 'father_name' else False
+            if key == 'password' or key == 'father_name':
+                self.fields[key].required = False
 
 
 class RegisterForm(ProfileForm):
@@ -34,7 +37,8 @@ class RegisterForm(ProfileForm):
 
     class Meta(ProfileForm.Meta):
         fields = ('username', 'password') + ProfileForm.Meta.fields
-        widgets = {**ProfileForm.Meta.widgets, 'username': Input(attrs={'class': 'form-control'})}
+        widgets = {**ProfileForm.Meta.widgets, 'username': Input(attrs={'class': 'form-control'}),
+                   'password': Input(attrs={'type': 'password', 'class': 'form-control', 'required': True})}
 
     def clean_username(self):
         username = self.cleaned_data['username']

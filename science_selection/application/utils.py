@@ -1,6 +1,5 @@
 import datetime
 import re
-from collections import defaultdict
 from io import BytesIO
 from openpyxl import load_workbook, Workbook
 from openpyxl.utils.cell import get_column_letter
@@ -439,7 +438,7 @@ class ExcelFromApps:
         birth_day = convert_datetime_to_str(app.birth_day, '%d.%m.%Y')
         draft_season = app.get_draft_time()
         full_name = self._get_full_name(app)
-        education_type = self._get_education_type(app)
+        education_type = Education.get_education_type_display(app)
         return [full_name, draft_season, birth_day, app.birth_place, app.subject_name,
                 app.university, education_type, app.specialization, app.avg_score]
 
@@ -461,10 +460,6 @@ class ExcelFromApps:
 
     def _get_full_name(self, app):
         return f"{app.member.user.last_name} {app.member.user.first_name} {app.member.father_name}"
-
-    def _get_education_type(self, app):
-        education_type = [name for ed_type, name in Education.education_program if ed_type == app.education_type]
-        return education_type[0] if education_type else ""
 
     def _save(self):
         buffer = BytesIO()

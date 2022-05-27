@@ -1,4 +1,5 @@
 from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.models import User
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, F, Q
 from django.shortcuts import render, redirect
@@ -114,7 +115,11 @@ class GetUserProfileView(LoginRequiredMixin, View):
         user_form = ProfileForm(request.POST, instance=request.user)
         if user_form.is_valid():
             new_user = user_form.save(commit=False)
-            new_user.set_password(user_form.cleaned_data['password'])
+            if user_form.cleaned_data['password']:
+                new_user.set_password(user_form.cleaned_data['password'])
+            else:
+                user = User.objects.get(pk=request.user.pk)
+                new_user.password = user.password
             new_user.save()
             if request.user.member.father_name != user_form.cleaned_data['father_name']:
                 Member.objects.filter(user=new_user).update(father_name=user_form.cleaned_data['father_name'])
