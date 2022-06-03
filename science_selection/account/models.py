@@ -63,7 +63,7 @@ class Member(models.Model):
 
     @staticmethod
     def if_member_exists(phone=None, email=None):
-        return Member.objects.filter(models.Q(phone=phone) | models.Q(user__email=email)).exists()
+        return Member.objects.filter(models.Q(phone=phone) | models.Q(user__email=email)).first()
 
 
 def create_activation_link(user):
