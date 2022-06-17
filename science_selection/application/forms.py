@@ -57,7 +57,7 @@ class ApplicationMasterForm(forms.ModelForm):
 
     class Meta:
         model = Application
-        exclude = ('create_date', 'update_date', 'fullness', 'final_score', 'member',
+        exclude = ('create_date', 'update_date', 'fullness', 'final_score', 'member', 'unsuitable',
                    'competencies', 'directions', 'id', 'is_final', 'work_group')
         widgets = {
             'birth_place': Input(attrs={'class': 'form-control'}),
@@ -126,6 +126,12 @@ class FilterAppListForm(forms.Form):
         choices=order,
         initial='2',
         widget=Select(attrs={'class': 'form-select'}),
+    )
+    unsuitable = forms.ChoiceField(
+        label='Подходящие заявки',
+        required=False,
+        widget=Select(attrs={'class': 'form-select'}),
+        choices=[(0, 'Подходят'), (1, 'Не подходят')]
     )
     directions = forms.MultipleChoiceField(
         label='Направления заявки',

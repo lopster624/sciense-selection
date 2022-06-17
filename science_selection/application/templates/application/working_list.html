@@ -100,7 +100,7 @@
                     <td scope="row" class="text-nowrap">
                         {% if app.company == chosen_company and app.platoon == chosen_platoon %}
                         <form method="post" id="work_group_form{{app.id}}"
-                              action="{% url 'change_work_group' app.id %}">
+                              action="{% url 'change_work_group' app.id %}?{{request.GET.urlencode}}">
                             {% csrf_token %}
                             {% for f in group_form %}
                             <div class="form-group mb-1 clearfix">

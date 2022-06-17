@@ -6,7 +6,7 @@ from django.db import models
 from django.dispatch import receiver
 
 from engine.settings import DEFAULT_FROM_EMAIL
-from utils.constants import ACTIVATION_LINK, MASTER_ROLE_NAME, SLAVE_ROLE_NAME
+from utils.constants import ACTIVATION_LINK, MASTER_ROLE_NAME, SLAVE_ROLE_NAME, MODERATOR_ROLE_NAME
 
 # from .tasks import send_verification_email
 
@@ -59,7 +59,10 @@ class Member(models.Model):
         return self.role.role_name == SLAVE_ROLE_NAME
 
     def is_master(self):
-        return self.role.role_name == MASTER_ROLE_NAME
+        return self.role.role_name == MASTER_ROLE_NAME or self.role.role_name == MODERATOR_ROLE_NAME
+
+    def is_moderator(self):
+        return self.role.role_name == MODERATOR_ROLE_NAME
 
     @staticmethod
     def if_member_exists(phone=None, email=None):

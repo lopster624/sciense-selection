@@ -53,13 +53,13 @@ def check_affiliation_max_count(pk, booking_type, affiliation):
     return True
 
 
-def check_permission_decorator(role_name=None):
+def check_permission_decorator(role_names=None):
     """ Кидает исключение PermissionDenied, если роль user!=role_name
     или текущий пользователь не является пользователем с переданным pk"""
 
     def decorator(func):
         def wrapper(self, request, pk, *args, **kwargs):
-            if request.user.member.role.role_name == role_name:
+            if request.user.member.role.role_name in role_names:
                 return func(self, request, pk, *args, **kwargs)
             member = Member.objects.filter(application__id=pk).first()
             if member != request.user.member:
@@ -402,9 +402,9 @@ class Questionnaires:
         full_name = params.get('full_name')
         separated_full_name = full_name.strip().split(' ', maxsplit=2)
         return {
-            'first_name': separated_full_name[1],
-            'last_name': separated_full_name[0],
-            'father_name': separated_full_name[2] if len(separated_full_name) == 3 else '',
+            'first_name': separated_full_name[1].title(),
+            'last_name': separated_full_name[0].title(),
+            'father_name': separated_full_name[2].title() if len(separated_full_name) == 3 else '',
             'phone': convert_phone_format(params['phone']),
             'email': params['email'],
         }

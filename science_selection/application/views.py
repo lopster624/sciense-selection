@@ -36,7 +36,7 @@ from .utils import check_permission_decorator, WordTemplate, check_booking_our_o
 class ChooseDirectionInAppView(DataApplicationMixin, LoginRequiredMixin, View):
     """ Показывает список имеющихся направлений. Сохраняет список выбранных направлений в заявке. """
 
-    @check_permission_decorator(const.MASTER_ROLE_NAME)
+    @check_permission_decorator([const.MASTER_ROLE_NAME, const.MODERATOR_ROLE_NAME])
     def get(self, request, pk):
         """ Показывает пользователю все направления. Отмечает выбранные. Разрешает редактирование только
         кандидату, если это его анкета и она не заблокирована."""
@@ -115,7 +115,7 @@ class CreateApplicationView(LoginRequiredMixin, OnlySlaveAccessMixin, View):
 class ApplicationView(LoginRequiredMixin, DataApplicationMixin, View):
     """ Показывает заявку пользователя в режиме просмотра """
 
-    @check_permission_decorator(const.MASTER_ROLE_NAME)
+    @check_permission_decorator([const.MASTER_ROLE_NAME, const.MODERATOR_ROLE_NAME])
     def get(self, request, pk):
         context = {}
         user_application = self.get_user_application(pk)
@@ -191,7 +191,7 @@ class ApplicationView(LoginRequiredMixin, DataApplicationMixin, View):
 class EditApplicationView(LoginRequiredMixin, View):
     """ Показывает форму для редактирования заявки. Сохраняет отредактированную заявку. """
 
-    @check_permission_decorator(const.MASTER_ROLE_NAME)
+    @check_permission_decorator([const.MASTER_ROLE_NAME, const.MODERATOR_ROLE_NAME])
     def get(self, request, pk):
         user_app = get_object_or_404(Application, pk=pk)
         if user_app.is_final and request.user.member.is_slave():
@@ -208,7 +208,7 @@ class EditApplicationView(LoginRequiredMixin, View):
                    'hidden_fields': Application.hidden_fields}
         return render(request, 'application/application_edit.html', context=context)
 
-    @check_permission_decorator(const.MASTER_ROLE_NAME)
+    @check_permission_decorator([const.MASTER_ROLE_NAME, const.MODERATOR_ROLE_NAME])
     def post(self, request, pk):
         user_app = get_object_or_404(Application, pk=pk)
         if user_app.is_final and request.user.member.is_slave():
@@ -240,7 +240,7 @@ class EditApplicationView(LoginRequiredMixin, View):
 class DocumentsInAppView(LoginRequiredMixin, View):
     """ Показывает список загруженных файлов и имеюищхся шаблонов. Сохраняет загруженные файлы в заявке """
 
-    @check_permission_decorator(const.MASTER_ROLE_NAME)
+    @check_permission_decorator([const.MASTER_ROLE_NAME, const.MODERATOR_ROLE_NAME])
     def get(self, request, pk):
         file_templates = File.objects.filter(is_template=True).all()
         app = get_object_or_404(Application, pk=pk)
@@ -263,7 +263,7 @@ class DocumentsInAppView(LoginRequiredMixin, View):
 class CreateWordAppView(LoginRequiredMixin, View):
     """ Генерирует анкету в формате docx на основе заявки """
 
-    @check_permission_decorator(const.MASTER_ROLE_NAME)
+    @check_permission_decorator([const.MASTER_ROLE_NAME, const.MODERATOR_ROLE_NAME])
     def get(self, request, pk):
         user_app = get_object_or_404(Application.objects.only('member'), pk=pk)
         filename = f"Анкета_{user_app.member.user.last_name}.docx"
@@ -337,7 +337,7 @@ class ChooseCompetenceInAppView(LoginRequiredMixin, View):
     """ Показывает список имеющихся компетенций по выбранным направлениям.
     Сохраняет список выбранных компетенций и их уровень в заявке. """
 
-    @check_permission_decorator(const.MASTER_ROLE_NAME)
+    @check_permission_decorator([const.MASTER_ROLE_NAME, const.MODERATOR_ROLE_NAME])
     def get(self, request, pk):
         user_app = get_object_or_404(Application, pk=pk)
         context = {'competence_active': True, 'pk': pk}
@@ -563,7 +563,7 @@ class ApplicationListView(MasterDataMixin, ListView):
             args.pop('page', None)
         if not args:
             current_year, current_season = get_current_draft_year()
-            return apps.filter(draft_year=current_year, draft_season=current_season[0]).distinct()
+            return apps.filter(draft_year=current_year, draft_season=current_season[0], unsuitable=False).distinct()
 
         # фильтрация по направлениям
         chosen_directions = self.request.GET.getlist('directions', None)
@@ -594,6 +594,12 @@ class ApplicationListView(MasterDataMixin, ListView):
         draft_year = self.request.GET.getlist('draft_year', None)
         if draft_year:
             apps = apps.filter(draft_year__in=draft_year).distinct()
+
+        # фильтрация по статусу анкеты - подходит или нет
+        unsuitable = self.request.GET.getlist('unsuitable', None)
+        if unsuitable:
+            apps = apps.filter(unsuitable=bool(int(unsuitable[0])))
+
         return apps
 
     def filter_by_search(self, apps):
@@ -1094,7 +1100,8 @@ class ChangeWorkGroupView(MasterDataMixin, View):
             if not Booking.objects.filter(booking_type=booking_type_booked, slave=application.member,
                                           affiliation=group.affiliation).exists():
                 raise PermissionDenied('Невозможно назначить данному кандидату рабочую группу другого взвода!')
-        work_group_select = ChooseWorkGroupForm(data=request.POST, instance=application)
+        group_set = WorkGroup.objects.filter(affiliation__id=WorkingListView(request=self.request).get_chosen_affiliation_id())
+        work_group_select = ChooseWorkGroupForm(data=request.POST, instance=application, group_set=group_set)
         if work_group_select.is_valid():
             work_group_select.save()
         return self.get_redirect_on_previous_page(request)
@@ -1141,3 +1148,16 @@ class ApplicationsDownloadingView(MasterDataMixin, View):
                 ordering = Lower(ordering)
             return apps.order_by(ordering)
         return apps.order_by('-create_date')
+
+
+class AddAppToUnsuitable(MasterDataMixin, View):
+    """ Добавление анкеты в список неподходящих ко какому-либо критерию (маленький средний балл и т.д.) - новый статус """
+
+    @check_permission_decorator([const.MODERATOR_ROLE_NAME])
+    def post(self, request, pk):
+        """ Меняет поле suitable анкеты с id=pk """
+        unsuitable = request.POST.get('unsuitable', None) == 'on'
+        application = get_object_or_404(Application, pk=pk)
+        application.unsuitable = unsuitable
+        application.save()
+        return redirect('application', pk=pk)

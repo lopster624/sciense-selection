@@ -5,7 +5,7 @@ from django.shortcuts import redirect
 from account.models import Affiliation
 from application.models import Competence, Direction
 from application.utils import check_role
-from utils.constants import MASTER_ROLE_NAME
+from utils.constants import MASTER_ROLE_NAME, MODERATOR_ROLE_NAME
 from utils.exceptions import MasterHasNoDirectionsException, NoHTTPReferer
 
 
@@ -13,7 +13,7 @@ class OnlyMasterAccessMixin:
     """Проверяет,что пользователь обладает ролью мастера"""
 
     def dispatch(self, request, *args, **kwargs):
-        if not check_role(request.user, MASTER_ROLE_NAME):
+        if not (check_role(request.user, MASTER_ROLE_NAME) or check_role(request.user, MODERATOR_ROLE_NAME)):
             raise PermissionDenied('Недостаточно прав для входа на данную страницу.')
         return super().dispatch(request, *args, **kwargs)
 

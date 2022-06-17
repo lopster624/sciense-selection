@@ -69,6 +69,7 @@ class Application(models.Model):
     fullness = models.IntegerField(default=0, verbose_name='Процент заполненности')
     final_score = models.FloatField(default=0, verbose_name='Итоговая оценка заявки')
     is_final = models.BooleanField(default=False, verbose_name='Законченность анкеты')
+    unsuitable = models.BooleanField(default=False, verbose_name='Подходит или нет по его данным: средний балл и т.д.')
     work_group = models.ForeignKey(WorkGroup, on_delete=models.SET_NULL, blank=True, null=True,
                                    verbose_name="Рабочая группа",
                                    related_name='application')

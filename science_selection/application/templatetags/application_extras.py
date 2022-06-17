@@ -67,6 +67,14 @@ def get_is_final_switch(application, user):
     return {}
 
 
+@register.inclusion_tag('application/tags/is_unsuitable_switch_tag.html')
+def get_is_unsuitable_switch(application):
+    """
+    Рендерит кнопку переключения анкеты (подходящая/неподходящая)
+    """
+    return {'user_app': application}
+
+
 @register.simple_tag
 def get_education_type_name(letter):
     if not letter:

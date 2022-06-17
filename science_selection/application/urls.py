@@ -11,6 +11,7 @@ urlpatterns = [
     path('application/<int:pk>/documents/', views.DocumentsInAppView.as_view(), name='app_documents'),
     path('application/<int:pk>/word/', views.CreateWordAppView.as_view(), name='create_word_app'),
     path('application/<int:pk>/add_note/', views.EditApplicationNote.as_view(), name='add_application_note'),
+    path('application/<int:pk>/unsuitable/', views.AddAppToUnsuitable.as_view(), name='add_to_unsuitable'),
     path('application/list/', views.ApplicationListView.as_view(), name='application_list'),
     path('application/list/download/', views.ApplicationsDownloadingView.as_view(), name='downloading_applications'),
     path('application/<int:pk>/finished/', views.ChangeAppFinishedView.as_view(), name='change_finished'),
